@@ -12,10 +12,14 @@ import { PetViewModal } from "@/components/modals/PetViewModal";
 import { PetEditModal } from "@/components/modals/PetEditModal";
 import { PetDossierModal } from "@/components/modals/PetDossierModal";
 import { MedicalStats } from "@/components/MedicalStats";
-import { ClientProvider, useClients, Pet } from "@/contexts/ClientContext";
+import { useAnimals, useClients } from "@/hooks/useDatabase";
+import type { Animal, Client } from "@/lib/database";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
 import { calculateAge } from "@/lib/utils";
+
+// Import the original Pet interface from ClientContext for compatibility
+import { Pet } from "@/contexts/ClientContext";
 
 const statusStyles = {
   healthy: "bg-secondary text-secondary-foreground",
@@ -23,8 +27,51 @@ const statusStyles = {
   urgent: "bg-destructive text-destructive-foreground"
 };
 
+// Convert database Animal to old Pet format
+const convertAnimalToPet = (animal: Animal, clients: Client[]): Pet => {
+  const client = clients.find(c => c.id === animal.client_id);
+  const clientName = client ? `${client.first_name} ${client.last_name}` : 'Propriétaire inconnu';
+  
+  // Convert UUID to number for compatibility (using hash)
+  const petId = Math.abs(animal.id.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0));
+  
+  const clientId = Math.abs(animal.client_id.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0));
+  
+  return {
+    id: petId,
+    name: animal.name,
+    type: animal.species,
+    breed: animal.breed || '',
+    gender: animal.sex === 'Mâle' ? 'male' : (animal.sex === 'Femelle' ? 'female' : undefined),
+    birthDate: animal.birth_date || '',
+    weight: animal.weight ? animal.weight.toString() : '',
+    color: animal.color || '',
+    microchip: animal.microchip_number || '',
+    medicalNotes: animal.notes || '',
+    photo: animal.photo_url || '',
+    ownerId: clientId,
+    owner: clientName,
+    status: animal.status === 'vivant' ? 'healthy' : (animal.status === 'décédé' ? 'urgent' : 'treatment'),
+    lastVisit: animal.updated_at ? new Date(animal.updated_at).toLocaleDateString('fr-FR') : 'Jamais',
+    nextAppointment: undefined,
+    vaccinations: []
+  };
+};
+
 const PetsContent = () => {
-  const { pets, clients, consultations, getConsultationsByPetId } = useClients();
+  const { data: animals = [], isLoading: animalsLoading } = useAnimals();
+  const { data: clients = [], isLoading: clientsLoading } = useClients();
+  
+  // Convert animals to pets format for compatibility
+  const pets = animals.map(animal => convertAnimalToPet(animal, clients));
+  const consultations: any[] = []; // Placeholder for consultations
+  const getConsultationsByPetId = (petId: number) => [];
   const { currentView } = useDisplayPreference('pets');
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
@@ -443,11 +490,7 @@ const PetsContent = () => {
 };
 
 const Pets = () => {
-  return (
-    <ClientProvider>
-      <PetsContent />
-    </ClientProvider>
-  );
+  return <PetsContent />;
 };
 
 export default Pets;

@@ -72,12 +72,12 @@ const AntiparasiteCalendar: React.FC = () => {
 
   const handleEventClick = (event: any) => {
     // Gérer le clic sur un événement antiparasite
-    console.log('Antiparasitic clicked:', event);
+    // Antiparasitic clicked
   };
 
   const handleDateClick = (date: string) => {
     // Gérer le clic sur une date
-    console.log('Date clicked:', date);
+    // Date clicked
   };
 
   return (

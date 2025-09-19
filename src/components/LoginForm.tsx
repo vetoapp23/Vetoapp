@@ -25,8 +25,9 @@ export function LoginForm() {
 
     const success = await login(email, password);
     if (!success) {
-      setError('Email ou mot de passe incorrect');
+      setError('Email ou mot de passe incorrect, ou email non confirmé');
     }
+    // No need for manual navigation - the auth state change will handle redirect
   };
 
   return (
@@ -109,11 +110,12 @@ export function LoginForm() {
             </Button>
           </form>
           
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-            <h4 className="text-sm font-medium mb-2">Compte de démonstration :</h4>
-            <p className="text-xs text-muted-foreground">
-              <strong>Email :</strong> vet@vetpro.com<br />
-              <strong>Mot de passe :</strong> vetpro123
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              Pas encore de compte ?{" "}
+              <a href="/register" className="text-primary hover:underline">
+                S'inscrire
+              </a>
             </p>
           </div>
         </CardContent>

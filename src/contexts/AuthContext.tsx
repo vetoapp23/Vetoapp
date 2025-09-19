@@ -1,90 +1,102 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'veterinarian' | 'assistant';
-}
+import React, { createContext, useContext, useEffect, ReactNode, useRef, useState } from 'react';
+import { useAuthSession, useLogin, useLogout, useRefreshProfile, User } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
+import { useQueryClient } from '@tanstack/react-query';
+import { authKeys } from '../hooks/useAuth';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
   isLoading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Utilisateur par défaut pour la démo
-const DEFAULT_USER: User = {
-  id: '1',
-  name: 'Dr. Vétérinaire',
-  email: 'vet@vetpro.com',
-  role: 'admin'
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: user, isLoading: queryLoading, error } = useAuthSession();
+  const loginMutation = useLogin();
+  const logoutMutation = useLogout();
+  const refreshProfileMutation = useRefreshProfile();
+  const queryClient = useQueryClient();
+  
+  // Track initialization state to prevent infinite loading
+  const [isInitialized, setIsInitialized] = useState(false);
+  const authStateSetup = useRef(false);
 
   useEffect(() => {
-    // Vérifier si l'utilisateur est connecté au chargement
-    const savedUser = localStorage.getItem('vetpro-user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Erreur lors du parsing de l\'utilisateur sauvegardé:', error);
-        localStorage.removeItem('vetpro-user');
+    if (authStateSetup.current) return;
+    authStateSetup.current = true;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        // Handle auth state changes more precisely
+        if (event === 'SIGNED_OUT') {
+          queryClient.setQueryData(authKeys.session(), null);
+          queryClient.removeQueries({ queryKey: authKeys.session() });
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          // Invalidate on token refresh to get updated data
+          queryClient.invalidateQueries({ queryKey: authKeys.session() });
+        }
+        
+        // Mark as initialized after first auth event
+        if (!isInitialized) {
+          setIsInitialized(true);
+        }
       }
-    }
-    setIsLoading(false);
-  }, []);
+    );
+
+    // Set timeout fallback for initial load
+    const initTimeout = setTimeout(() => {
+      if (!isInitialized) {
+        setIsInitialized(true);
+      }
+    }, 2000); // 2 second fallback
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(initTimeout);
+      authStateSetup.current = false;
+    };
+  }, [queryClient, isInitialized]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
-    
-    // Simulation d'une authentification
-    // En production, ceci serait remplacé par un appel API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (email === 'vet@vetpro.com' && password === 'vetpro123') {
-      setUser(DEFAULT_USER);
-      localStorage.setItem('vetpro-user', JSON.stringify(DEFAULT_USER));
-      setIsLoading(false);
+    try {
+      await loginMutation.mutateAsync({ email, password });
       return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('vetpro-user');
-    // Optionnel: nettoyer d'autres données sensibles
-    localStorage.removeItem('vetpro-clients');
-    localStorage.removeItem('vetpro-pets');
-    localStorage.removeItem('vetpro-consultations');
-    localStorage.removeItem('vetpro-appointments');
-    localStorage.removeItem('vetpro-prescriptions');
-    localStorage.removeItem('vetpro-farms');
-    localStorage.removeItem('vetpro-vaccinations');
-    localStorage.removeItem('vetpro-antiparasitics');
-    localStorage.removeItem('vetpro-stockItems');
-    localStorage.removeItem('vetpro-stockMovements');
-    localStorage.removeItem('vetpro-accountingEntries');
-    localStorage.removeItem('vetpro-settings');
+  const logout = async (): Promise<void> => {
+    try {
+      await logoutMutation.mutateAsync();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force logout even if mutation fails
+      queryClient.setQueryData(authKeys.session(), null);
+    }
   };
+
+  const refreshProfile = async (): Promise<void> => {
+    await refreshProfileMutation.mutateAsync();
+  };
+
+  // Compute loading state more intelligently
+  const isActuallyLoading = !isInitialized || (queryLoading && !error && user === undefined);
+  const mutationLoading = loginMutation.isPending || logoutMutation.isPending;
 
   const value: AuthContextType = {
-    user,
-    isAuthenticated: !!user,
+    user: user || null,
+    isAuthenticated: !!user && isInitialized,
+    isLoading: isActuallyLoading || mutationLoading,
     login,
     logout,
-    isLoading
+    refreshProfile
   };
 
   return (

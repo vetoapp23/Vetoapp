@@ -67,14 +67,7 @@ export default function Stock() {
   const { settings } = useSettings();
   const { toast } = useToast();
   
-  // Debug pour vérifier les mises à jour
-  React.useEffect(() => {
-    console.log('Stock mis à jour:', {
-      items: stockItems.length,
-      movements: stockMovements.length,
-      lastMovement: stockMovements[stockMovements.length - 1]
-    });
-  }, [stockItems, stockMovements]);
+  // Debug removed for production
   
   // États pour les modales
   const [showNewItemModal, setShowNewItemModal] = useState(false);

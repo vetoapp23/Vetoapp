@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { useClients } from "@/contexts/ClientContext";
+import { useClients, useCreateAnimal } from "@/hooks/useDatabase";
 import { useSettings } from "@/contexts/SettingsContext";
+import type { CreateAnimalData } from "@/lib/database";
 
 interface NewPetModalProps {
   open: boolean;
@@ -16,7 +17,8 @@ interface NewPetModalProps {
 }
 
 export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
-  const { addPet, clients } = useClients();
+  const { data: clients = [] } = useClients();
+  const createAnimalMutation = useCreateAnimal();
   const { settings } = useSettings();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -27,7 +29,7 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
     birthDate: "",
     weight: "",
     color: "",
-    ownerId: 0,
+    ownerId: "",
     microchip: "",
     medicalNotes: "",
     photo: "", // added official photo
@@ -57,11 +59,11 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
   const handleSelectChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: field === 'ownerId' ? parseInt(value) : value
+      [field]: value
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const owner = clients.find(c => c.id === formData.ownerId);
@@ -73,35 +75,65 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
       return;
     }
     
-    // Add pet to context
-    addPet({
-      ...formData,
-      owner: owner.name,
-      status: 'healthy',
-      photo: formData.photo
-    });
+    try {
+      // Create animal data compatible with database
+      const animalData: CreateAnimalData = {
+        client_id: formData.ownerId,
+        name: formData.name,
+        species: formData.type as any, // Cast to database species type
+        breed: formData.breed || undefined,
+        color: formData.color || undefined,
+        sex: formData.gender === 'male' ? 'Mâle' : (formData.gender === 'female' ? 'Femelle' : 'Inconnu'),
+        weight: formData.weight ? Number(formData.weight) : undefined,
+        birth_date: formData.birthDate || undefined,
+        microchip_number: formData.microchip || undefined,
+        notes: formData.medicalNotes || undefined,
+        photo_url: formData.photo || undefined
+      };
+
+      await createAnimalMutation.mutateAsync(animalData);
     
-    toast({
-      title: "Animal ajouté",
-      description: `${formData.name} a été ajouté et sauvegardé avec succès.`,
-    });
-    
-    // Reset form
-    setFormData({
-      name: "",
-      type: "",
-      breed: "",
-      gender: "",
-      birthDate: "",
-      weight: "",
-      color: "",
-      ownerId: 0,
-      microchip: "",
-      medicalNotes: "",
-      photo: ""
-    });
-    
-    onOpenChange(false);
+      toast({
+        title: "Animal ajouté",
+        description: `${formData.name} a été ajouté et sauvegardé avec succès.`,
+      });
+      
+      // Reset form with all required properties
+      setFormData({
+        name: "",
+        type: "",
+        breed: "",
+        gender: "",
+        birthDate: "",
+        weight: "",
+        color: "",
+        ownerId: "",
+        microchip: "",
+        medicalNotes: "",
+        photo: "",
+        hasPedigree: false,
+        officialName: "",
+        pedigreeNumber: "",
+        breeder: "",
+        fatherName: "",
+        fatherPedigree: "",
+        fatherBreed: "",
+        fatherTitles: "",
+        motherName: "",
+        motherPedigree: "",
+        motherBreed: "",
+        motherTitles: "",
+        pedigreePhoto: ""
+      });
+      
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de l'ajout de l'animal",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -221,7 +253,7 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
                 <SelectContent>
                   {clients.map(client => (
                     <SelectItem key={client.id} value={client.id.toString()}>
-                      {client.name} - {client.email}
+                      {client.first_name} {client.last_name} - {client.email}
                     </SelectItem>
                   ))}
                 </SelectContent>

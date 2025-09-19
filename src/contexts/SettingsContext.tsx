@@ -175,7 +175,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             ...parsedSettings.scheduleSettings
           }
         };
-        console.log('Settings chargés:', mergedSettings.veterinarians);
+        // Settings loaded successfully
         setSettings(mergedSettings);
         // Sauvegarder la version mise à jour pour éviter les problèmes futurs
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));

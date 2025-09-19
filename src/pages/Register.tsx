@@ -2,20 +2,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
 import { Link, useNavigate } from "react-router-dom";
-import { Heart } from "lucide-react";
+import { Heart, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { signUp } from "@/lib/supabase";
 
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: "",
+    username: "",
+    fullName: "",
     email: "",
     password: "",
-    confirmPassword: "",
-    clinic: ""
+    confirmPassword: ""
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,8 +28,11 @@ const Register = () => {
     }));
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
     if (formData.password !== formData.confirmPassword) {
       toast({
@@ -34,15 +40,43 @@ const Register = () => {
         description: "Les mots de passe ne correspondent pas",
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
 
-    // Temporary registration logic - replace with Supabase authentication
-    toast({
-      title: "Inscription réussie",
-      description: "Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.",
-    });
-    navigate("/login");
+    if (formData.password.length < 6) {
+      toast({
+        title: "Erreur",
+        description: "Le mot de passe doit comporter au moins 6 caractères",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await signUp(
+        formData.email,
+        formData.password,
+        formData.username,
+        formData.fullName,
+        'assistant'
+      );
+
+      toast({
+        title: "Inscription réussie",
+        description: "Votre compte a été créé avec succès. Veuillez vérifier votre email et cliquer sur le lien de confirmation pour pouvoir vous connecter.",
+      });
+      navigate("/login");
+    } catch (error: any) {
+      toast({
+        title: "Erreur d'inscription",
+        description: error.message || "Une erreur est survenue lors de l'inscription",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -62,22 +96,22 @@ const Register = () => {
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nom complet</Label>
+              <Label htmlFor="username">Nom d'utilisateur</Label>
               <Input
-                id="name"
-                placeholder="Dr. Martin Dubois"
-                value={formData.name}
+                id="username"
+                placeholder="martin.dubois"
+                value={formData.username}
                 onChange={handleChange}
                 required
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="clinic">Nom de la clinique</Label>
+              <Label htmlFor="fullName">Nom complet</Label>
               <Input
-                id="clinic"
-                placeholder="Clinique Vétérinaire du Centre"
-                value={formData.clinic}
+                id="fullName"
+                placeholder="Dr. Martin Dubois"
+                value={formData.fullName}
                 onChange={handleChange}
                 required
               />
@@ -121,8 +155,15 @@ const Register = () => {
               />
             </div>
             
-            <Button type="submit" className="w-full">
-              Créer le compte
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Création en cours...
+                </>
+              ) : (
+                'Créer le compte'
+              )}
             </Button>
           </form>
           

@@ -123,12 +123,12 @@ const VaccinationCalendar: React.FC = () => {
 
   const handleEventClick = (event: any) => {
     // Gérer le clic sur un événement de vaccination
-    console.log('Vaccination clicked:', event);
+    // Vaccination clicked
   };
 
   const handleDateClick = (date: string) => {
     // Gérer le clic sur une date
-    console.log('Date clicked:', date);
+    // Date clicked
   };
 
   return (
@@ -235,12 +235,6 @@ export default function Vaccinations() {
 
   const confirmDeleteVaccination = () => {
     if (vaccinationToDelete) {
-      console.log('🗑️ confirmDeleteVaccination - Vaccination à supprimer:', {
-        id: vaccinationToDelete.id,
-        vaccineName: vaccinationToDelete.vaccineName,
-        vaccinationCategory: vaccinationToDelete.vaccinationCategory,
-        originalVaccinationId: vaccinationToDelete.originalVaccinationId
-      });
       
       deleteVaccination(vaccinationToDelete.id);
       const vaccinationType = vaccinationToDelete.vaccinationCategory === 'reminder' ? 'rappel' : 'vaccination';

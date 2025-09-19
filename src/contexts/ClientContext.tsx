@@ -1843,10 +1843,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       const savedStockAlerts = localStorage.getItem('vetpro-stockAlerts');
       const savedStockMovements = localStorage.getItem('vetpro-stockMovements');
       const savedAccountingEntries = localStorage.getItem('vetpro-accountingEntries');
-      console.log('🔍 loadDataFromStorage - DEBUGGING ANTIPARASITICS:');
-      console.log('   savedAntiparasitics raw:', savedAntiparasitics);
-      console.log('   localStorage vetpro-antiparasitics exists:', !!localStorage.getItem('vetpro-antiparasitics'));
-      console.log('   localStorage content:', localStorage.getItem('vetpro-antiparasitics'));
+      // Debug antiparasitics loading
       
       if (savedClients && savedPets) {
         const parsedClients = JSON.parse(savedClients);
@@ -1865,9 +1862,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         const parsedStockAlerts = savedStockAlerts ? JSON.parse(savedStockAlerts) : [];
         const parsedStockMovements = savedStockMovements ? JSON.parse(savedStockMovements) : [];
         const parsedAccountingEntries = savedAccountingEntries ? JSON.parse(savedAccountingEntries) : [];
-        console.log('✅ loadDataFromStorage - PARSED ANTIPARASITICS:');
-        console.log('   parsedAntiparasitics:', parsedAntiparasitics);
-        console.log('   Length:', parsedAntiparasitics?.length || 0);
+        // Parsed antiparasitics successfully
         console.log('   Should use initial?', !savedAntiparasitics);
         console.log('   initialAntiparasitics length:', initialAntiparasitics.length);
         
