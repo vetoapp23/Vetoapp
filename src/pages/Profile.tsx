@@ -154,8 +154,6 @@ export default function Profile() {
     switch (role) {
       case 'admin':
         return 'Administrateur';
-      case 'veterinarian':
-        return 'Vétérinaire';
       case 'assistant':
         return 'Assistant';
       default:
@@ -167,8 +165,6 @@ export default function Profile() {
     switch (role) {
       case 'admin':
         return 'bg-red-100 text-red-800';
-      case 'veterinarian':
-        return 'bg-blue-100 text-blue-800';
       case 'assistant':
         return 'bg-green-100 text-green-800';
       default:

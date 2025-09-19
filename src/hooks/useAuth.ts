@@ -34,16 +34,17 @@ const fetchAuthSession = async (): Promise<User | null> => {
         profile = await createUserProfileIfNotExists(session.user)
       } catch (createError) {
         // Use fallback profile as last resort
-        profile = {
-          id: session.user.id,
-          email: session.user.email!,
-          username: session.user.user_metadata?.username || session.user.email!.split('@')[0],
-          full_name: session.user.user_metadata?.full_name || session.user.email!.split('@')[0],
-          role: 'admin',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          avatar_url: session.user.user_metadata?.avatar_url || null
-        }
+        // profile = {
+        //   id: session.user.id,
+        //   email: session.user.email!,
+        //   username: session.user.user_metadata?.username || session.user.email!.split('@')[0],
+        //   full_name: session.user.user_metadata?.full_name || session.user.email!.split('@')[0],
+        //   role: 'assistant', // SECURITY FIX: Default to assistant, not admin
+        //   created_at: new Date().toISOString(),
+        //   updated_at: new Date().toISOString(),
+        //   avatar_url: session.user.user_metadata?.avatar_url || null
+        // }
+        console.error('Failed to create user profile:', createError); 
       }
     }
 
@@ -57,7 +58,6 @@ const fetchAuthSession = async (): Promise<User | null> => {
       profile
     }
   } catch (error) {
-    console.error('Auth session fetch error:', error)
     return null
   }
 }
