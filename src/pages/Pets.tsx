@@ -5,15 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; // Added AvatarImage
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Heart, User, Calendar, Stethoscope, Eye, Edit, Activity, Grid, List } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Search, Heart, User, Calendar, Stethoscope, Eye, Edit, Activity, Grid, List, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { NewPetModal } from "@/components/forms/NewPetModal";
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
 import { PetViewModal } from "@/components/modals/PetViewModal";
-import { PetEditModal } from "@/components/modals/PetEditModal";
-import { PetDossierModal } from "@/components/modals/PetDossierModal";
+import { SimplePetDossierModal } from "@/components/modals/SimplePetDossierModal";
 import { MedicalStats } from "@/components/MedicalStats";
-import { useAnimals, useClients } from "@/hooks/useDatabase";
-import type { Animal, Client } from "@/lib/database";
+import { useAnimals, useClients, useUpdateAnimal } from "@/hooks/useDatabase";
+import type { Animal, Client, CreateAnimalData } from "@/lib/database";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
 import { calculateAge } from "@/lib/utils";
@@ -27,8 +30,14 @@ const statusStyles = {
   urgent: "bg-destructive text-destructive-foreground"
 };
 
+// Interface extending Pet to include database ID
+interface PetUI extends Pet {
+  dbId: string; // Store original DB UUID for updates
+  dbClientId: string; // Store client's DB UUID
+}
+
 // Convert database Animal to old Pet format
-const convertAnimalToPet = (animal: Animal, clients: Client[]): Pet => {
+const convertAnimalToPet = (animal: Animal, clients: Client[]): PetUI => {
   const client = clients.find(c => c.id === animal.client_id);
   const clientName = client ? `${client.first_name} ${client.last_name}` : 'Propriétaire inconnu';
   
@@ -60,17 +69,21 @@ const convertAnimalToPet = (animal: Animal, clients: Client[]): Pet => {
     status: animal.status === 'vivant' ? 'healthy' : (animal.status === 'décédé' ? 'urgent' : 'treatment'),
     lastVisit: animal.updated_at ? new Date(animal.updated_at).toLocaleDateString('fr-FR') : 'Jamais',
     nextAppointment: undefined,
-    vaccinations: []
+    vaccinations: [],
+    // Store original DB IDs for updates
+    dbId: animal.id,
+    dbClientId: animal.client_id
   };
 };
 
 const PetsContent = () => {
   const { data: animals = [], isLoading: animalsLoading } = useAnimals();
   const { data: clients = [], isLoading: clientsLoading } = useClients();
+  const updateAnimalMutation = useUpdateAnimal();
   
   // Convert animals to pets format for compatibility
   const pets = animals.map(animal => convertAnimalToPet(animal, clients));
-  const consultations: any[] = []; // Placeholder for consultations
+  // Consultation functionality placeholder - to be implemented later
   const getConsultationsByPetId = (petId: number) => [];
   const { currentView } = useDisplayPreference('pets');
   const [searchTerm, setSearchTerm] = useState("");
@@ -81,10 +94,30 @@ const PetsContent = () => {
   const speciesList = settings.species.split(',').map(s => s.trim()).filter(s => s.length > 0);
   const [showPetModal, setShowPetModal] = useState(false);
   const [showConsultationModal, setShowConsultationModal] = useState(false);
-  const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
+  const [selectedPet, setSelectedPet] = useState<PetUI | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDossierModal, setShowDossierModal] = useState(false);
+  const { toast } = useToast();
+  
+  // Edit form state
+  const [editForm, setEditForm] = useState<CreateAnimalData>({
+    client_id: '',
+    name: '',
+    species: 'Chien',
+    breed: '',
+    color: '',
+    sex: 'Inconnu',
+    weight: undefined,
+    height: undefined,
+    birth_date: '',
+    microchip_number: '',
+    tattoo_number: '',
+    sterilized: false,
+    sterilization_date: '',
+    notes: '',
+    photo_url: ''
+  });
 
   const filteredPets = pets.filter(pet => {
     const matchesSearch = pet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -96,22 +129,60 @@ const PetsContent = () => {
     return matchesSearch && matchesType && matchesStatus;
   });
 
-  const handleView = (pet: Pet) => {
+  const handleView = (pet: PetUI) => {
     setSelectedPet(pet);
     setShowViewModal(true);
   };
 
-  const handleEdit = (pet: Pet) => {
+  const handleEdit = (pet: PetUI) => {
     setSelectedPet(pet);
+    // Populate edit form with pet data
+    setEditForm({
+      client_id: pet.dbClientId,
+      name: pet.name,
+      species: pet.type as 'Chien' | 'Chat' | 'Oiseau' | 'Lapin' | 'Furet' | 'Autre',
+      breed: pet.breed || '',
+      color: pet.color || '',
+      sex: pet.gender === 'male' ? 'Mâle' : (pet.gender === 'female' ? 'Femelle' : 'Inconnu'),
+      weight: pet.weight ? parseFloat(pet.weight) : undefined,
+      height: undefined,
+      birth_date: pet.birthDate || '',
+      microchip_number: pet.microchip || '',
+      tattoo_number: '',
+      sterilized: false,
+      sterilization_date: '',
+      notes: pet.medicalNotes || '',
+      photo_url: pet.photo || ''
+    });
     setShowEditModal(true);
   };
 
   const handleEditFromView = () => {
+    if (selectedPet) {
+      // Populate edit form with pet data
+      setEditForm({
+        client_id: selectedPet.dbClientId,
+        name: selectedPet.name,
+        species: selectedPet.type as 'Chien' | 'Chat' | 'Oiseau' | 'Lapin' | 'Furet' | 'Autre',
+        breed: selectedPet.breed || '',
+        color: selectedPet.color || '',
+        sex: selectedPet.gender === 'male' ? 'Mâle' : (selectedPet.gender === 'female' ? 'Femelle' : 'Inconnu'),
+        weight: selectedPet.weight ? parseFloat(selectedPet.weight) : undefined,
+        height: undefined,
+        birth_date: selectedPet.birthDate || '',
+        microchip_number: selectedPet.microchip || '',
+        tattoo_number: '',
+        sterilized: false,
+        sterilization_date: '',
+        notes: selectedPet.medicalNotes || '',
+        photo_url: selectedPet.photo || ''
+      });
+    }
     setShowViewModal(false);
     setShowEditModal(true);
   };
 
-  const handleShowDossier = (pet: Pet) => {
+  const handleShowDossier = (pet: PetUI) => {
     setSelectedPet(pet);
     setShowDossierModal(true);
   };
@@ -119,6 +190,30 @@ const PetsContent = () => {
   const handleShowDossierFromView = () => {
     setShowViewModal(false);
     setShowDossierModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedPet) return;
+    
+    try {
+      await updateAnimalMutation.mutateAsync({
+        id: selectedPet.dbId,
+        data: editForm
+      });
+      
+      toast({
+        title: "Animal modifié",
+        description: `${editForm.name} a été modifié avec succès.`,
+      });
+      
+      setShowEditModal(false);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors de la modification de l'animal.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -177,7 +272,7 @@ const PetsContent = () => {
               <Stethoscope className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Consultations</p>
-                <p className="text-2xl font-bold">{consultations.length}</p>
+                <p className="text-2xl font-bold">0</p>
               </div>
             </div>
           </CardContent>
@@ -189,14 +284,7 @@ const PetsContent = () => {
               <Activity className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Ce mois</p>
-                <p className="text-2xl font-bold">
-                  {consultations.filter(c => {
-                    const consultationDate = new Date(c.date);
-                    const now = new Date();
-                    return consultationDate.getMonth() === now.getMonth() && 
-                           consultationDate.getFullYear() === now.getFullYear();
-                  }).length}
-                </p>
+                <p className="text-2xl font-bold">0</p>
               </div>
             </div>
           </CardContent>
@@ -474,13 +562,150 @@ const PetsContent = () => {
         onShowDossier={handleShowDossierFromView}
       />
       
-      <PetEditModal
-        open={showEditModal}
-        onOpenChange={setShowEditModal}
-        pet={selectedPet}
-      />
+      {/* Custom Dynamic Pet Edit Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier Animal</DialogTitle>
+            <DialogDescription>
+              Modifiez les informations de l'animal.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nom *</Label>
+                <Input
+                  id="name"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="species">Espèce *</Label>
+                <Select value={editForm.species} onValueChange={(value) => setEditForm(prev => ({ ...prev, species: value as 'Chien' | 'Chat' | 'Oiseau' | 'Lapin' | 'Furet' | 'Autre' }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner l'espèce" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Chien">Chien</SelectItem>
+                    <SelectItem value="Chat">Chat</SelectItem>
+                    <SelectItem value="Oiseau">Oiseau</SelectItem>
+                    <SelectItem value="Lapin">Lapin</SelectItem>
+                    <SelectItem value="Furet">Furet</SelectItem>
+                    <SelectItem value="Autre">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="client_id">Propriétaire *</Label>
+              <Select value={editForm.client_id} onValueChange={(value) => setEditForm(prev => ({ ...prev, client_id: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner le propriétaire" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.first_name} {client.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="breed">Race</Label>
+                <Input
+                  id="breed"
+                  value={editForm.breed || ""}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, breed: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sex">Sexe</Label>
+                <Select value={editForm.sex} onValueChange={(value) => setEditForm(prev => ({ ...prev, sex: value as 'Mâle' | 'Femelle' | 'Inconnu' }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner le sexe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Mâle">Mâle</SelectItem>
+                    <SelectItem value="Femelle">Femelle</SelectItem>
+                    <SelectItem value="Inconnu">Inconnu</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="birth_date">Date de naissance</Label>
+                <Input
+                  id="birth_date"
+                  type="date"
+                  value={editForm.birth_date || ""}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, birth_date: e.target.value || undefined }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="weight">Poids (kg)</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  step="0.1"
+                  value={editForm.weight || ""}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, weight: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="color">Couleur</Label>
+                <Input
+                  id="color"
+                  value={editForm.color || ""}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, color: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="microchip_number">N° puce électronique</Label>
+                <Input
+                  id="microchip_number"
+                  value={editForm.microchip_number || ""}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, microchip_number: e.target.value }))}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes médicales</Label>
+              <Textarea
+                id="notes"
+                value={editForm.notes || ""}
+                onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Notes additionnelles..."
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={updateAnimalMutation.isPending}>
+                {updateAnimalMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sauvegarder
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       
-      <PetDossierModal
+      <SimplePetDossierModal
         open={showDossierModal}
         onOpenChange={setShowDossierModal}
         pet={selectedPet}

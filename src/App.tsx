@@ -15,7 +15,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-import ClientsNew from "./pages/ClientsNew";
+import Clients from "./pages/Clients";
 import Pets from "./pages/Pets";
 import Appointments from "./pages/Appointments";
 import Consultations from "./pages/Consultations";
@@ -72,7 +72,7 @@ const App = () => (
                         element={
                           <ProtectedRoute>
                             <VetNavigation />
-                            <ClientsNew />
+                            <Clients />
                           </ProtectedRoute>
                         }
                       />

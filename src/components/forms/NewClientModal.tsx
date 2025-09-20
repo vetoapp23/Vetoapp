@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useClients } from "@/contexts/ClientContext";
+import { useCreateClient } from "@/hooks/useDatabase";
+import { Loader2 } from "lucide-react";
+import type { CreateClientData } from "@/lib/database";
 
 interface NewClientModalProps {
   open: boolean;
@@ -13,55 +16,71 @@ interface NewClientModalProps {
 }
 
 export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
-  const { addClient } = useClients();
+  const createClientMutation = useCreateClient();
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+  const [formData, setFormData] = useState<CreateClientData>({
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
+    mobile_phone: "",
     address: "",
     city: "",
-    postalCode: "",
-    idNumber: "",
-    notes: ""
+    postal_code: "",
+    country: "Maroc",
+    notes: "",
+    client_type: "particulier"
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [e.target.id]: e.target.value
+      [id]: value
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSelectChange = (field: keyof CreateClientData, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Add client to context
-    addClient({
-      ...formData,
-      name: `${formData.firstName} ${formData.lastName}`
-    });
-    
-    toast({
-      title: "Client ajouté",
-      description: `${formData.firstName} ${formData.lastName} a été ajouté et sauvegardé avec succès.`,
-    });
-    
-    // Reset form
-    setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      address: "",
-      city: "",
-      postalCode: "",
-      idNumber: "",
-      notes: ""
-    });
-    
-    onOpenChange(false);
+    try {
+      await createClientMutation.mutateAsync(formData);
+      
+      toast({
+        title: "Client ajouté",
+        description: `${formData.first_name} ${formData.last_name} a été ajouté et sauvegardé avec succès.`,
+      });
+      
+      // Reset form
+      setFormData({
+        first_name: "",
+        last_name: "",
+        email: "",
+        phone: "",
+        mobile_phone: "",
+        address: "",
+        city: "",
+        postal_code: "",
+        country: "Maroc",
+        notes: "",
+        client_type: "particulier"
+      });
+      
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors de l'ajout du client.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -77,19 +96,19 @@ export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">Prénom *</Label>
+              <Label htmlFor="first_name">Prénom *</Label>
               <Input
-                id="firstName"
-                value={formData.firstName}
+                id="first_name"
+                value={formData.first_name}
                 onChange={handleChange}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Nom *</Label>
+              <Label htmlFor="last_name">Nom *</Label>
               <Input
-                id="lastName"
-                value={formData.lastName}
+                id="last_name"
+                value={formData.last_name}
                 onChange={handleChange}
                 required
               />
@@ -102,7 +121,7 @@ export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
               <Input
                 id="email"
                 type="email"
-                value={formData.email}
+                value={formData.email || ""}
                 onChange={handleChange}
               />
             </div>
@@ -110,7 +129,7 @@ export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
               <Label htmlFor="phone">Téléphone *</Label>
               <Input
                 id="phone"
-                value={formData.phone}
+                value={formData.phone || ""}
                 onChange={handleChange}
                 required
               />
@@ -121,7 +140,7 @@ export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
             <Label htmlFor="address">Adresse</Label>
             <Input
               id="address"
-              value={formData.address}
+              value={formData.address || ""}
               onChange={handleChange}
             />
           </div>
@@ -131,35 +150,49 @@ export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
               <Label htmlFor="city">Ville</Label>
               <Input
                 id="city"
-                value={formData.city}
+                value={formData.city || ""}
                 onChange={handleChange}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="postalCode">Code postal</Label>
+              <Label htmlFor="postal_code">Code postal</Label>
               <Input
-                id="postalCode"
-                value={formData.postalCode}
+                id="postal_code"
+                value={formData.postal_code || ""}
                 onChange={handleChange}
               />
             </div>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="idNumber">N° pièce d'identité</Label>
+            <Label htmlFor="mobile_phone">Téléphone portable</Label>
             <Input
-              id="idNumber"
-              value={formData.idNumber}
+              id="mobile_phone"
+              value={formData.mobile_phone || ""}
               onChange={handleChange}
-              placeholder="Numéro de carte d'identité, passeport, etc."
+              placeholder="Numéro de téléphone portable"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="client_type">Type de client</Label>
+            <Select value={formData.client_type} onValueChange={(value) => handleSelectChange('client_type', value as 'particulier' | 'eleveur' | 'ferme')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner le type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="particulier">Particulier</SelectItem>
+                <SelectItem value="eleveur">Éleveur</SelectItem>
+                <SelectItem value="ferme">Ferme</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
-              value={formData.notes}
+              value={formData.notes || ""}
               onChange={handleChange}
               placeholder="Notes additionnelles..."
             />
@@ -169,7 +202,8 @@ export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Annuler
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={createClientMutation.isPending}>
+              {createClientMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Ajouter Client
             </Button>
           </div>

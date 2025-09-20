@@ -80,13 +80,14 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
       const animalData: CreateAnimalData = {
         client_id: formData.ownerId,
         name: formData.name,
-        species: formData.type as any, // Cast to database species type
+        species: formData.type as 'Chien' | 'Chat' | 'Oiseau' | 'Lapin' | 'Furet' | 'Autre',
         breed: formData.breed || undefined,
         color: formData.color || undefined,
         sex: formData.gender === 'male' ? 'Mâle' : (formData.gender === 'female' ? 'Femelle' : 'Inconnu'),
         weight: formData.weight ? Number(formData.weight) : undefined,
         birth_date: formData.birthDate || undefined,
-        microchip_number: formData.microchip || undefined,
+        // Only include microchip_number if it's not empty to avoid unique constraint violation
+        ...(formData.microchip && formData.microchip.trim() ? { microchip_number: formData.microchip.trim() } : {}),
         notes: formData.medicalNotes || undefined,
         photo_url: formData.photo || undefined
       };

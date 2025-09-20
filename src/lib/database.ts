@@ -233,12 +233,29 @@ export const createAnimal = async (animalData: CreateAnimalData): Promise<Animal
     throw new Error('User not authenticated')
   }
 
+  // Handle empty fields to avoid database constraint violations
+  const cleanAnimalData = { ...animalData };
+  
+  // Handle empty microchip numbers
+  if ('microchip_number' in cleanAnimalData && !cleanAnimalData.microchip_number?.trim()) {
+    delete cleanAnimalData.microchip_number;
+  }
+  
+  // Handle empty date fields - remove them so they become NULL
+  if ('birth_date' in cleanAnimalData && !cleanAnimalData.birth_date?.trim()) {
+    delete cleanAnimalData.birth_date;
+  }
+  
+  if ('sterilization_date' in cleanAnimalData && !cleanAnimalData.sterilization_date?.trim()) {
+    delete cleanAnimalData.sterilization_date;
+  }
+
   const { data, error } = await supabase
     .from('animals')
     .insert({
-      ...animalData,
+      ...cleanAnimalData,
       user_id: user.id,
-      sterilized: animalData.sterilized || false,
+      sterilized: cleanAnimalData.sterilized || false,
       status: 'vivant'
     })
     .select(`
@@ -255,9 +272,26 @@ export const createAnimal = async (animalData: CreateAnimalData): Promise<Animal
 }
 
 export const updateAnimal = async (id: string, updates: Partial<CreateAnimalData>): Promise<Animal> => {
+  // Handle empty fields to avoid database constraint violations
+  const cleanUpdates = { ...updates };
+  
+  // Handle empty microchip numbers
+  if ('microchip_number' in cleanUpdates && !cleanUpdates.microchip_number?.trim()) {
+    cleanUpdates.microchip_number = null;
+  }
+  
+  // Handle empty date fields - convert empty strings to null
+  if ('birth_date' in cleanUpdates && !cleanUpdates.birth_date?.trim()) {
+    cleanUpdates.birth_date = null;
+  }
+  
+  if ('sterilization_date' in cleanUpdates && !cleanUpdates.sterilization_date?.trim()) {
+    cleanUpdates.sterilization_date = null;
+  }
+
   const { data, error } = await supabase
     .from('animals')
-    .update(updates)
+    .update(cleanUpdates)
     .eq('id', id)
     .select(`
       *,
