@@ -33,18 +33,22 @@ const fetchAuthSession = async (): Promise<User | null> => {
       try {
         profile = await createUserProfileIfNotExists(session.user)
       } catch (createError) {
-        // Use fallback profile as last resort
-        // profile = {
-        //   id: session.user.id,
-        //   email: session.user.email!,
-        //   username: session.user.user_metadata?.username || session.user.email!.split('@')[0],
-        //   full_name: session.user.user_metadata?.full_name || session.user.email!.split('@')[0],
-        //   role: 'assistant', // SECURITY FIX: Default to assistant, not admin
-        //   created_at: new Date().toISOString(),
-        //   updated_at: new Date().toISOString(),
-        //   avatar_url: session.user.user_metadata?.avatar_url || null
-        // }
-        console.error('Failed to create user profile:', createError); 
+        // Use fallback profile as last resort to prevent login failures
+        console.error('Failed to create user profile:', createError);
+        const metadata = session.user.user_metadata || {};
+        const fullName = metadata.full_name || metadata.name || '';
+        const username = metadata.username || session.user.email!.split('@')[0];
+        
+        profile = {
+          id: session.user.id,
+          email: session.user.email!,
+          username: username,
+          full_name: fullName,
+          role: 'assistant', // Default to assistant role
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          avatar_url: metadata.avatar_url || metadata.picture || null
+        }
       }
     }
 
@@ -83,32 +87,28 @@ export const useLogin = () => {
   
   return useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        })
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
 
-        if (error) {
-          // Map common Supabase auth errors to user-friendly messages
-          const errorMessages: { [key: string]: string } = {
-            'Invalid login credentials': 'Email ou mot de passe incorrect',
-            'Email not confirmed': 'Veuillez confirmer votre email avant de vous connecter',
-            'Too many requests': 'Trop de tentatives de connexion. Veuillez réessayer plus tard'
-          }
-          
-          const userMessage = errorMessages[error.message] || error.message
-          throw new Error(userMessage)
+      if (error) {
+        // Map common Supabase auth errors to user-friendly messages
+        const errorMessages: { [key: string]: string } = {
+          'Invalid login credentials': 'Email ou mot de passe incorrect',
+          'Email not confirmed': 'Veuillez confirmer votre email avant de vous connecter',
+          'Too many requests': 'Trop de tentatives de connexion. Veuillez réessayer plus tard'
         }
-
-        if (!data.user || !data.session) {
-          throw new Error('Échec de connexion - session invalide')
-        }
-
-        return data.user
-      } catch (error) {
-        throw error
+        
+        const userMessage = errorMessages[error.message] || error.message
+        throw new Error(userMessage)
       }
+
+      if (!data.user || !data.session) {
+        throw new Error('Échec de connexion - session invalide')
+      }
+
+      return data.user
     },
     onSuccess: async () => {
       // Refetch auth session after successful login with small delay

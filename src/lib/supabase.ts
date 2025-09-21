@@ -130,12 +130,17 @@ export const updateUserProfile = async (updates: Partial<UserProfile>) => {
 
   if (error) {
     // Try upsert as fallback
+    const metadata = user.user_metadata || {};
+    const fullName = metadata.full_name || metadata.name || '';
+    const username = existingProfile?.username || metadata.username || user.email!.split('@')[0];
+    const role = (existingProfile?.role as 'admin' | 'assistant') || metadata.role || 'assistant';
+    
     const upsertData = {
       id: user.id,
       email: user.email!,
-      username: existingProfile?.username || user.email!.split('@')[0],
-      full_name: existingProfile?.full_name || '',
-      role: (existingProfile?.role as 'admin' | 'assistant') || 'assistant',
+      username: username,
+      full_name: fullName,
+      role: role,
       ...updateData
     }
 
@@ -157,34 +162,43 @@ export const updateUserProfile = async (updates: Partial<UserProfile>) => {
 
 // Admin functions (require service role key for RLS bypass)
 export const createUserProfileIfNotExists = async (user: SupabaseUser): Promise<UserProfile> => {
-  try {
-    // First try to get existing profile
-    const existingProfile = await getCurrentUserProfile();
-    if (existingProfile) {
-      return existingProfile;
-    }
+  // First try to get existing profile
+  const existingProfile = await getCurrentUserProfile();
+  if (existingProfile) {
+    return existingProfile;
+  }
 
-    // If no profile exists, create one
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .insert({
-        id: user.id,
-        email: user.email!,
-        username: user.user_metadata?.username || user.email!.split('@')[0],
-        full_name: user.user_metadata?.full_name || '',
-        role: user.user_metadata?.role || 'assistant'
-      })
-      .select()
-      .single();
+  // Handle different metadata formats for different auth providers
+  const metadata = user.user_metadata || {};
+  
+  // For Google OAuth, full_name might be in 'name' field
+  // For regular signup, it's in 'full_name' field
+  const fullName = metadata.full_name || metadata.name || '';
+  
+  // Generate username from email if not provided
+  const username = metadata.username || user.email!.split('@')[0];
+  
+  // Default role to assistant if not provided
+  const role = metadata.role || 'assistant';
 
-    if (error) {
-      throw error;
-    }
+  // If no profile exists, create one
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .insert({
+      id: user.id,
+      email: user.email!,
+      username: username,
+      full_name: fullName,
+      role: role
+    })
+    .select()
+    .single();
 
-    return data;
-  } catch (error) {
+  if (error) {
     throw error;
   }
+
+  return data;
 };
 
 export const signInWithGoogle = async () => {

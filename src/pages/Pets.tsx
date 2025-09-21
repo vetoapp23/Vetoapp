@@ -214,6 +214,21 @@ const PetsContent = () => {
   const handleSaveEdit = async () => {
     if (!selectedPet) return;
     
+    // Check for existing microchip number if one is provided
+    if (editForm.microchip_number && editForm.microchip_number.trim()) {
+      const existingAnimal = animals.find(animal => 
+        animal.microchip_number === editForm.microchip_number.trim() && animal.id !== selectedPet.dbId
+      );
+      if (existingAnimal) {
+        toast({
+          title: "Erreur",
+          description: "Un animal avec ce numéro de puce existe déjà.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     try {
       await updateAnimalMutation.mutateAsync({
         id: selectedPet.dbId,

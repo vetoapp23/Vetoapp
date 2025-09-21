@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { useClients, useCreateAnimal } from "@/hooks/useDatabase";
+import { useClients, useCreateAnimal, useAnimals } from "@/hooks/useDatabase";
 import { useSettings } from "@/contexts/SettingsContext";
 import type { CreateAnimalData } from "@/lib/database";
 
@@ -18,6 +18,7 @@ interface NewPetModalProps {
 
 export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
   const { data: clients = [] } = useClients();
+  const { data: animals = [] } = useAnimals();
   const createAnimalMutation = useCreateAnimal();
   const { settings } = useSettings();
   const { toast } = useToast();
@@ -74,6 +75,19 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
         description: "Veuillez sélectionner un propriétaire valide.",
       });
       return;
+    }
+    
+    // Check for existing microchip number if one is provided
+    if (formData.microchip && formData.microchip.trim()) {
+      const existingAnimal = animals.find(animal => animal.microchip_number === formData.microchip.trim());
+      if (existingAnimal) {
+        toast({
+          title: "Erreur",
+          description: "Un animal avec ce numéro de puce existe déjà.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     try {
