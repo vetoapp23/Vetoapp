@@ -5,7 +5,7 @@ import { Calendar, Pill, Clock, AlertCircle, CheckCircle, XCircle, Plus, Edit, T
 import { useState } from "react";
 import { Prescription, useClients } from "@/contexts/ClientContext";
 import { useToast } from "@/hooks/use-toast";
-import NewPrescriptionModal from "@/components/forms/NewPrescriptionModal";
+import { NewPrescriptionModal } from "@/components/forms/NewPrescriptionModal";
 import { PrescriptionEditModal } from "@/components/modals/PrescriptionEditModal";
 import { PrescriptionPrint } from "@/components/PrescriptionPrint";
 
@@ -61,7 +61,7 @@ export function PrescriptionsList({ petId, consultationId }: PrescriptionsListPr
 
   const handleStatusChange = (prescriptionId: number, newStatus: Prescription['status']) => {
     // Cette fonction sera implémentée dans le modal d'édition
-    console.log(`Changer le statut de la prescription ${prescriptionId} à ${newStatus}`);
+    // Update prescription status
   };
 
   const getStatusIcon = (status: Prescription['status']) => {
@@ -92,6 +92,7 @@ export function PrescriptionsList({ petId, consultationId }: PrescriptionsListPr
           <Button 
             size="sm" 
             onClick={() => setShowNewPrescription(true)}
+            disabled={!consultationId}
             className="gap-2"
           >
             <Plus className="h-4 w-4" />
@@ -245,12 +246,14 @@ export function PrescriptionsList({ petId, consultationId }: PrescriptionsListPr
         )}
       </div>
 
-      <NewPrescriptionModal 
-        open={showNewPrescription} 
-        onOpenChange={setShowNewPrescription}
-        petId={petId}
-        consultationId={consultationId}
-      />
+      {consultationId && (
+        <NewPrescriptionModal 
+          open={showNewPrescription} 
+          onOpenChange={setShowNewPrescription}
+          petId={petId.toString()}
+          consultationId={consultationId.toString()}
+        />
+      )}
       <PrescriptionEditModal
         open={showEditPrescription}
         onOpenChange={setShowEditPrescription}

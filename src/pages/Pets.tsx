@@ -1,21 +1,21 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; // Added AvatarImage
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Heart, User, Calendar, Stethoscope, Eye, Edit, Activity, Grid, List, Loader2 } from "lucide-react";
+import { Plus, Search, Heart, User, Calendar, Stethoscope, Eye, Edit, Activity, Grid, List, Loader2, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NewPetModal } from "@/components/forms/NewPetModal";
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
 import { PetViewModal } from "@/components/modals/PetViewModal";
 import { SimplePetDossierModal } from "@/components/modals/SimplePetDossierModal";
 import { MedicalStats } from "@/components/MedicalStats";
-import { useAnimals, useClients, useUpdateAnimal } from "@/hooks/useDatabase";
+import { useAnimals, useClients, useUpdateAnimal, useClientStats, useConsultations, useVaccinations } from "@/hooks/useDatabase";
 import type { Animal, Client, CreateAnimalData } from "@/lib/database";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
@@ -79,12 +79,28 @@ const convertAnimalToPet = (animal: Animal, clients: Client[]): PetUI => {
 const PetsContent = () => {
   const { data: animals = [], isLoading: animalsLoading } = useAnimals();
   const { data: clients = [], isLoading: clientsLoading } = useClients();
+  const { data: stats } = useClientStats();
   const updateAnimalMutation = useUpdateAnimal();
   
   // Convert animals to pets format for compatibility
   const pets = animals.map(animal => convertAnimalToPet(animal, clients));
-  // Consultation functionality placeholder - to be implemented later
-  const getConsultationsByPetId = (petId: number) => [];
+  // Import consultation and vaccination hooks
+  const { data: consultations = [] } = useConsultations();
+  const { data: vaccinations = [] } = useVaccinations();
+  
+  // Get consultations for a specific pet
+  const getConsultationsByPetId = useCallback((petId: string | number) => {
+    const animalId = typeof petId === 'string' ? petId : pets.find(p => p.id === petId)?.dbId;
+    if (!animalId) return [];
+    return consultations.filter(c => c.animal_id === animalId);
+  }, [pets, consultations]);
+
+  // Get vaccinations for a specific pet
+  const getVaccinationsByPetId = useCallback((petId: string | number) => {
+    const animalId = typeof petId === 'string' ? petId : pets.find(p => p.id === petId)?.dbId;
+    if (!animalId) return [];
+    return vaccinations.filter(v => v.animal_id === animalId);
+  }, [pets, vaccinations]);
   const { currentView } = useDisplayPreference('pets');
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
@@ -116,7 +132,8 @@ const PetsContent = () => {
     sterilized: false,
     sterilization_date: '',
     notes: '',
-    photo_url: ''
+    photo_url: '',
+    status: 'healthy'
   });
 
   const filteredPets = pets.filter(pet => {
@@ -152,7 +169,8 @@ const PetsContent = () => {
       sterilized: false,
       sterilization_date: '',
       notes: pet.medicalNotes || '',
-      photo_url: pet.photo || ''
+      photo_url: pet.photo || '',
+      status: pet.status
     });
     setShowEditModal(true);
   };
@@ -175,7 +193,8 @@ const PetsContent = () => {
         sterilized: false,
         sterilization_date: '',
         notes: selectedPet.medicalNotes || '',
-        photo_url: selectedPet.photo || ''
+        photo_url: selectedPet.photo || '',
+        status: selectedPet.status
       });
     }
     setShowViewModal(false);
@@ -215,6 +234,12 @@ const PetsContent = () => {
       });
     }
   };
+
+  // Memoized consultations for selected pet to ensure reactivity
+  const selectedPetConsultations = useMemo(() => {
+    if (!selectedPet) return [];
+    return getConsultationsByPetId(selectedPet.id);
+  }, [selectedPet, getConsultationsByPetId]);
 
   return (
     <div className="container mx-auto px-6 py-8 space-y-8">
@@ -260,7 +285,7 @@ const PetsContent = () => {
               <Heart className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Total animaux</p>
-                <p className="text-2xl font-bold">{pets.length}</p>
+                <p className="text-2xl font-bold">{stats?.totalAnimals || pets.length}</p>
               </div>
             </div>
           </CardContent>
@@ -269,10 +294,10 @@ const PetsContent = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Stethoscope className="h-5 w-5 text-primary" />
+              <CheckCircle className="h-5 w-5 text-green-500" />
               <div>
-                <p className="text-sm text-muted-foreground">Consultations</p>
-                <p className="text-2xl font-bold">0</p>
+                <p className="text-sm text-muted-foreground">En bonne santé</p>
+                <p className="text-2xl font-bold">{stats?.animalsByStatus?.vivant || pets.filter(p => p.status === 'healthy').length}</p>
               </div>
             </div>
           </CardContent>
@@ -281,10 +306,10 @@ const PetsContent = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
               <div>
-                <p className="text-sm text-muted-foreground">Ce mois</p>
-                <p className="text-2xl font-bold">0</p>
+                <p className="text-sm text-muted-foreground">En traitement</p>
+                <p className="text-2xl font-bold">{pets.filter(p => p.status === 'treatment').length}</p>
               </div>
             </div>
           </CardContent>
@@ -296,7 +321,7 @@ const PetsContent = () => {
               <User className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Clients actifs</p>
-                <p className="text-2xl font-bold">{clients.length}</p>
+                <p className="text-2xl font-bold">{stats?.totalClients || clients.length}</p>
               </div>
             </div>
           </CardContent>
@@ -398,7 +423,12 @@ const PetsContent = () => {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <span>Propriétaire: {pet.owner}</span>
+                      <span>Propriétaire: {typeof pet.owner === 'string' ? pet.owner : 
+                         (() => {
+                           const client = clients.find(c => String(c.id) === String(pet.ownerId));
+                           return client ? `${client.first_name} ${client.last_name}` : 'Non spécifié';
+                         })()}</span>
+                         
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -413,15 +443,18 @@ const PetsContent = () => {
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm">Vaccinations:</h4>
                     <div className="flex gap-1 flex-wrap">
-                      {pet.vaccinations && pet.vaccinations.length > 0 ? (
-                        pet.vaccinations.map((vacc, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {vacc}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Aucune vaccination enregistrée</span>
-                      )}
+                      {(() => {
+                        const petVaccinations = getVaccinationsByPetId(pet.id);
+                        return petVaccinations.length > 0 ? (
+                          petVaccinations.map((vacc) => (
+                            <Badge key={vacc.id} variant="outline" className="text-xs">
+                              {vacc.vaccin}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Aucune vaccination enregistrée</span>
+                        );
+                      })()}
                     </div>
                   </div>
                   
@@ -491,7 +524,13 @@ const PetsContent = () => {
                       </td>
                       <td className="p-4">{pet.type}</td>
                       <td className="p-4">{pet.birthDate ? calculateAge(pet.birthDate) : 'Non renseigné'}</td>
-                      <td className="p-4">{pet.owner}</td>
+                      <td className="p-4">
+                        {typeof pet.owner === 'string' ? pet.owner : 
+                         (() => {
+                           const client = clients.find(c => String(c.id) === String(pet.ownerId));
+                           return client ? `${client.first_name} ${client.last_name}` : 'Non spécifié';
+                         })()}
+                      </td>
                       <td className="p-4">
                         <Badge 
                           variant="outline"
@@ -538,7 +577,7 @@ const PetsContent = () => {
           <CardContent>
             <MedicalStats 
               pet={selectedPet} 
-              consultations={getConsultationsByPetId(selectedPet.id)} 
+              consultations={selectedPetConsultations} 
             />
           </CardContent>
         </Card>
@@ -615,6 +654,9 @@ const PetsContent = () => {
                   ))}
                 </SelectContent>
               </Select>
+                   
+          
+  
             </div>
             
             <div className="grid grid-cols-2 gap-4">

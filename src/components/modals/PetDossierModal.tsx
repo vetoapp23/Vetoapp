@@ -261,11 +261,7 @@ export function PetDossierModal({ open, onOpenChange, pet }: PetDossierModalProp
   const petVaccinations = getVaccinationsByPetId(pet.id);
   // Récupérer tous les traitements antiparasitaires de cet animal
   const petAntiparasitics = getAntiparasiticsByPetId(pet.id);
-  console.log('🔍 PetDossierModal - DEBUG ANTIPARASITICS:');
-  console.log('   Pet ID:', pet.id);
-  console.log('   Pet Name:', pet.name);
-  console.log('   Antiparasitics found:', petAntiparasitics);
-  console.log('   Length:', petAntiparasitics?.length || 0);
+  // Load antiparasitics data for this pet
   
   // Trier les consultations par date (plus récentes en premier)
   const sortedConsultations = [...petConsultations].sort((a, b) => 

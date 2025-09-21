@@ -6,12 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useClients } from "@/contexts/ClientContext";
+import { useClients, useAnimals, useCreateConsultation } from "@/hooks/useDatabase";
 import { NewClientModal } from "./NewClientModal";
 import { NewPetModal } from "./NewPetModal";
-import { NewPrescriptionModal } from "./NewPrescriptionModal";
-import { Plus, User, Heart, Pill } from "lucide-react";
+
+import { Plus, User, Heart } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext"; // Added for dynamic currency
+import type { Animal, Client, CreateConsultationData } from "@/lib/database";
 
 interface NewConsultationModalProps {
   open: boolean;
@@ -19,18 +20,20 @@ interface NewConsultationModalProps {
 }
 
 export function NewConsultationModal({ open, onOpenChange }: NewConsultationModalProps) {
-  const { clients, pets, addConsultation } = useClients();
+  const { data: clients = [], isLoading: clientsLoading } = useClients();
+  const { data: animals = [], isLoading: animalsLoading } = useAnimals();
+  const createConsultationMutation = useCreateConsultation();
   const { toast } = useToast();
   const { settings } = useSettings(); // Destructure currency for cost label
   const [showClientModal, setShowClientModal] = useState(false);
   const [showPetModal, setShowPetModal] = useState(false);
-  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
+
   
   const [formData, setFormData] = useState({
-    clientId: 0,
+    clientId: "",
     clientName: "",
-    petId: 0,
-    petName: "",
+    animalId: "",
+    animalName: "",
     date: "",
     weight: "",
     temperature: "",
@@ -44,7 +47,7 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
   });
 
   // Filtrer les animaux selon le client sélectionné
-  const availablePets = pets.filter(pet => pet.ownerId === formData.clientId);
+  const availablePets = animals.filter(animal => animal.client_id === formData.clientId);
 
   // Get today's date in YYYY-MM-DD format for default date
   const today = new Date().toISOString().split('T')[0];
@@ -65,22 +68,20 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
 
   const handleSelectChange = (field: string, value: string) => {
     if (field === 'clientId') {
-      const clientId = parseInt(value);
-      const selectedClient = clients.find(c => c.id === clientId);
+      const selectedClient = clients.find(c => c.id === value);
       setFormData(prev => ({
         ...prev,
-        clientId,
-        clientName: selectedClient?.name || "",
-        petId: 0,
-        petName: ""
+        clientId: value,
+        clientName: selectedClient ? `${selectedClient.first_name} ${selectedClient.last_name}` : "",
+        animalId: "",
+        animalName: ""
       }));
-    } else if (field === 'petId') {
-      const petId = parseInt(value);
-      const selectedPet = pets.find(p => p.id === petId);
+    } else if (field === 'animalId') {
+      const selectedAnimal = animals.find(a => a.id === value);
       setFormData(prev => ({
         ...prev,
-        petId,
-        petName: selectedPet?.name || ""
+        animalId: value,
+        animalName: selectedAnimal?.name || ""
       }));
     } else {
       setFormData(prev => ({
@@ -90,10 +91,10 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.clientId || !formData.petId) {
+    if (!formData.clientId || !formData.animalId) {
       toast({
         title: "Erreur",
         description: "Veuillez sélectionner un client et un animal.",
@@ -102,59 +103,35 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
       return;
     }
     
-    // Add consultation to context
-    addConsultation({
-      clientId: formData.clientId,
-      clientName: formData.clientName,
-      petId: formData.petId,
-      petName: formData.petName,
-      date: formData.date || today,
-      weight: formData.weight,
-      temperature: formData.temperature,
-      symptoms: formData.symptoms,
-      diagnosis: formData.diagnosis,
-      treatment: formData.treatment,
-      medications: "", // Supprimé du formulaire
-      followUp: formData.followUp,
-      cost: formData.cost,
-      notes: formData.notes,
-      photos: formData.photos
-    });
-    
-    toast({
-      title: "Consultation enregistrée",
-      description: `Consultation pour ${formData.petName} (${formData.clientName}) a été enregistrée et sauvegardée.`,
-    });
-    
-    // Reset form
-    setFormData({
-      clientId: 0,
-      clientName: "",
-      petId: 0,
-      petName: "",
-      date: today,
-      weight: "",
-      temperature: "",
-      symptoms: "",
-      diagnosis: "",
-      treatment: "",
-      followUp: "",
-      cost: "",
-      notes: "",
-      photos: []
-    });
-    
-    onOpenChange(false);
-  };
+    try {
+      // Create consultation data for database
+      const consultationData: CreateConsultationData & { consultation_date: string } = {
+        client_id: formData.clientId,
+        animal_id: formData.animalId,
+        consultation_type: 'routine',
+        consultation_date: formData.date || today,
+        weight: formData.weight ? Math.min(parseFloat(formData.weight), 999.9) : undefined,
+        temperature: formData.temperature ? Math.min(parseFloat(formData.temperature), 99.9) : undefined,
+        symptoms: formData.symptoms,
+        diagnosis: formData.diagnosis,
+        treatment: formData.treatment,
+        follow_up_notes: formData.followUp,
+        notes: formData.notes
+      };
 
-  // Reset form when modal opens
-  useEffect(() => {
-    if (open) {
+      await createConsultationMutation.mutateAsync(consultationData);
+      
+      toast({
+        title: "Consultation enregistrée",
+        description: `Consultation pour ${formData.animalName} (${formData.clientName}) a été enregistrée avec succès.`,
+      });
+      
+      // Reset form
       setFormData({
-        clientId: 0,
+        clientId: "",
         clientName: "",
-        petId: 0,
-        petName: "",
+        animalId: "",
+        animalName: "",
         date: today,
         weight: "",
         temperature: "",
@@ -162,7 +139,38 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
         diagnosis: "",
         treatment: "",
         followUp: "",
-        cost: "",
+        cost: settings.defaultConsultationPrice.toString(),
+        notes: "",
+        photos: []
+      });
+      
+      onOpenChange(false);
+    } catch (error) {
+      // Error already handled by toast notification
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer la consultation. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        clientId: "",
+        clientName: "",
+        animalId: "",
+        animalName: "",
+        date: today,
+        weight: "",
+        temperature: "",
+        symptoms: "",
+        diagnosis: "",
+        treatment: "",
+        followUp: "",
+        cost: settings.defaultConsultationPrice.toString(),
         notes: "",
         photos: []
       });
@@ -194,8 +202,8 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
                     </SelectTrigger>
                     <SelectContent>
                       {clients.map(client => (
-                        <SelectItem key={client.id} value={client.id.toString()}>
-                          {client.name}
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.first_name} {client.last_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -216,17 +224,17 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
                 <Label>Animal *</Label>
                 <div className="flex gap-2">
                   <Select 
-                    value={formData.petId.toString()} 
-                    onValueChange={(value) => handleSelectChange("petId", value)}
+                    value={formData.animalId} 
+                    onValueChange={(value) => handleSelectChange("animalId", value)}
                     disabled={!formData.clientId}
                   >
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder={formData.clientId ? "Sélectionner l'animal" : "Sélectionnez d'abord un client"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {availablePets.map(pet => (
-                        <SelectItem key={pet.id} value={pet.id.toString()}>
-                          {pet.name} ({pet.type})
+                      {availablePets.map(animal => (
+                        <SelectItem key={animal.id} value={animal.id}>
+                          {animal.name} ({animal.species})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -263,6 +271,8 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
                   id="weight"
                   type="number"
                   step="0.1"
+                  min="0"
+                  max="999.9"
                   value={formData.weight}
                   onChange={handleChange}
                   placeholder="ex: 25.5"
@@ -274,6 +284,8 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
                   id="temperature"
                   type="number"
                   step="0.1"
+                  min="0"
+                  max="99.9"
                   value={formData.temperature}
                   onChange={handleChange}
                   placeholder="ex: 38.5"
@@ -314,28 +326,7 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
               />
             </div>
             
-            {/* Section pour créer une prescription */}
-            <div className="space-y-2">
-              <Label>Prescription</Label>
-              <div className="flex items-center gap-2 p-4 border rounded-lg bg-muted/30">
-                <Pill className="h-5 w-5 text-primary" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Créer une prescription</p>
-                  <p className="text-xs text-muted-foreground">Gérez les médicaments prescrits de manière séparée</p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowPrescriptionModal(true)}
-                  disabled={!formData.petId}
-                  className="gap-2"
-                >
-                  <Pill className="h-4 w-4" />
-                  Nouvelle Prescription
-                </Button>
-              </div>
-            </div>
+
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -413,8 +404,8 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Annuler
               </Button>
-              <Button type="submit">
-                Enregistrer Consultation
+              <Button type="submit" disabled={!formData.animalId || createConsultationMutation.isPending}>
+                {createConsultationMutation.isPending ? "Enregistrement..." : "Enregistrer Consultation"}
               </Button>
             </div>
           </form>
@@ -431,12 +422,7 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
         onOpenChange={setShowPetModal} 
       />
       
-      <NewPrescriptionModal 
-        open={showPrescriptionModal} 
-        onOpenChange={setShowPrescriptionModal}
-        petId={formData.petId}
-        consultationId={0} // Pas de consultation ID car on est en train de créer la consultation
-      />
+
     </>
   );
 }

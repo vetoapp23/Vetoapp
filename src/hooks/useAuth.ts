@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase, UserProfile, signIn, signOut, getCurrentUserProfile, createUserProfileIfNotExists } from '../lib/supabase'
+import { supabase, UserProfile, signIn, signOut, getCurrentUserProfile, createUserProfileIfNotExists, signInWithGoogle } from '../lib/supabase'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 export interface User {
@@ -154,6 +154,26 @@ export const useRefreshProfile = () => {
     onSuccess: () => {
       // Invalidate session to refetch with new profile
       queryClient.invalidateQueries({ queryKey: authKeys.session() })
+    }
+  })
+}
+
+// Google login mutation
+export const useGoogleLogin = () => {
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      })
+
+      if (error) {
+        throw error
+      }
+
+      return data
     }
   })
 }

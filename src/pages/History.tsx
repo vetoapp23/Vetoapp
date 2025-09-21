@@ -530,12 +530,14 @@ const History = () => {
         onOpenChange={setShowConsultationModal}
         onEdit={() => { /* TODO: implement edit */ }}
       />
-      <NewPrescriptionModal
-        open={showNewPrescription}
-        onOpenChange={setShowNewPrescription}
-        petId={prescriptions.find(p => p.id === selectedPrescription?.id)?.petId}
-        consultationId={selectedPrescription?.id}
-      />
+      {selectedPrescription?.id && (
+        <NewPrescriptionModal
+          open={showNewPrescription}
+          onOpenChange={setShowNewPrescription}
+          petId={prescriptions.find(p => p.id === selectedPrescription?.id)?.petId?.toString() || ""}
+          consultationId={selectedPrescription.id.toString()}
+        />
+      )}
       {/* Invoice + Prescription Modal */}
       <Dialog open={showInvoiceModal} onOpenChange={setShowInvoiceModal}>
         <DialogContent>

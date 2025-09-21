@@ -33,6 +33,7 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
     microchip: "",
     medicalNotes: "",
     photo: "", // added official photo
+    status: "healthy", // added status field
     // Propriétés du pedigree
     hasPedigree: false,
     officialName: "",
@@ -89,7 +90,8 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
         // Only include microchip_number if it's not empty to avoid unique constraint violation
         ...(formData.microchip && formData.microchip.trim() ? { microchip_number: formData.microchip.trim() } : {}),
         notes: formData.medicalNotes || undefined,
-        photo_url: formData.photo || undefined
+        photo_url: formData.photo || undefined,
+        status: formData.status as 'healthy' | 'treatment' | 'urgent'
       };
 
       await createAnimalMutation.mutateAsync(animalData);
@@ -112,6 +114,7 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
         microchip: "",
         medicalNotes: "",
         photo: "",
+        status: "healthy", // reset status to default
         hasPedigree: false,
         officialName: "",
         pedigreeNumber: "",
@@ -173,7 +176,17 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
                       </SelectItem>
                     ) : null;
                   }).filter(Boolean) : (
-                    <SelectItem value="Chien">Chien</SelectItem>
+                    <><SelectItem value="Chien">Chien</SelectItem>
+                    <SelectItem value="Chat">Chat</SelectItem>
+                    <SelectItem value="Oiseau">Oiseau</SelectItem>
+                    <SelectItem value="Lapin">Lapin</SelectItem>
+                    <SelectItem value="Furet">Furet</SelectItem>
+                    <SelectItem value="Souris">Souris</SelectItem>
+                    <SelectItem value="Hamster">Hamster</SelectItem>
+                    <SelectItem value="Reptile">Reptile</SelectItem>
+                    <SelectItem value="Autre">Autre</SelectItem>
+                    </>
+
                   )}
                 </SelectContent>
               </Select>
@@ -279,6 +292,20 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
               onChange={handleChange}
               placeholder="Allergies, conditions médicales, notes importantes..."
             />
+          </div>
+          
+          <div className="space-y-2">
+            <Label>État de santé</Label>
+            <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner l'état de santé" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="healthy">En bonne santé</SelectItem>
+                <SelectItem value="treatment">En traitement</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Section Pedigree */}

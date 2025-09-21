@@ -186,3 +186,15 @@ export const createUserProfileIfNotExists = async (user: SupabaseUser): Promise<
     throw error;
   }
 };
+
+export const signInWithGoogle = async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/dashboard`
+    }
+  })
+
+  if (error) throw error
+  return data
+}
