@@ -209,7 +209,6 @@ export const signInWithGoogle = async () => {
     }
   })
 
-  console.log("window.location.origin:", window.location.origin);
 
   if (error) throw error
   return data
