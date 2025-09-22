@@ -668,8 +668,7 @@ export default function Settings() {
             <Button 
               variant="outline" 
               onClick={() => {
-                console.log('Vétérinaires dans settings:', settings.veterinarians);
-                console.log('Vétérinaires affichés:', vets);
+                // Debug removed for production
               }}
             >
               Debug

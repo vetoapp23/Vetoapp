@@ -38,7 +38,8 @@ export function LogoutButton() {
 
   if (!user) return null;
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | undefined) => {
+    if (!name) return user.profile.username.charAt(0).toUpperCase();
     return name
       .split(' ')
       .map(word => word.charAt(0))
@@ -51,8 +52,6 @@ export function LogoutButton() {
     switch (role) {
       case 'admin':
         return 'Administrateur';
-      case 'veterinarian':
-        return 'Vétérinaire';
       case 'assistant':
         return 'Assistant';
       default:
@@ -64,8 +63,6 @@ export function LogoutButton() {
     switch (role) {
       case 'admin':
         return <Shield className="h-3 w-3" />;
-      case 'veterinarian':
-        return <User className="h-3 w-3" />;
       case 'assistant':
         return <User className="h-3 w-3" />;
       default:
@@ -79,7 +76,7 @@ export function LogoutButton() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-              {getInitials(user.name)}
+              {getInitials(user.profile.full_name)}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -87,14 +84,16 @@ export function LogoutButton() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-sm font-medium leading-none">
+              {user.profile.full_name || user.profile.username}
+            </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
             <div className="flex items-center gap-1 mt-1">
-              {getRoleIcon(user.role)}
+              {getRoleIcon(user.profile.role)}
               <span className="text-xs text-muted-foreground">
-                {getRoleLabel(user.role)}
+                {getRoleLabel(user.profile.role)}
               </span>
             </div>
           </div>

@@ -20,7 +20,7 @@ interface NewPrescriptionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   petId: string;
-  consultationId: string;
+  consultationId?: string;
 }
 
 export function NewPrescriptionModal({ open, onOpenChange, petId, consultationId }: NewPrescriptionModalProps) {

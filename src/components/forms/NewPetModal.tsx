@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { useClients } from "@/contexts/ClientContext";
+import { useClients, useCreateAnimal, useAnimals } from "@/hooks/useDatabase";
 import { useSettings } from "@/contexts/SettingsContext";
+import type { CreateAnimalData } from "@/lib/database";
 
 interface NewPetModalProps {
   open: boolean;
@@ -16,7 +17,9 @@ interface NewPetModalProps {
 }
 
 export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
-  const { addPet, clients } = useClients();
+  const { data: clients = [] } = useClients();
+  const { data: animals = [] } = useAnimals();
+  const createAnimalMutation = useCreateAnimal();
   const { settings } = useSettings();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -27,10 +30,11 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
     birthDate: "",
     weight: "",
     color: "",
-    ownerId: 0,
+    ownerId: "",
     microchip: "",
     medicalNotes: "",
     photo: "", // added official photo
+    status: "healthy", // added status field
     // Propriétés du pedigree
     hasPedigree: false,
     officialName: "",
@@ -57,11 +61,11 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
   const handleSelectChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: field === 'ownerId' ? parseInt(value) : value
+      [field]: value
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const owner = clients.find(c => c.id === formData.ownerId);
@@ -73,35 +77,81 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
       return;
     }
     
-    // Add pet to context
-    addPet({
-      ...formData,
-      owner: owner.name,
-      status: 'healthy',
-      photo: formData.photo
-    });
+    // Check for existing microchip number if one is provided
+    if (formData.microchip && formData.microchip.trim()) {
+      const existingAnimal = animals.find(animal => animal.microchip_number === formData.microchip.trim());
+      if (existingAnimal) {
+        toast({
+          title: "Erreur",
+          description: "Un animal avec ce numéro de puce existe déjà.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     
-    toast({
-      title: "Animal ajouté",
-      description: `${formData.name} a été ajouté et sauvegardé avec succès.`,
-    });
+    try {
+      // Create animal data compatible with database
+      const animalData: CreateAnimalData = {
+        client_id: formData.ownerId,
+        name: formData.name,
+        species: formData.type as 'Chien' | 'Chat' | 'Oiseau' | 'Lapin' | 'Furet' | 'Autre',
+        breed: formData.breed || undefined,
+        color: formData.color || undefined,
+        sex: formData.gender === 'male' ? 'Mâle' : (formData.gender === 'female' ? 'Femelle' : 'Inconnu'),
+        weight: formData.weight ? Number(formData.weight) : undefined,
+        birth_date: formData.birthDate || undefined,
+        // Only include microchip_number if it's not empty to avoid unique constraint violation
+        ...(formData.microchip && formData.microchip.trim() ? { microchip_number: formData.microchip.trim() } : {}),
+        notes: formData.medicalNotes || undefined,
+        photo_url: formData.photo || undefined,
+        status: formData.status as 'healthy' | 'treatment' | 'urgent'
+      };
+
+      await createAnimalMutation.mutateAsync(animalData);
     
-    // Reset form
-    setFormData({
-      name: "",
-      type: "",
-      breed: "",
-      gender: "",
-      birthDate: "",
-      weight: "",
-      color: "",
-      ownerId: 0,
-      microchip: "",
-      medicalNotes: "",
-      photo: ""
-    });
-    
-    onOpenChange(false);
+      toast({
+        title: "Animal ajouté",
+        description: `${formData.name} a été ajouté et sauvegardé avec succès.`,
+      });
+      
+      // Reset form with all required properties
+      setFormData({
+        name: "",
+        type: "",
+        breed: "",
+        gender: "",
+        birthDate: "",
+        weight: "",
+        color: "",
+        ownerId: "",
+        microchip: "",
+        medicalNotes: "",
+        photo: "",
+        status: "healthy", // reset status to default
+        hasPedigree: false,
+        officialName: "",
+        pedigreeNumber: "",
+        breeder: "",
+        fatherName: "",
+        fatherPedigree: "",
+        fatherBreed: "",
+        fatherTitles: "",
+        motherName: "",
+        motherPedigree: "",
+        motherBreed: "",
+        motherTitles: "",
+        pedigreePhoto: ""
+      });
+      
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de l'ajout de l'animal",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -140,7 +190,17 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
                       </SelectItem>
                     ) : null;
                   }).filter(Boolean) : (
-                    <SelectItem value="Chien">Chien</SelectItem>
+                    <><SelectItem value="Chien">Chien</SelectItem>
+                    <SelectItem value="Chat">Chat</SelectItem>
+                    <SelectItem value="Oiseau">Oiseau</SelectItem>
+                    <SelectItem value="Lapin">Lapin</SelectItem>
+                    <SelectItem value="Furet">Furet</SelectItem>
+                    <SelectItem value="Souris">Souris</SelectItem>
+                    <SelectItem value="Hamster">Hamster</SelectItem>
+                    <SelectItem value="Reptile">Reptile</SelectItem>
+                    <SelectItem value="Autre">Autre</SelectItem>
+                    </>
+
                   )}
                 </SelectContent>
               </Select>
@@ -221,7 +281,7 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
                 <SelectContent>
                   {clients.map(client => (
                     <SelectItem key={client.id} value={client.id.toString()}>
-                      {client.name} - {client.email}
+                      {client.first_name} {client.last_name} - {client.email}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -246,6 +306,20 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
               onChange={handleChange}
               placeholder="Allergies, conditions médicales, notes importantes..."
             />
+          </div>
+          
+          <div className="space-y-2">
+            <Label>État de santé</Label>
+            <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner l'état de santé" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="healthy">En bonne santé</SelectItem>
+                <SelectItem value="treatment">En traitement</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Section Pedigree */}

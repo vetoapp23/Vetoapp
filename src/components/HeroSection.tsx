@@ -8,6 +8,7 @@ import { NewPetModal } from "@/components/forms/NewPetModal";
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
 import { useClients } from "@/contexts/ClientContext";
 import { useSettings } from "@/contexts/SettingsContext";
+import { AdminOnly } from "./RoleGuard";
 
 export function HeroSection() {
   const { clients, pets, consultations, vaccinations, antiparasitics, generateAccountingSummary } = useClients();
@@ -68,7 +69,9 @@ export function HeroSection() {
                 <div className="text-center"><div className="text-2xl font-bold text-accent">{consultationsToday}</div><div className="text-sm text-muted-foreground">Consultations aujourd'hui</div></div>
                 <div className="text-center"><div className="text-2xl font-bold text-blue-600">{totalVaccinations}</div><div className="text-sm text-muted-foreground">Vaccinations</div></div>
                 <div className="text-center"><div className="text-2xl font-bold text-purple-600">{totalAntiparasitics}</div><div className="text-sm text-muted-foreground">Antiparasitaires</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-emerald-600">{accountingSummary.totalRevenue.toFixed(0)} {settings.currency || '€'}</div><div className="text-sm text-muted-foreground">Revenus ce mois</div></div>
+                <AdminOnly>
+                  <div className="text-center"><div className="text-2xl font-bold text-emerald-600">{accountingSummary.totalRevenue.toFixed(0)} {settings.currency || '€'}</div><div className="text-sm text-muted-foreground">Revenus ce mois</div></div>
+                </AdminOnly>
               </div>
             </div>
             {/* Illustration */}

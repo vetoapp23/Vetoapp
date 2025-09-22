@@ -222,7 +222,7 @@ export default function Appointments() {
           }))}
           onEventClick={(event) => {
             // Gérer le clic sur un rendez-vous
-            console.log('Appointment clicked:', event);
+            // Appointment clicked
           }}
           onDateClick={(date) => {
             setSelectedDate(date);

@@ -141,7 +141,7 @@ export default function NewVaccinationModal({
       )
       .sort((a, b) => a.name.localeCompare(b.name));
     setAvailableVaccines(vaccines);
-    console.log('Vaccins disponibles mis à jour:', vaccines.length, 'items');
+    // Vaccines list updated
   }, [stockItems]);
 
   // Pré-remplir le formulaire pour l'édition
@@ -789,7 +789,7 @@ export default function NewVaccinationModal({
                     </SelectTrigger>
                     <SelectContent>
                       {(() => {
-                        console.log('Vétérinaires disponibles dans le formulaire:', settings.veterinarians);
+                        // Load available veterinarians from settings
                         return settings.veterinarians
                         .filter(vet => vet.isActive)
                         .map(vet => (

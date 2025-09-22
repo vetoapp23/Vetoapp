@@ -14,6 +14,7 @@ export function UserProfile() {
   if (!user) return null;
 
   const getInitials = (name: string) => {
+    if (!name) return user.profile.username.charAt(0).toUpperCase();
     return name
       .split(' ')
       .map(word => word.charAt(0))
@@ -26,8 +27,6 @@ export function UserProfile() {
     switch (role) {
       case 'admin':
         return 'Administrateur';
-      case 'veterinarian':
-        return 'Vétérinaire';
       case 'assistant':
         return 'Assistant';
       default:
@@ -38,18 +37,16 @@ export function UserProfile() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'bg-red-100 text-red-800';
-      case 'veterinarian':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       case 'assistant':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     toast({
       title: "Déconnexion réussie",
       description: "Vous avez été déconnecté avec succès.",
@@ -68,19 +65,25 @@ export function UserProfile() {
         <div className="flex items-center gap-4">
           <Avatar className="h-16 w-16">
             <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-              {getInitials(user.name)}
+              {getInitials(user.profile.full_name || user.profile.username)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold">{user.name}</h3>
+            <h3 className="text-lg font-semibold">
+              {user.profile.full_name || user.profile.username}
+            </h3>
             <div className="flex items-center gap-2 mt-1">
               <Mail className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">{user.email}</span>
             </div>
+            <div className="flex items-center gap-2 mt-1">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">@{user.profile.username}</span>
+            </div>
             <div className="flex items-center gap-2 mt-2">
               <Shield className="h-4 w-4 text-muted-foreground" />
-              <Badge className={getRoleColor(user.role)}>
-                {getRoleLabel(user.role)}
+              <Badge className={getRoleColor(user.profile.role)}>
+                {getRoleLabel(user.profile.role)}
               </Badge>
             </div>
           </div>
@@ -94,8 +97,12 @@ export function UserProfile() {
               <span className="font-mono text-xs">{user.id}</span>
             </div>
             <div className="flex justify-between">
+              <span className="text-muted-foreground">Nom d'utilisateur:</span>
+              <span>@{user.profile.username}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Rôle:</span>
-              <span>{getRoleLabel(user.role)}</span>
+              <span>{getRoleLabel(user.profile.role)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Statut:</span>

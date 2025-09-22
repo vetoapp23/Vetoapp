@@ -8,15 +8,18 @@ import { Plus, Search, FileText, Heart, User, Calendar, Pill, Thermometer, Edit,
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
 import { ConsultationEditModal } from "@/components/modals/ConsultationEditModal";
 import { ConsultationPrint } from "@/components/ConsultationPrint";
-import NewPrescriptionModal from "@/components/forms/NewPrescriptionModal";
+import { NewPrescriptionModal } from "@/components/forms/NewPrescriptionModal";
 import { useClients, Consultation } from "@/contexts/ClientContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useToast } from "@/hooks/use-toast";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
+import { useConsultations, useCreateConsultation, useDeleteConsultation } from "@/hooks/useDatabase";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const Consultations = () => {
-  const { consultations, deleteConsultation } = useClients();
+  const { data: consultations = [], isLoading } = useConsultations();
+  const createConsultationMutation = useCreateConsultation();
+  const deleteConsultationMutation = useDeleteConsultation();
   const { settings } = useSettings();
   const { toast } = useToast();
   const { currentView } = useDisplayPreference('consultations');
@@ -31,14 +34,17 @@ const Consultations = () => {
   const [prescriptionConsultationId, setPrescriptionConsultationId] = useState<number | null>(null);
 
   const filteredConsultations = consultations.filter(consultation => {
-    const matchesSearch = consultation.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         consultation.petName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const clientName = `${consultation.client?.first_name || ''} ${consultation.client?.last_name || ''}`.trim();
+    const petName = consultation.animal?.name || '';
+    
+    const matchesSearch = clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         petName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (consultation.symptoms && consultation.symptoms.toLowerCase().includes(searchTerm.toLowerCase())) ||
                          (consultation.diagnosis && consultation.diagnosis.toLowerCase().includes(searchTerm.toLowerCase()));
     
     if (filterPeriod === "all") return matchesSearch;
     
-    const consultationDate = new Date(consultation.date);
+    const consultationDate = new Date(consultation.consultation_date);
     const today = new Date();
     const daysAgo = (today.getTime() - consultationDate.getTime()) / (1000 * 3600 * 24);
     
@@ -59,35 +65,35 @@ const Consultations = () => {
     setShowEditConsultation(true);
   };
 
-  const handleNewPrescription = (consultation: Consultation) => {
-    setPrescriptionPetId(consultation.petId);
-    setPrescriptionConsultationId(consultation.id);
+  const handleNewPrescription = (consultation: any) => {
+    setPrescriptionPetId(parseInt(consultation.animal_id));
+    setPrescriptionConsultationId(parseInt(consultation.id));
     setShowNewPrescription(true);
   };
 
-  const handleDeleteConsultation = (consultation: Consultation) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer la consultation pour ${consultation.petName} ?`)) {
-      deleteConsultation(consultation.id);
+  const handleDeleteConsultation = (consultation: any) => {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer la consultation pour ${consultation.animal?.name || 'cet animal'} ?`)) {
+      deleteConsultationMutation.mutate(consultation.id);
       toast({
         title: "Consultation supprimée",
-        description: `La consultation pour ${consultation.petName} a été supprimée.`,
+        description: `La consultation pour ${consultation.animal?.name || 'cet animal'} a été supprimée.`,
       });
     }
   };
 
-  const handleNewFollowUp = (consultation: Consultation) => {
+  const handleNewFollowUp = (consultation: any) => {
     // Pré-remplir le formulaire avec les informations du client et de l'animal
     setSelectedConsultation({
       ...consultation,
-      id: 0, // Nouveau ID sera généré
-      date: new Date().toISOString().split('T')[0], // Date d'aujourd'hui
+      id: '', // Nouveau ID sera généré
+      consultation_date: new Date().toISOString(), // Date d'aujourd'hui
       symptoms: "",
       diagnosis: "",
       treatment: "",
-      medications: "",
-      followUp: "",
-      cost: "",
-      notes: ""
+      notes: "",
+      follow_up_date: null,
+      follow_up_notes: "",
+      status: "scheduled"
     });
     setShowNewConsultation(true);
   };
@@ -183,17 +189,17 @@ const Consultations = () => {
                   <div className="flex items-start justify-between">
                     <div className="space-y-2">
                       <div className="flex items-center gap-4">
-                        <h4 className="text-lg font-semibold">{consultation.petName}</h4>
+                        <h4 className="text-lg font-semibold">{consultation.animal?.name || 'Animal inconnu'}</h4>
                         <Badge variant="secondary">Consultation</Badge>
                         <span className="text-sm text-muted-foreground">
-                          {new Date(consultation.date).toLocaleDateString('fr-FR')}
+                          {new Date(consultation.consultation_date).toLocaleDateString('fr-FR')}
                         </span>
                       </div>
                       
                       <div className="flex items-center gap-6 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {consultation.clientName}
+                          <User className="h-4 w-4" />
+                          {consultation.client?.first_name} {consultation.client?.last_name}
                         </div>
                         <div className="flex items-center gap-1">
                           <FileText className="h-3 w-3" />
@@ -326,12 +332,12 @@ const Consultations = () => {
                     <TableRow key={consultation.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{consultation.petName}</div>
-                          <div className="text-sm text-muted-foreground">{consultation.clientName}</div>
+                          <div className="font-medium">{consultation.animal?.name}</div>
+                          <div className="text-sm text-muted-foreground">{consultation.client?.first_name} {consultation.client?.last_name}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {new Date(consultation.date).toLocaleDateString('fr-FR')}
+                        {new Date(consultation.consultation_date).toLocaleDateString('fr-FR')}
                       </TableCell>
                       <TableCell>
                         <div className="max-w-xs truncate">
@@ -396,12 +402,12 @@ const Consultations = () => {
         consultation={selectedConsultation}
       />
       
-      {prescriptionPetId && (
+      {prescriptionPetId && prescriptionConsultationId && (
         <NewPrescriptionModal
           open={showNewPrescription}
           onOpenChange={setShowNewPrescription}
-          petId={prescriptionPetId}
-          consultationId={prescriptionConsultationId || undefined}
+          petId={prescriptionPetId.toString()}
+          consultationId={prescriptionConsultationId.toString()}
         />
       )}
     </div>

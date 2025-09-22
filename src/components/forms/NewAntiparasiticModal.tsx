@@ -74,7 +74,7 @@ export default function NewAntiparasiticModal({ children, selectedClientId, sele
       )
       .sort((a, b) => a.name.localeCompare(b.name));
     setAvailableAntiparasitics(antiparasitics);
-    console.log('Antiparasitaires disponibles mis à jour:', antiparasitics.length, 'items');
+    // Antiparasitics list updated
   }, [stockItems]);
 
   // Pré-remplir le formulaire pour l'édition
@@ -305,7 +305,7 @@ export default function NewAntiparasiticModal({ children, selectedClientId, sele
       });
     }
 
-    console.log('Antiparasitaire ajouté avec succès - Données synchronisées dans le dossier médical');
+    // Antiparasitic added successfully and synced to medical records
 
     // Reset and close
     setSelectedProtocols([]);

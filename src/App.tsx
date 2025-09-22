@@ -1,7 +1,8 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { VetNavigation } from "@/components/VetNavigation";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -32,8 +33,7 @@ import Profile from "./pages/Profile";
 import AuthSettings from "./pages/AuthSettings";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-
-const queryClient = new QueryClient();
+import { queryClient } from "@/lib/queryClient";
 
 const App = () => (
   <ErrorBoundary>
@@ -46,115 +46,167 @@ const App = () => (
             <SettingsProvider>
               <ThemeProvider>
                 <BrowserRouter>
-                <div className="min-h-screen bg-background">
-                  <Routes>
-                    <Route path="/" element={<Landing />} />
-                    <Route path="/login" element={
-                      <AuthRedirect>
-                        <LoginForm />
-                      </AuthRedirect>
-                    } />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/dashboard" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Dashboard />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/clients" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Clients />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/pets" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Pets />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/appointments" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Appointments />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/consultations" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Consultations />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/history" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <History />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/farm" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Farm />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/vaccinations" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Vaccinations />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/antiparasites" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Antiparasites />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/stock" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Stock />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/accounting" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Accounting />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/test-stats" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <TestStats />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/simple-test" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <SimpleTest />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/settings" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Settings />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/profile" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <Profile />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/auth-settings" element={
-                      <ProtectedRoute>
-                        <VetNavigation />
-                        <AuthSettings />
-                      </ProtectedRoute>
-                    } />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </div>
+                  <div className="min-h-screen bg-background">
+                    <Routes>
+                      <Route path="/" element={<Landing />} />
+                      <Route
+                        path="/login"
+                        element={
+                          <AuthRedirect>
+                            <LoginForm />
+                          </AuthRedirect>
+                        }
+                      />
+                      <Route path="/register" element={<Register />} />
+                      <Route
+                        path="/dashboard"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Dashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/clients"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Clients />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/pets"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Pets />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/appointments"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Appointments />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/consultations"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Consultations />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/history"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <History />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/farm"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Farm />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/vaccinations"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Vaccinations />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/antiparasites"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Antiparasites />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/stock"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Stock />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/accounting"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Accounting />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/test-stats"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <TestStats />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/simple-test"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <SimpleTest />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Settings />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/profile"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Profile />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/auth-settings"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <AuthSettings />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </div>
                 </BrowserRouter>
               </ThemeProvider>
             </SettingsProvider>
@@ -166,4 +218,3 @@ const App = () => (
 );
 
 export default App;
-

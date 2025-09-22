@@ -14,6 +14,7 @@ import { ClientGrowthChart } from "@/components/charts/ClientGrowthChart";
 import { AppointmentStatusChart } from "@/components/charts/AppointmentStatusChart";
 import { ConsultationTrendsChart } from "@/components/charts/ConsultationTrendsChart";
 import { PetSpeciesChart } from "@/components/charts/PetSpeciesChart";
+import { AdminOnly } from "@/components/RoleGuard";
 
 const Dashboard = () => {
   return (
@@ -41,7 +42,9 @@ const Dashboard = () => {
       <section>
         <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Analyses et Tendances</h2>
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-          <RevenueChart />
+          <AdminOnly>
+            <RevenueChart />
+          </AdminOnly>
           <ActivityChart />
         </div>
       </section>
@@ -66,6 +69,14 @@ const Dashboard = () => {
         <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Activité Récente</h2>
         <ConsultationsOverview />
       </section>
+
+      {/* Admin Only Section */}
+      <AdminOnly>
+        <section>
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Admin Dashboard</h2>
+          {/* Admin specific components or charts can be added here */}
+        </section>
+      </AdminOnly>
     </div>
   );
 };
