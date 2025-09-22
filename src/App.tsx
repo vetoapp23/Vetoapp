@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthRedirect } from "@/components/AuthRedirect";
+import { AuthCallback } from "@/components/AuthCallback";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -202,6 +203,9 @@ const App = () => (
                           </ProtectedRoute>
                         }
                       />
+
+                      {/* Auth callback route for OAuth */}
+                      <Route path="/auth/callback" element={<AuthCallback />} />
 
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
