@@ -92,6 +92,22 @@ export const signIn = async (email: string, password: string) => {
 export const signOut = async () => {
   const { error } = await supabase.auth.signOut()
   if (error) throw error
+
+  // Clear all Supabase-related data from localStorage
+  try {
+    localStorage.removeItem('supabase.auth.token')
+    localStorage.removeItem('sb-' + supabaseUrl.split('//')[1].split('.')[0] + '-auth-token')
+
+    // Clear any cookies that might exist
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+  } catch (e) {
+    // Ignore errors when clearing storage
+    console.warn('Error clearing auth storage:', e)
+  }
 }
 
 export const updateUserProfile = async (updates: Partial<UserProfile>) => {
@@ -209,6 +225,14 @@ export const signInWithGoogle = async () => {
     }
   })
 
+  if (error) throw error
+  return data
+}
+
+export const resetPassword = async (email: string) => {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${import.meta.env.VITE_APP_URL}/reset-password`
+  })
 
   if (error) throw error
   return data

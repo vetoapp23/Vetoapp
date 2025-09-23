@@ -12,7 +12,6 @@ import { LoginForm } from "@/components/LoginForm";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthRedirect } from "@/components/AuthRedirect";
 import Landing from "./pages/Landing";
-import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
@@ -31,6 +30,7 @@ import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import AuthSettings from "./pages/AuthSettings";
+import { ResetPassword } from "./pages/ResetPassword";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { queryClient } from "@/lib/queryClient";
@@ -202,6 +202,7 @@ const App = () => (
                           </ProtectedRoute>
                         }
                       />
+                      <Route path="/reset-password" element={<ResetPassword />} />
 
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
