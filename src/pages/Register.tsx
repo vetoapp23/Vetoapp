@@ -21,14 +21,36 @@ const Register = () => {
     confirmPassword: ""
   });
 
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 8) {
+      return 'Le mot de passe doit contenir au moins 8 caractères';
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      return 'Le mot de passe doit contenir au moins une lettre majuscule';
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      return 'Le mot de passe doit contenir au moins une lettre minuscule';
+    }
+    
+    if (!/\d/.test(password)) {
+      return 'Le mot de passe doit contenir au moins un chiffre';
+    }
+    
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>?]/.test(password)) {
+      return 'Le mot de passe doit contenir au moins un caractère spécial';
+    }
+    
+    return null; // Password is valid
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
       ...prev,
       [e.target.id]: e.target.value
     }));
   };
-
-
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,10 +66,12 @@ const Register = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
+    // Validate password strength
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
       toast({
         title: "Erreur",
-        description: "Le mot de passe doit comporter au moins 6 caractères",
+        description: passwordError,
         variant: "destructive",
       });
       setIsLoading(false);
@@ -68,10 +92,11 @@ const Register = () => {
         description: "Votre compte a été créé avec succès. Veuillez vérifier votre email et cliquer sur le lien de confirmation pour pouvoir vous connecter.",
       });
       navigate("/login");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors de l'inscription";
       toast({
         title: "Erreur d'inscription",
-        description: error.message || "Une erreur est survenue lors de l'inscription",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -134,12 +159,15 @@ const Register = () => {
               <Input
                 id="password"
                 type="password"
-                placeholder="Minimum 6 caractères"
+                placeholder="Votre mot de passe sécurisé"
                 value={formData.password}
                 onChange={handleChange}
                 required
-                minLength={6}
+                minLength={8}
               />
+              <p className="text-xs text-muted-foreground">
+                Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.
+              </p>
             </div>
             
             <div className="space-y-2">
@@ -151,7 +179,7 @@ const Register = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
             

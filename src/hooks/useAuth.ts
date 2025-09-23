@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase, UserProfile, signIn, signOut, getCurrentUserProfile, createUserProfileIfNotExists, signInWithGoogle } from '../lib/supabase'
+import { supabase, UserProfile, signIn, signOut, getCurrentUserProfile, createUserProfileIfNotExists, signInWithGoogle, resetPassword } from '../lib/supabase'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 export interface User {
@@ -174,6 +174,15 @@ export const useGoogleLogin = () => {
       }
 
       return data
+    }
+  })
+}
+
+// Reset password mutation
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: async (email: string) => {
+      await resetPassword(email)
     }
   })
 }
