@@ -73,19 +73,31 @@ export function ResetPassword() {
     setError('');
 
     if (!password || !confirmPassword) {
-      setError('Veuillez remplir tous les champs');
+      toast({
+        title: "Champs requis",
+        description: 'Veuillez remplir tous les champs',
+        variant: "destructive",
+      });
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
+      toast({
+        title: "Erreur",
+        description: 'Les mots de passe ne correspondent pas',
+        variant: "destructive",
+      });
       return;
     }
 
     // Validate password strength
     const passwordError = validatePassword(password);
     if (passwordError) {
-      setError(passwordError);
+      toast({
+        title: "Mot de passe invalide",
+        description: passwordError,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -229,12 +241,6 @@ export function ResetPassword() {
                 </Button>
               </div>
             </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
 
             <Button
               type="submit"
