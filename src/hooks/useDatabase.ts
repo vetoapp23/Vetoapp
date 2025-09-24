@@ -15,11 +15,20 @@ import {
   searchClients,
   searchAnimals,
   getClientStats,
+  getAppointments,
+  getAppointmentsByAnimal,
+  getAppointmentsByClient,
+  createAppointment,
+  updateAppointment,
+  deleteAppointment,
   type Client,
   type Animal,
+  type Appointment,
   type CreateClientData,
   type CreateAnimalData,
-  type CreateConsultationData
+  type CreateConsultationData,
+  type CreateAppointmentData,
+  type UpdateAppointmentData
 } from '../lib/database'
 import {
   getCurrentUserProfile,
@@ -57,6 +66,16 @@ export const animalKeys = {
   detail: (id: string) => [...animalKeys.details(), id] as const,
   byClient: (clientId: string) => [...animalKeys.all, 'client', clientId] as const,
   search: (query: string) => [...animalKeys.all, 'search', query] as const,
+}
+
+export const appointmentKeys = {
+  all: ['appointments'] as const,
+  lists: () => [...appointmentKeys.all, 'list'] as const,
+  list: (filters: string) => [...appointmentKeys.lists(), { filters }] as const,
+  details: () => [...appointmentKeys.all, 'detail'] as const,
+  detail: (id: string) => [...appointmentKeys.details(), id] as const,
+  byAnimal: (animalId: string) => [...appointmentKeys.all, 'animal', animalId] as const,
+  byClient: (clientId: string) => [...appointmentKeys.all, 'client', clientId] as const,
 }
 
 export const statsKeys = {
@@ -524,3 +543,120 @@ export const useUpdateUserProfile = () => {
     },
   })
 }
+
+// =============================================
+// APPOINTMENT HOOKS
+// =============================================
+
+export const useAppointments = () => {
+  return useQuery({
+    queryKey: appointmentKeys.lists(),
+    queryFn: getAppointments,
+    staleTime: 2 * 60 * 1000, // 2 minutes for real-time-ish data
+  })
+}
+
+export const useAppointmentsByAnimal = (animalId: string) => {
+  return useQuery({
+    queryKey: appointmentKeys.byAnimal(animalId),
+    queryFn: () => getAppointmentsByAnimal(animalId),
+    enabled: !!animalId,
+    staleTime: 2 * 60 * 1000,
+  })
+}
+
+export const useAppointmentsByClient = (clientId: string) => {
+  return useQuery({
+    queryKey: appointmentKeys.byClient(clientId),
+    queryFn: () => getAppointmentsByClient(clientId),
+    enabled: !!clientId,
+    staleTime: 2 * 60 * 1000,
+  })
+}
+
+export const useCreateAppointment = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: createAppointment,
+    onSuccess: (newAppointment) => {
+      // Invalidate and refetch appointments list
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() })
+      
+      // Invalidate related animal and client queries
+      if (newAppointment.animal_id) {
+        queryClient.invalidateQueries({ queryKey: appointmentKeys.byAnimal(newAppointment.animal_id) })
+      }
+      if (newAppointment.client_id) {
+        queryClient.invalidateQueries({ queryKey: appointmentKeys.byClient(newAppointment.client_id) })
+        queryClient.invalidateQueries({ queryKey: clientKeys.detail(newAppointment.client_id) })
+      }
+      
+      // Invalidate stats
+      queryClient.invalidateQueries({ queryKey: statsKeys.clients() })
+    },
+  })
+}
+
+export const useUpdateAppointment = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateAppointmentData }) => 
+      updateAppointment(id, data),
+    onSuccess: (updatedAppointment) => {
+      // Invalidate and refetch appointments list
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() })
+      
+      // Update the specific appointment in cache
+      queryClient.setQueryData(appointmentKeys.lists(), (old: Appointment[] | undefined) => {
+        if (!old) return []
+        return old.map(appointment => 
+          appointment.id === updatedAppointment.id ? updatedAppointment : appointment
+        )
+      })
+      
+      // Invalidate related queries
+      if (updatedAppointment.animal_id) {
+        queryClient.invalidateQueries({ queryKey: appointmentKeys.byAnimal(updatedAppointment.animal_id) })
+      }
+      if (updatedAppointment.client_id) {
+        queryClient.invalidateQueries({ queryKey: appointmentKeys.byClient(updatedAppointment.client_id) })
+      }
+    },
+  })
+}
+
+export const useDeleteAppointment = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: deleteAppointment,
+    onSuccess: (_, deletedId) => {
+      // Remove from appointments list cache
+      queryClient.setQueryData(appointmentKeys.lists(), (old: Appointment[] | undefined) => {
+        if (!old) return []
+        return old.filter(appointment => appointment.id !== deletedId)
+      })
+      
+      // Invalidate related queries  
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: statsKeys.clients() })
+    },
+  })
+}
+
+// Re-export types for convenience
+export type { 
+  Client, 
+  Animal, 
+  Appointment, 
+  CreateClientData, 
+  CreateAnimalData, 
+  CreateAppointmentData,
+  UpdateAppointmentData,
+  Consultation,
+  Prescription,
+  CreatePrescriptionData,
+  StockItem
+} from '../lib/database'

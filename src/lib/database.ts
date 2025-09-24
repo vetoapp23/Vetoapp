@@ -379,6 +379,18 @@ export interface CreateAppointmentData {
   notes?: string
 }
 
+export interface UpdateAppointmentData {
+  client_id?: string
+  animal_id?: string
+  veterinarian_id?: string
+  appointment_date?: string
+  duration_minutes?: number
+  appointment_type?: 'consultation' | 'vaccination' | 'surgery' | 'follow-up'
+  status?: 'scheduled' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show'
+  notes?: string
+  reminder_sent?: boolean
+}
+
 // =============================================
 // CLIENT OPERATIONS
 // =============================================
@@ -1012,6 +1024,57 @@ export const createAppointment = async (appointmentData: CreateAppointmentData):
   }
 
   return data
+}
+
+export const updateAppointment = async (id: string, appointmentData: UpdateAppointmentData): Promise<Appointment> => {
+  const { data, error } = await supabase
+    .from('appointments')
+    .update({
+      ...appointmentData,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select(`
+      *,
+      client:clients(*),
+      animal:animals(*)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating appointment: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteAppointment = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('appointments')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting appointment: ${error.message}`)
+  }
+}
+
+export const getAppointmentsByClient = async (clientId: string): Promise<Appointment[]> => {
+  const { data, error } = await supabase
+    .from('appointments')
+    .select(`
+      *,
+      client:clients(*),
+      animal:animals(*)
+    `)
+    .eq('client_id', clientId)
+    .order('appointment_date', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching appointments for client: ${error.message}`)
+  }
+
+  return data || []
 }
 
 // =============================================
