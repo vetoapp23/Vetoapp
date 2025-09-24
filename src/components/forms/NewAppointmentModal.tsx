@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, User, Heart, AlertCircle, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useClients, Client, Pet } from "@/contexts/ClientContext";
+import { useClients, useAnimals, useCreateAppointment, useAppointments, type Client, type Animal } from "@/hooks/useDatabase";
 import { useSettings } from "@/contexts/SettingsContext";
 import { NewClientModal } from "@/components/forms/NewClientModal";
 import { NewPetModal } from "@/components/forms/NewPetModal";
@@ -18,11 +18,11 @@ interface NewAppointmentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   // Props pour pré-remplir le formulaire
-  prefillClientId?: number;
-  prefillPetId?: number;
+  prefillClientId?: string;
+  prefillPetId?: string;
   prefillType?: 'consultation' | 'vaccination' | 'chirurgie' | 'urgence' | 'controle' | 'sterilisation' | 'dentaire';
   prefillReason?: string;
-  originalVaccinationId?: number; // ID du vaccin original pour les rappels
+  originalVaccinationId?: string; // ID du vaccin original pour les rappels
 }
 
 export function NewAppointmentModal({ 
@@ -34,8 +34,10 @@ export function NewAppointmentModal({
   prefillReason,
   originalVaccinationId,
 }: NewAppointmentModalProps) {
-  const { clients, pets, addAppointment, getPetsByOwnerId,
-    createVaccinationReminder, appointments } = useClients();
+  const { data: clients = [] } = useClients();
+  const { data: animals = [] } = useAnimals();
+  const { data: appointments = [] } = useAppointments();
+  const createAppointment = useCreateAppointment();
   const { settings } = useSettings();
   const { toast } = useToast();
   
@@ -44,8 +46,8 @@ export function NewAppointmentModal({
   const [availableSlots, setAvailableSlots] = useState<{ time: string; isAvailable: boolean; isLunchBreak: boolean }[]>([]);
   
   const [formData, setFormData] = useState({
-    clientId: 0,
-    petId: 0,
+    clientId: "",
+    petId: "",
     date: "",
     time: "",
     type: "" as 'consultation' | 'vaccination' | 'chirurgie' | 'urgence' | 'controle' | 'sterilisation' | 'dentaire',
@@ -54,15 +56,15 @@ export function NewAppointmentModal({
     notes: ""
   });
 
-  const [availablePets, setAvailablePets] = useState<Pet[]>([]);
+  const [availablePets, setAvailablePets] = useState<Animal[]>([]);
   const [conflicts, setConflicts] = useState<string[]>([]);
 
   // Réinitialiser le formulaire quand le modal s'ouvre
   useEffect(() => {
     if (open) {
       setFormData({
-        clientId: prefillClientId || 0,
-        petId: prefillPetId || 0,
+        clientId: prefillClientId || "",
+        petId: prefillPetId || "",
         date: "",
         time: "",
         type: prefillType || "" as any,
@@ -75,24 +77,40 @@ export function NewAppointmentModal({
     }
   }, [open, prefillClientId, prefillPetId, prefillType, prefillReason]);
 
+    // Helper function to get animals for a client
+  const getAnimalsForClient = (clientId: string) => {
+    return animals.filter(animal => animal.client_id === clientId);
+  };
+
   // Gérer le pré-remplissage des animaux quand le modal s'ouvre
   useEffect(() => {
     if (open && prefillClientId && prefillPetId) {
-      // Charger les animaux du client pré-sélectionné
-      const petsForClient = getPetsByOwnerId(prefillClientId);
+      const petsForClient = getAnimalsForClient(prefillClientId);
       setAvailablePets(petsForClient);
       
-      // Vérifier que l'animal pré-sélectionné appartient bien au client
-      const selectedPet = petsForClient.find(p => p.id === prefillPetId);
-      if (selectedPet) {
-        // L'animal est valide, on peut le garder sélectionné
+      // Vérifier si l'animal spécifié appartient bien au client
+      if (petsForClient.find(pet => pet.id === prefillPetId)) {
         setFormData(prev => ({ ...prev, petId: prefillPetId }));
       } else {
-        // L'animal n'appartient pas au client, on le reset
-        setFormData(prev => ({ ...prev, petId: 0 }));
+        setFormData(prev => ({ ...prev, petId: "" }));
       }
     }
-  }, [open, prefillClientId, prefillPetId, getPetsByOwnerId]);
+  }, [open, prefillClientId, prefillPetId, animals]);
+
+  // Mettre à jour les animaux disponibles quand le client change
+  useEffect(() => {
+    if (formData.clientId) {
+      const petsForClient = getAnimalsForClient(formData.clientId);
+      setAvailablePets(petsForClient);
+      
+      // Réinitialiser l'animal sélectionné si le client change
+      if (!prefillPetId || !petsForClient.find(pet => pet.id === formData.petId)) {
+        setFormData(prev => ({ ...prev, petId: "" }));
+      }
+    } else {
+      setAvailablePets([]);
+    }
+  }, [formData.clientId, animals, prefillPetId]);
 
   // Mettre à jour les animaux disponibles quand le client change
   useEffect(() => {
