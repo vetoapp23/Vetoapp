@@ -77,6 +77,10 @@ export interface Consultation {
   created_at: string
   updated_at: string
   
+  // UI compatibility fields
+  cost?: number
+  followUp?: string | null
+  
   // Relations
   animal?: Animal
   client?: Client
@@ -323,6 +327,7 @@ export interface CreateConsultationData {
   animal_id: string
   client_id: string
   veterinarian_id?: string
+  consultation_date?: string
   consultation_type: string
   symptoms?: string
   diagnosis?: string
@@ -335,6 +340,8 @@ export interface CreateConsultationData {
   photos?: string[]
   follow_up_date?: string
   follow_up_notes?: string
+  status?: string
+  cost?: number
 }
 
 export interface CreateVaccinationData {
@@ -355,10 +362,14 @@ export interface CreatePrescriptionData {
   animal_id: string
   client_id: string
   veterinarian_id?: string
+  prescription_date?: string
   diagnosis?: string
   notes?: string
+  status?: string
+  refill_count?: number
   valid_until?: string
   medications: {
+    stock_item_id?: string
     medication_name: string
     dosage?: string
     frequency?: string

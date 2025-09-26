@@ -218,152 +218,153 @@ export function NewPrescriptionModal({ open, onOpenChange, petId, consultationId
           </div>
 
           {/* Medications */}
-          <div className="space-y-4">
+            <div className="space-y-6 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <Label className="text-lg font-semibold">Médicaments</Label>
-              <Button type="button" onClick={addMedication} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Ajouter un médicament
+              <Label className="text-lg font-semibold text-gray-900 dark:text-gray-100">Médicaments</Label>
+              <Button type="button" onClick={addMedication} size="sm" variant="outline">
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter un médicament
               </Button>
             </div>
 
             {medications.map((medication, index) => (
-              <div key={index} className="border rounded-lg p-4 space-y-4 bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Médicament {index + 1}</h4>
-                  {medications.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeMedication(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+              <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 space-y-4 bg-gray-50 dark:bg-gray-800">
+              <div className="flex items-center justify-between">
+              <h4 className="font-medium text-base text-gray-900 dark:text-gray-100">Médicament {index + 1}</h4>
+              {medications.length > 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => removeMedication(index)}
+                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+              )}
+              </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label>Médicament *</Label>
-                    <Select
-                      value={medication.medication_name}
-                      onValueChange={(value) => handleMedicationChange(index, 'medication_name', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner ou taper..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableMedications.map((item) => (
-                          <SelectItem key={item.id} value={item.name}>
-                            {item.name} ({item.current_quantity} {item.unit})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {!availableMedications.find(item => item.name === medication.medication_name) && (
-                      <Input
-                        className="mt-2"
-                        value={medication.medication_name}
-                        onChange={(e) => handleMedicationChange(index, 'medication_name', e.target.value)}
-                        placeholder="Nom du médicament personnalisé"
-                      />
-                    )}
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="md:col-span-2 lg:col-span-1">
+              <Label className="text-gray-700 dark:text-gray-300">Médicament *</Label>
+              <Select
+                value={medication.medication_name}
+                onValueChange={(value) => handleMedicationChange(index, 'medication_name', value)}
+              >
+                <SelectTrigger>
+                <SelectValue placeholder="Sélectionner ou taper..." />
+                </SelectTrigger>
+                <SelectContent>
+                {availableMedications.map((item) => (
+                <SelectItem key={item.id} value={item.name}>
+                {item.name} ({item.current_quantity} {item.unit})
+                </SelectItem>
+                ))}
+                </SelectContent>
+              </Select>
+              {!availableMedications.find(item => item.name === medication.medication_name) && (
+                <Input
+                className="mt-2"
+                value={medication.medication_name}
+                onChange={(e) => handleMedicationChange(index, 'medication_name', e.target.value)}
+                placeholder="Nom du médicament personnalisé"
+                />
+              )}
+              </div>
 
-                  <div>
-                    <Label>Dosage</Label>
-                    <Input
-                      value={medication.dosage || ""}
-                      onChange={(e) => handleMedicationChange(index, 'dosage', e.target.value)}
-                      placeholder="ex: 5mg"
-                    />
-                  </div>
+              <div>
+              <Label className="text-gray-700 dark:text-gray-300">Dosage</Label>
+              <Input
+                value={medication.dosage || ""}
+                onChange={(e) => handleMedicationChange(index, 'dosage', e.target.value)}
+                placeholder="ex: 5mg"
+              />
+              </div>
 
-                  <div>
-                    <Label>Fréquence</Label>
-                    <Select
-                      value={medication.frequency || ""}
-                      onValueChange={(value) => handleMedicationChange(index, 'frequency', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1x/jour">1 fois par jour</SelectItem>
-                        <SelectItem value="2x/jour">2 fois par jour</SelectItem>
-                        <SelectItem value="3x/jour">3 fois par jour</SelectItem>
-                        <SelectItem value="1x/semaine">1 fois par semaine</SelectItem>
-                        <SelectItem value="selon besoin">Selon besoin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div>
+              <Label className="text-gray-700 dark:text-gray-300">Fréquence</Label>
+              <Select
+                value={medication.frequency || ""}
+                onValueChange={(value) => handleMedicationChange(index, 'frequency', value)}
+              >
+                <SelectTrigger>
+                <SelectValue placeholder="Sélectionner..." />
+                </SelectTrigger>
+                <SelectContent>
+                <SelectItem value="1x/jour">1 fois par jour</SelectItem>
+                <SelectItem value="2x/jour">2 fois par jour</SelectItem>
+                <SelectItem value="3x/jour">3 fois par jour</SelectItem>
+                <SelectItem value="1x/semaine">1 fois par semaine</SelectItem>
+                <SelectItem value="selon besoin">Selon besoin</SelectItem>
+                </SelectContent>
+              </Select>
+              </div>
 
-                  <div>
-                    <Label>Durée</Label>
-                    <Input
-                      value={medication.duration || ""}
-                      onChange={(e) => handleMedicationChange(index, 'duration', e.target.value)}
-                      placeholder="ex: 7 jours"
-                    />
-                  </div>
+              <div>
+              <Label className="text-gray-700 dark:text-gray-300">Durée</Label>
+              <Input
+                value={medication.duration || ""}
+                onChange={(e) => handleMedicationChange(index, 'duration', e.target.value)}
+                placeholder="ex: 7 jours"
+              />
+              </div>
 
-                  <div>
-                    <Label>Quantité *</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={medication.quantity}
-                      onChange={(e) => handleMedicationChange(index, 'quantity', parseInt(e.target.value) || 1)}
-                    />
-                  </div>
+              <div>
+              <Label className="text-gray-700 dark:text-gray-300">Quantité *</Label>
+              <Input
+                type="number"
+                min="1"
+                value={medication.quantity}
+                onChange={(e) => handleMedicationChange(index, 'quantity', parseInt(e.target.value) || 1)}
+              />
+              </div>
 
-                  <div>
-                    <Label>Voie d'administration</Label>
-                    <Select
-                      value={medication.route || "oral"}
-                      onValueChange={(value) => handleMedicationChange(index, 'route', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="oral">Orale</SelectItem>
-                        <SelectItem value="injectable">Injectable</SelectItem>
-                        <SelectItem value="topique">Topique</SelectItem>
-                        <SelectItem value="intraveineuse">Intraveineuse</SelectItem>
-                        <SelectItem value="intramusculaire">Intramusculaire</SelectItem>
-                        <SelectItem value="sous-cutanée">Sous-cutanée</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              <div>
+              <Label className="text-gray-700 dark:text-gray-300">Voie d'administration</Label>
+              <Select
+                value={medication.route || "oral"}
+                onValueChange={(value) => handleMedicationChange(index, 'route', value)}
+              >
+                <SelectTrigger>
+                <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                <SelectItem value="oral">Orale</SelectItem>
+                <SelectItem value="injectable">Injectable</SelectItem>
+                <SelectItem value="topique">Topique</SelectItem>
+                <SelectItem value="intraveineuse">Intraveineuse</SelectItem>
+                <SelectItem value="intramusculaire">Intramusculaire</SelectItem>
+                <SelectItem value="sous-cutanée">Sous-cutanée</SelectItem>
+                </SelectContent>
+              </Select>
+              </div>
+              </div>
 
-                <div>
-                  <Label>Instructions spéciales</Label>
-                  <Textarea
-                    value={medication.instructions || ""}
-                    onChange={(e) => handleMedicationChange(index, 'instructions', e.target.value)}
-                    placeholder="Instructions particulières pour ce médicament..."
-                    className="h-16"
-                  />
-                </div>
+              <div>
+              <Label className="text-gray-700 dark:text-gray-300">Instructions spéciales</Label>
+              <Textarea
+              value={medication.instructions || ""}
+              onChange={(e) => handleMedicationChange(index, 'instructions', e.target.value)}
+              placeholder="Instructions particulières pour ce médicament..."
+              className="h-16"
+              />
+              </div>
               </div>
             ))}
-          </div>
 
-          {/* Notes */}
-          <div>
-            <Label htmlFor="notes">Notes générales</Label>
-            <Textarea
+            {/* Notes */}
+            <div>
+              <Label htmlFor="notes" className="text-gray-700 dark:text-gray-300">Notes générales</Label>
+              <Textarea
               id="notes"
               name="notes"
               value={formData.notes}
               onChange={handleInputChange}
               placeholder="Notes générales sur la prescription..."
               className="h-20"
-            />
-          </div>
+              />
+            </div>
+            </div>
 
           {/* Actions */}
           <div className="flex justify-end space-x-2">
