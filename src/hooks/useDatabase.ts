@@ -21,14 +21,27 @@ import {
   createAppointment,
   updateAppointment,
   deleteAppointment,
+  getVaccinations,
+  getVaccinationsByAnimal,
+  createVaccination,
+  updateVaccination,
+  deleteVaccination,
+  getVaccinationProtocols,
+  getVaccinationProtocolsBySpecies,
+  createVaccinationProtocol,
+  updateVaccinationProtocol,
+  deleteVaccinationProtocol,
   type Client,
   type Animal,
   type Appointment,
   type Consultation,
+  type Vaccination,
+  type VaccinationProtocol,
   type CreateClientData,
   type CreateAnimalData,
   type CreateConsultationData,
   type CreateAppointmentData,
+  type CreateVaccinationData,
   type UpdateAppointmentData
 } from '../lib/database'
 import {
@@ -672,36 +685,105 @@ export const useDeleteConsultation = () => {
 export const useVaccinations = () => {
   return useQuery({
     queryKey: ['vaccinations'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('vaccinations')
-        .select(`
-          *,
-          animal:animals(*),
-          client:clients(*)
-        `)
-        .order('date_vaccination', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => getVaccinations(),
   });
 };
 
 export const useVaccinationsByAnimal = (animalId: string) => {
   return useQuery({
     queryKey: ['vaccinations', 'animal', animalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('vaccinations')
-        .select('*')
-        .eq('animal_id', animalId)
-        .order('date_vaccination', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => getVaccinationsByAnimal(animalId),
     enabled: !!animalId,
+  });
+};
+
+export const useCreateVaccination = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createVaccination,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
+      queryClient.invalidateQueries({ queryKey: ['animals'] });
+    },
+  });
+};
+
+export const useUpdateVaccination = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateVaccinationData> }) => 
+      updateVaccination(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
+      queryClient.invalidateQueries({ queryKey: ['animals'] });
+    },
+  });
+};
+
+export const useDeleteVaccination = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: deleteVaccination,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
+      queryClient.invalidateQueries({ queryKey: ['animals'] });
+    },
+  });
+};
+
+// =============================================
+// VACCINATION PROTOCOL HOOKS
+// =============================================
+
+export const useVaccinationProtocols = () => {
+  return useQuery({
+    queryKey: ['vaccination-protocols'],
+    queryFn: () => getVaccinationProtocols(),
+  });
+};
+
+export const useVaccinationProtocolsBySpecies = (species: string) => {
+  return useQuery({
+    queryKey: ['vaccination-protocols', 'species', species],
+    queryFn: () => getVaccinationProtocolsBySpecies(species),
+    enabled: !!species,
+  });
+};
+
+export const useCreateVaccinationProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createVaccinationProtocol,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccination-protocols'] });
+    },
+  });
+};
+
+export const useUpdateVaccinationProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<VaccinationProtocol> }) => 
+      updateVaccinationProtocol(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccination-protocols'] });
+    },
+  });
+};
+
+export const useDeleteVaccinationProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: deleteVaccinationProtocol,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccination-protocols'] });
+    },
   });
 };
 

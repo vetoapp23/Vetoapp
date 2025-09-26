@@ -14,10 +14,9 @@ import { ConfirmVaccinationReminderModal } from "@/components/modals/ConfirmVacc
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calculateAge, formatDate } from "@/lib/utils";
 import { PrescriptionsList } from "@/components/PrescriptionsList";
-import { useReactToPrint } from 'react-to-print';
-import { useRef } from 'react';
+
 import { useToast } from '@/hooks/use-toast';
-import CertificateVaccinationPrint from '@/components/CertificateVaccinationPrint';
+import CertificateVaccinationPrintDynamic from '@/components/CertificateVaccinationPrintDynamic';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,11 +85,7 @@ export function PetDossierModal({ open, onOpenChange, pet }: PetDossierModalProp
   const [selectedVaccinationForConfirmation, setSelectedVaccinationForConfirmation] = useState<any>(null);
   const [editingVaccinationStatus, setEditingVaccinationStatus] = useState<number | null>(null);
   const { toast } = useToast();
-  const printRef = useRef<any>(null);
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    onAfterPrint: () => onOpenChange(false)
-  });
+
 
   // Mettre à jour les statuts des vaccinations quand le modal s'ouvre
   useEffect(() => {
@@ -1370,10 +1365,7 @@ export function PetDossierModal({ open, onOpenChange, pet }: PetDossierModalProp
                             </div>
 
                             <div className="flex flex-col gap-2 ml-4">
-                              <Button size="sm" variant="outline" className="gap-2" onClick={handlePrint}>
-                                <FileText className="h-4 w-4" />
-                                Certificat
-                              </Button>
+                              <CertificateVaccinationPrintDynamic animalId={pet.id.toString()} />
                               {vaccination.nextDueDate && new Date(vaccination.nextDueDate) <= new Date() && vaccination.status !== 'completed' && !vaccination.reminderAppointmentId && (
                                 <Button 
                                   size="sm" 
@@ -1922,11 +1914,7 @@ export function PetDossierModal({ open, onOpenChange, pet }: PetDossierModalProp
           <Button onClick={() => setShowNewAntiparasitic(false)}>Fermer</Button>
         </NewAntiparasiticModal>
       )}
-      {pet && (
-        <div style={{ display: 'none' }}>
-          <CertificateVaccinationPrint ref={printRef} petId={pet.id} />
-        </div>
-      )}
+
     </>
   );
 }

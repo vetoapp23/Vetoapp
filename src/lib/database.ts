@@ -851,11 +851,24 @@ export const createVaccination = async (vaccinationData: CreateVaccinationData):
     throw new Error('User not authenticated')
   }
 
+  // Ensure administered_by is either a valid UUID or null
+  let administeredBy = vaccinationData.administered_by;
+  if (!administeredBy || administeredBy.trim() === '') {
+    // Check if the current user has a profile in user_profiles
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+    
+    administeredBy = userProfile ? user.id : null;
+  }
+
   const { data, error } = await supabase
     .from('vaccinations')
     .insert({
       ...vaccinationData,
-      administered_by: vaccinationData.administered_by || user.id
+      administered_by: administeredBy
     })
     .select(`
       *,
@@ -868,6 +881,108 @@ export const createVaccination = async (vaccinationData: CreateVaccinationData):
   }
 
   return data
+}
+
+export const updateVaccination = async (id: string, updates: Partial<CreateVaccinationData>): Promise<Vaccination> => {
+  const { data, error } = await supabase
+    .from('vaccinations')
+    .update(updates)
+    .eq('id', id)
+    .select(`
+      *,
+      animal:animals(*)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating vaccination: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteVaccination = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('vaccinations')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting vaccination: ${error.message}`)
+  }
+}
+
+// =============================================
+// VACCINATION PROTOCOL OPERATIONS
+// =============================================
+
+export const getVaccinationProtocols = async (): Promise<VaccinationProtocol[]> => {
+  const { data, error } = await supabase
+    .from('vaccination_protocols')
+    .select('*')
+    .order('species', { ascending: true })
+    .order('vaccine_name', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching vaccination protocols: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const getVaccinationProtocolsBySpecies = async (species: string): Promise<VaccinationProtocol[]> => {
+  const { data, error } = await supabase
+    .from('vaccination_protocols')
+    .select('*')
+    .eq('species', species)
+    .eq('active', true)
+    .order('vaccine_name', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching vaccination protocols for species: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const createVaccinationProtocol = async (protocolData: Omit<VaccinationProtocol, 'id' | 'created_at' | 'updated_at'>): Promise<VaccinationProtocol> => {
+  const { data, error } = await supabase
+    .from('vaccination_protocols')
+    .insert(protocolData)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Error creating vaccination protocol: ${error.message}`)
+  }
+
+  return data
+}
+
+export const updateVaccinationProtocol = async (id: string, updates: Partial<VaccinationProtocol>): Promise<VaccinationProtocol> => {
+  const { data, error } = await supabase
+    .from('vaccination_protocols')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating vaccination protocol: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteVaccinationProtocol = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('vaccination_protocols')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting vaccination protocol: ${error.message}`)
+  }
 }
 
 // =============================================

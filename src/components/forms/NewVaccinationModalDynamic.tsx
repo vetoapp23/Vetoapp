@@ -1,0 +1,278 @@
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Syringe } from 'lucide-react';
+import { format } from 'date-fns';
+import { 
+  useAnimals, 
+  useClients, 
+  useCreateVaccination,
+  useVaccinationProtocolsBySpecies
+} from '@/hooks/useDatabase';
+
+interface NewVaccinationModalProps {
+  children?: React.ReactNode;
+  selectedAnimalId?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function NewVaccinationModal({ 
+  children, 
+  selectedAnimalId,
+  open,
+  onOpenChange
+}: NewVaccinationModalProps) {
+  const { data: animals = [] } = useAnimals();
+  const { data: clients = [] } = useClients();
+  const createVaccinationMutation = useCreateVaccination();
+  const { toast } = useToast();
+  
+  const [internalOpen, setInternalOpen] = useState(false);
+  const modalOpen = open !== undefined ? open : internalOpen;
+  const setModalOpen = onOpenChange || setInternalOpen;
+
+  // Form state
+  const [formData, setFormData] = useState({
+    animalId: selectedAnimalId || '',
+    vaccineName: '',
+    vaccineType: '',
+    manufacturer: '',
+    batchNumber: '',
+    vaccinationDate: format(new Date(), 'yyyy-MM-dd'),
+    nextDueDate: '',
+    administeredBy: '',
+    notes: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.animalId || !formData.vaccineName || !formData.vaccinationDate) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs obligatoires",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate UUID format for animal_id
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(formData.animalId)) {
+      toast({
+        title: "Erreur",
+        description: "ID d'animal invalide",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Clean and validate the payload
+    const payload = {
+      animal_id: formData.animalId,
+      vaccine_name: formData.vaccineName.trim(),
+      vaccine_type: formData.vaccineType || undefined,
+      manufacturer: formData.manufacturer?.trim() || undefined,
+      batch_number: formData.batchNumber?.trim() || undefined,
+      vaccination_date: formData.vaccinationDate,
+      next_due_date: formData.nextDueDate || undefined,
+      administered_by: formData.administeredBy?.trim() || undefined,
+      notes: formData.notes?.trim() || undefined
+    };
+    
+    console.log('Vaccination payload:', payload);
+
+    try {
+      await createVaccinationMutation.mutateAsync(payload);
+
+      toast({
+        title: "Vaccination ajoutée",
+        description: `La vaccination ${formData.vaccineName} a été ajoutée avec succès`
+      });
+
+      // Reset form
+      setFormData({
+        animalId: selectedAnimalId || '',
+        vaccineName: '',
+        vaccineType: '',
+        manufacturer: '',
+        batchNumber: '',
+        vaccinationDate: format(new Date(), 'yyyy-MM-dd'),
+        nextDueDate: '',
+        administeredBy: '',
+        notes: ''
+      });
+
+      setModalOpen(false);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter la vaccination",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const selectedAnimal = animals.find(a => a.id === formData.animalId);
+  const animalClient = selectedAnimal ? clients.find(c => c.id === selectedAnimal.client_id) : null;
+
+  return (
+    <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <DialogTrigger asChild>
+        {children || (
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nouvelle Vaccination
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Syringe className="h-5 w-5" />
+            Nouvelle Vaccination
+          </DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Animal Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="animal">Animal *</Label>
+            <Select value={formData.animalId} onValueChange={(value) => setFormData({...formData, animalId: value})}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionnez un animal" />
+              </SelectTrigger>
+              <SelectContent>
+                {animals.map(animal => {
+                  const client = clients.find(c => c.id === animal.client_id);
+                  return (
+                    <SelectItem key={animal.id} value={animal.id}>
+                      {animal.name} - {animal.species} ({client ? `${client.first_name} ${client.last_name}` : 'Client inconnu'})
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            {selectedAnimal && animalClient && (
+              <p className="text-sm text-gray-600">
+                Propriétaire: {animalClient.first_name} {animalClient.last_name}
+              </p>
+            )}
+          </div>
+
+          {/* Vaccine Information */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="vaccineName">Nom du vaccin *</Label>
+              <Input
+                id="vaccineName"
+                value={formData.vaccineName}
+                onChange={(e) => setFormData({...formData, vaccineName: e.target.value})}
+                placeholder="ex: DHPP, Rage, FVRCP..."
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vaccineType">Type de vaccin</Label>
+              <Select value={formData.vaccineType} onValueChange={(value) => setFormData({...formData, vaccineType: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionnez le type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="core">Essentiel</SelectItem>
+                  <SelectItem value="non-core">Optionnel</SelectItem>
+                  <SelectItem value="rabies">Rage</SelectItem>
+                  <SelectItem value="custom">Personnalisé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="manufacturer">Fabricant</Label>
+              <Input
+                id="manufacturer"
+                value={formData.manufacturer}
+                onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
+                placeholder="ex: Zoetis, Virbac, Merial..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="batchNumber">Numéro de lot</Label>
+              <Input
+                id="batchNumber"
+                value={formData.batchNumber}
+                onChange={(e) => setFormData({...formData, batchNumber: e.target.value})}
+                placeholder="Numéro de lot du vaccin"
+              />
+            </div>
+          </div>
+
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="vaccinationDate">Date de vaccination *</Label>
+              <Input
+                id="vaccinationDate"
+                type="date"
+                value={formData.vaccinationDate}
+                onChange={(e) => setFormData({...formData, vaccinationDate: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nextDueDate">Prochain rappel</Label>
+              <Input
+                id="nextDueDate"
+                type="date"
+                value={formData.nextDueDate}
+                onChange={(e) => setFormData({...formData, nextDueDate: e.target.value})}
+                min={formData.vaccinationDate}
+              />
+            </div>
+          </div>
+
+          {/* Administered By */}
+          <div className="space-y-2">
+            <Label htmlFor="administeredBy">Administré par</Label>
+            <Input
+              id="administeredBy"
+              value={formData.administeredBy}
+              onChange={(e) => setFormData({...formData, administeredBy: e.target.value})}
+              placeholder="Nom du vétérinaire"
+            />
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({...formData, notes: e.target.value})}
+              placeholder="Notes complémentaires..."
+              rows={3}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
+              Annuler
+            </Button>
+            <Button type="submit" disabled={createVaccinationMutation.isPending}>
+              {createVaccinationMutation.isPending ? 'Ajout...' : 'Ajouter la vaccination'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
