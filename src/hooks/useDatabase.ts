@@ -31,17 +31,30 @@ import {
   createVaccinationProtocol,
   updateVaccinationProtocol,
   deleteVaccinationProtocol,
+  getAntiparasitics,
+  getAntiparasiticsByAnimal,
+  createAntiparasitic,
+  updateAntiparasitic,
+  deleteAntiparasitic,
+  getAntiparasiticProtocols,
+  getAntiparasiticProtocolsBySpecies,
+  createAntiparasiticProtocol,
+  updateAntiparasiticProtocol,
+  deleteAntiparasiticProtocol,
   type Client,
   type Animal,
   type Appointment,
   type Consultation,
   type Vaccination,
   type VaccinationProtocol,
+  type Antiparasitic,
+  type AntiparasiticProtocol,
   type CreateClientData,
   type CreateAnimalData,
   type CreateConsultationData,
   type CreateAppointmentData,
   type CreateVaccinationData,
+  type CreateAntiparasiticData,
   type UpdateAppointmentData
 } from '../lib/database'
 import {
@@ -783,6 +796,111 @@ export const useDeleteVaccinationProtocol = () => {
     mutationFn: deleteVaccinationProtocol,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vaccination-protocols'] });
+    },
+  });
+};
+
+// =============================================
+// ANTIPARASITIC HOOKS
+// =============================================
+
+export const useAntiparasitics = () => {
+  return useQuery({
+    queryKey: ['antiparasitics'],
+    queryFn: getAntiparasitics,
+  });
+};
+
+export const useAntiparasiticsByAnimal = (animalId?: string) => {
+  return useQuery({
+    queryKey: ['antiparasitics', 'by-animal', animalId],
+    queryFn: () => animalId ? getAntiparasiticsByAnimal(animalId) : Promise.resolve([]),
+    enabled: !!animalId,
+  });
+};
+
+export const useCreateAntiparasitic = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createAntiparasitic,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitics'] });
+    },
+  });
+};
+
+export const useUpdateAntiparasitic = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<CreateAntiparasiticData> }) =>
+      updateAntiparasitic(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitics'] });
+    },
+  });
+};
+
+export const useDeleteAntiparasitic = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: deleteAntiparasitic,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitics'] });
+    },
+  });
+};
+
+// Antiparasitic Protocol Hooks
+export const useAntiparasiticProtocols = () => {
+  return useQuery({
+    queryKey: ['antiparasitic-protocols'],
+    queryFn: getAntiparasiticProtocols,
+  });
+};
+
+export const useAntiparasiticProtocolsBySpecies = (species?: string) => {
+  return useQuery({
+    queryKey: ['antiparasitic-protocols', 'by-species', species],
+    queryFn: () => species ? getAntiparasiticProtocolsBySpecies(species) : Promise.resolve([]),
+    enabled: !!species,
+  });
+};
+
+export const useCreateAntiparasiticProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createAntiparasiticProtocol,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitic-protocols'] });
+    },
+  });
+};
+
+export const useUpdateAntiparasiticProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, updates }: { 
+      id: string; 
+      updates: Partial<Omit<AntiparasiticProtocol, 'id' | 'created_at' | 'updated_at'>> 
+    }) => updateAntiparasiticProtocol(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitic-protocols'] });
+    },
+  });
+};
+
+export const useDeleteAntiparasiticProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: deleteAntiparasiticProtocol,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitic-protocols'] });
     },
   });
 };

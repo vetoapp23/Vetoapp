@@ -605,12 +605,12 @@ export default function Vaccinations() {
                     <p>{format(new Date(selectedVaccination.next_due_date), 'dd/MM/yyyy', { locale: fr })}</p>
                   </div>
                 )}
-                {selectedVaccination.administered_by && (
+                {/* {selectedVaccination.administered_by && (
                   <div>
                     <p className="font-medium">Administré par:</p>
                     <p>{selectedVaccination.administered_by}</p>
                   </div>
-                )}
+                )} */}
               </div>
               {selectedVaccination.notes && (
                 <div>

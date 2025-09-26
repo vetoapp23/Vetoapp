@@ -338,10 +338,7 @@ export function CertificateVaccinationPrintDynamic({ animalId }: CertificateProp
                         <span class="vaccination-label">Numéro de lot:</span>
                         <span class="vaccination-value">${vaccination.batch_number || 'N/A'}</span>
                       </div>
-                      <div class="vaccination-item">
-                        <span class="vaccination-label">Administré par:</span>
-                        <span class="vaccination-value">${vaccination.administered_by || 'N/A'}</span>
-                      </div>
+                  
                     </div>
                     ${vaccination.notes ? `
                       <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">

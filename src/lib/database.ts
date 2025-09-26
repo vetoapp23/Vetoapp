@@ -357,6 +357,21 @@ export interface CreateVaccinationData {
   notes?: string
 }
 
+export interface CreateAntiparasiticData {
+  animal_id: string
+  consultation_id?: string
+  product_name: string
+  active_ingredient?: string
+  parasite_type?: string
+  administration_route?: string
+  dosage?: string
+  treatment_date: string
+  next_treatment_date?: string
+  administered_by?: string
+  effectiveness_rating?: number
+  notes?: string
+}
+
 export interface CreatePrescriptionData {
   consultation_id: string
   animal_id: string
@@ -982,6 +997,192 @@ export const deleteVaccinationProtocol = async (id: string): Promise<void> => {
 
   if (error) {
     throw new Error(`Error deleting vaccination protocol: ${error.message}`)
+  }
+}
+
+// =============================================
+// ANTIPARASITIC OPERATIONS
+// =============================================
+
+export const getAntiparasitics = async (): Promise<Antiparasitic[]> => {
+  const { data, error } = await supabase
+    .from('antiparasitics')
+    .select(`
+      *,
+      animal:animals(*)
+    `)
+    .order('treatment_date', { ascending: false })
+
+  if (error) {
+    throw new Error(`Error fetching antiparasitics: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const getAntiparasiticsByAnimal = async (animalId: string): Promise<Antiparasitic[]> => {
+  const { data, error } = await supabase
+    .from('antiparasitics')
+    .select(`
+      *,
+      animal:animals(*)
+    `)
+    .eq('animal_id', animalId)
+    .order('treatment_date', { ascending: false })
+
+  if (error) {
+    throw new Error(`Error fetching antiparasitics for animal: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const createAntiparasitic = async (antiparasiticData: CreateAntiparasiticData): Promise<Antiparasitic> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to create antiparasitic')
+  }
+
+  // Validate administered_by field if provided
+  if (antiparasiticData.administered_by) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('id', antiparasiticData.administered_by)
+      .single()
+    
+    if (!profile) {
+      console.warn('administered_by user not found, setting to null')
+      antiparasiticData.administered_by = null
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('antiparasitics')
+    .insert([antiparasiticData])
+    .select(`
+      *,
+      animal:animals(*)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Error creating antiparasitic: ${error.message}`)
+  }
+
+  return data
+}
+
+export const updateAntiparasitic = async (id: string, updates: Partial<CreateAntiparasiticData>): Promise<Antiparasitic> => {
+  // Validate administered_by field if provided
+  if (updates.administered_by) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('id', updates.administered_by)
+      .single()
+    
+    if (!profile) {
+      console.warn('administered_by user not found, setting to null')
+      updates.administered_by = null
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('antiparasitics')
+    .update(updates)
+    .eq('id', id)
+    .select(`
+      *,
+      animal:animals(*)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating antiparasitic: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteAntiparasitic = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('antiparasitics')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting antiparasitic: ${error.message}`)
+  }
+}
+
+// Antiparasitic Protocol Operations
+export const getAntiparasiticProtocols = async (): Promise<AntiparasiticProtocol[]> => {
+  const { data, error } = await supabase
+    .from('antiparasitic_protocols')
+    .select('*')
+    .order('species', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching antiparasitic protocols: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const getAntiparasiticProtocolsBySpecies = async (species: string): Promise<AntiparasiticProtocol[]> => {
+  const { data, error } = await supabase
+    .from('antiparasitic_protocols')
+    .select('*')
+    .eq('species', species)
+    .eq('active', true)
+    .order('parasite_type', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching antiparasitic protocols for species: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const createAntiparasiticProtocol = async (protocolData: Omit<AntiparasiticProtocol, 'id' | 'created_at' | 'updated_at'>): Promise<AntiparasiticProtocol> => {
+  const { data, error } = await supabase
+    .from('antiparasitic_protocols')
+    .insert([protocolData])
+    .select('*')
+    .single()
+
+  if (error) {
+    throw new Error(`Error creating antiparasitic protocol: ${error.message}`)
+  }
+
+  return data
+}
+
+export const updateAntiparasiticProtocol = async (id: string, updates: Partial<Omit<AntiparasiticProtocol, 'id' | 'created_at' | 'updated_at'>>): Promise<AntiparasiticProtocol> => {
+  const { data, error } = await supabase
+    .from('antiparasitic_protocols')
+    .update(updates)
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating antiparasitic protocol: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteAntiparasiticProtocol = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('antiparasitic_protocols')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting antiparasitic protocol: ${error.message}`)
   }
 }
 

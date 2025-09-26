@@ -240,7 +240,7 @@ export default function NewVaccinationModal({
           </div>
 
           {/* Administered By */}
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label htmlFor="administeredBy">Administré par</Label>
             <Input
               id="administeredBy"
@@ -248,7 +248,7 @@ export default function NewVaccinationModal({
               onChange={(e) => setFormData({...formData, administeredBy: e.target.value})}
               placeholder="Nom du vétérinaire"
             />
-          </div>
+          </div> */}
 
           {/* Notes */}
           <div className="space-y-2">
