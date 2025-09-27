@@ -16,7 +16,178 @@ export function InvoicePrescriptionPrint({ prescription }: InvoicePrescriptionPr
   const totalAmount = lineTotals.reduce((sum, val) => sum + val, 0);
 
   const handlePrint = () => {
-    window.print();
+    if (!prescription) {
+      return;
+    }
+
+    if (!prescription.petName || !prescription.clientName) {
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      return;
+    }
+
+    const invoiceContent = generateInvoiceHTML();
+    
+    printWindow.document.write(invoiceContent);
+    printWindow.document.close();
+    
+    // Wait a moment for content to load before printing
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+
+  const generateInvoiceHTML = () => {
+    return `
+      <html>
+        <head>
+          <title>Facture Prescription - ${prescription.petName}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 20px;
+              line-height: 1.6;
+            }
+            .header {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #333;
+              padding-bottom: 20px;
+            }
+            .clinic-info {
+              text-align: center;
+              flex: 1;
+            }
+            .clinic-info h1 {
+              font-size: 24px;
+              font-weight: bold;
+              margin-bottom: 10px;
+            }
+            .clinic-info p {
+              font-size: 14px;
+              margin: 5px 0;
+            }
+            .invoice-section {
+              margin-bottom: 30px;
+            }
+            .invoice-section h2 {
+              font-size: 20px;
+              font-weight: 600;
+              margin-bottom: 15px;
+            }
+            .grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 30px;
+              margin-bottom: 15px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+            }
+            th, td {
+              border: 1px solid #ddd;
+              padding: 12px;
+              text-align: left;
+            }
+            th {
+              background-color: #f2f2f2;
+              font-weight: bold;
+            }
+            .total-row {
+              font-weight: bold;
+              background-color: #f8f9fa;
+            }
+            .print-hidden {
+              display: none;
+            }
+            @media print {
+              body { margin: 0; }
+              .print-hidden { display: none !important; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            ${logo ? `<img src="${logo}" alt="Logo clinique" style="height:60px;width:60px;object-fit:contain;"/>` : '<div style="width:60px;"></div>'}
+            <div class="clinic-info">
+              <h1>${clinicName}</h1>
+              <p>${address}</p>
+              <p>${phone} | ${email}</p>
+              ${website ? `<p>${website}</p>` : ''}
+            </div>
+            <div style="width:60px;"></div>
+          </div>
+
+          <div class="invoice-section">
+            <h2>Ordonnance</h2>
+            <div class="grid">
+              <div>
+                <p><strong>Date :</strong> ${prescription.date}</p>
+                <p><strong>Patient :</strong> ${prescription.petName} (${prescription.clientName})</p>
+              </div>
+              <div>
+                <p><strong>Prescrit par :</strong> ${prescription.prescribedBy}</p>
+                <p><strong>Diagnostic :</strong> ${prescription.diagnosis}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="invoice-section">
+            <h2>Détail des médicaments</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Médicament</th>
+                  <th>Quantité</th>
+                  <th>Prix unitaire</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${prescription.medications.map(med => {
+                  const lineTotal = med.cost * (med.quantity || 1);
+                  return `
+                    <tr>
+                      <td>
+                        <strong>${med.name}</strong><br>
+                        <small>${med.dosage} - ${med.frequency}</small>
+                      </td>
+                      <td>${med.quantity || 1}</td>
+                      <td>${med.cost.toFixed(2)} ${currency}</td>
+                      <td>${lineTotal.toFixed(2)} ${currency}</td>
+                    </tr>
+                  `;
+                }).join('')}
+                <tr class="total-row">
+                  <td colspan="3"><strong>Total</strong></td>
+                  <td><strong>${totalAmount.toFixed(2)} ${currency}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          ${prescription.instructions ? `
+            <div class="invoice-section">
+              <h2>Instructions</h2>
+              <p>${prescription.instructions}</p>
+            </div>
+          ` : ''}
+
+          <div style="margin-top: 50px; text-align: center;">
+            <div style="border-top: 1px solid #333; width: 200px; margin: 20px auto;"></div>
+            <p>Signature du vétérinaire</p>
+          </div>
+        </body>
+      </html>
+    `;
   };
 
   return (

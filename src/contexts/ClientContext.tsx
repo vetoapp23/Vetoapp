@@ -54,6 +54,8 @@ export interface Pet {
 }
 
 export interface Consultation {
+  purpose: string;
+  veterinarian: ReactNode;
   id: number;
   clientId: number;
   clientName: string;

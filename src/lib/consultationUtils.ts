@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 // Dynamic direct delete function without using hooks
 export const deleteConsultationDirect = async (id: string): Promise<{ success: boolean; message?: string }> => {
   try {
-    console.log(`Attempting FIXED dynamic direct deletion of consultation with ID: ${id}`);
+    // Attempting FIXED dynamic direct deletion of consultation
     
     // Get current user to ensure we have the right permissions
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -15,7 +15,7 @@ export const deleteConsultationDirect = async (id: string): Promise<{ success: b
       };
     }
     
-    console.log(`User authenticated: ${user.id}`);
+    // User authenticated
     
     // First, verify the consultation exists and belongs to the user
     const { data: consultation, error: consultationError } = await supabase
@@ -32,10 +32,10 @@ export const deleteConsultationDirect = async (id: string): Promise<{ success: b
       };
     }
     
-    console.log(`Found consultation:`, consultation);
+    // Found consultation
     
     // Step 1: Delete prescription medications first (deepest level)
-    console.log('Step 1: Deleting prescription medications...');
+    // Step 1: Deleting prescription medications...
     const { data: prescriptions, error: prescError } = await supabase
       .from('prescriptions')
       .select('id')
@@ -44,7 +44,7 @@ export const deleteConsultationDirect = async (id: string): Promise<{ success: b
     if (prescError) {
       console.warn(`Could not fetch prescriptions: ${prescError.message}`);
     } else if (prescriptions && prescriptions.length > 0) {
-      console.log(`Found ${prescriptions.length} prescriptions to clean up`);
+      // Found prescriptions to clean up
       
       for (const prescription of prescriptions) {
         const { error: medError } = await supabase
@@ -55,13 +55,13 @@ export const deleteConsultationDirect = async (id: string): Promise<{ success: b
         if (medError) {
           console.warn(`Could not delete medications for prescription ${prescription.id}: ${medError.message}`);
         } else {
-          console.log(`Deleted medications for prescription ${prescription.id}`);
+          // Deleted medications for prescription
         }
       }
     }
     
     // Step 2: Delete prescriptions
-    console.log('Step 2: Deleting prescriptions...');
+    // Step 2: Deleting prescriptions...
     const { error: deletePresError } = await supabase
       .from('prescriptions')
       .delete()
@@ -70,14 +70,14 @@ export const deleteConsultationDirect = async (id: string): Promise<{ success: b
     if (deletePresError) {
       console.warn(`Could not delete prescriptions: ${deletePresError.message}`);
     } else {
-      console.log('Successfully deleted prescriptions');
+      // Successfully deleted prescriptions
     }
     
     // Step 3: Delete other related records (less critical)
     const otherTables = ['vaccinations', 'lab_results', 'antiparasitics'];
     
     for (const table of otherTables) {
-      console.log(`Step 3: Cleaning up ${table}...`);
+      // Step 3: Cleaning up table...
       try {
         const { error: deleteError } = await supabase
           .from(table)
@@ -87,7 +87,7 @@ export const deleteConsultationDirect = async (id: string): Promise<{ success: b
         if (deleteError) {
           console.warn(`Could not delete from ${table}: ${deleteError.message}`);
         } else {
-          console.log(`Successfully cleaned up ${table}`);
+          // Successfully cleaned up table
         }
       } catch (tableError) {
         console.warn(`Error with ${table}:`, tableError);
@@ -95,7 +95,7 @@ export const deleteConsultationDirect = async (id: string): Promise<{ success: b
     }
     
     // Step 4: Finally delete the main consultation
-    console.log('Step 4: Deleting main consultation...');
+    // Step 4: Deleting main consultation...
     const { error: mainDeleteError } = await supabase
       .from('consultations')
       .delete()
@@ -109,7 +109,7 @@ export const deleteConsultationDirect = async (id: string): Promise<{ success: b
       };
     }
     
-    console.log(`✅ SUCCESS: Deleted consultation with ID: ${id}`);
+    // ✅ SUCCESS: Deleted consultation
     return { success: true };
     
   } catch (error: any) {

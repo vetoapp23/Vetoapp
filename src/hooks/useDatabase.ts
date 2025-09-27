@@ -603,8 +603,6 @@ export const useDeleteConsultation = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       try {
-        console.log(`Attempting dynamic deletion of consultation with ID: ${id}`);
-        
         // Step 1: Check for and handle related records dynamically
         const relatedTables = [
           { table: 'prescriptions', field: 'consultation_id' },
@@ -626,7 +624,6 @@ export const useDeleteConsultation = () => {
             }
             
             if (relatedRecords && relatedRecords.length > 0) {
-              console.log(`Found ${relatedRecords.length} related records in ${relation.table}`);
               
               // For prescriptions, we also need to delete prescription_medications
               if (relation.table === 'prescriptions') {
@@ -651,7 +648,6 @@ export const useDeleteConsultation = () => {
               if (deleteError) {
                 console.warn(`Could not delete from ${relation.table}: ${deleteError.message}`);
               } else {
-                console.log(`Successfully deleted related records from ${relation.table}`);
               }
             }
           } catch (relationError) {
@@ -671,7 +667,7 @@ export const useDeleteConsultation = () => {
           throw new Error(`Failed to delete consultation: ${mainError.message}`);
         }
         
-        console.log(`Successfully deleted consultation with ID: ${id}`);
+        // Successfully deleted consultation
         return { success: true, id };
         
       } catch (error: any) {
@@ -979,7 +975,6 @@ export const usePrescriptions = () => {
     queryKey: ['prescriptions'],
     queryFn: async () => {
       try {
-        console.log('Fetching prescriptions dynamically');
         
         const { data, error } = await supabase
           .from('prescriptions')
@@ -1041,8 +1036,12 @@ export const usePrescriptions = () => {
           throw error;
         }
 
-        console.log(`Successfully fetched ${data?.length || 0} prescriptions`);
-        return data || [];
+        return (data || []).map(prescription => ({
+          ...prescription,
+          // Fix the joined data to be objects instead of arrays
+          animal: Array.isArray(prescription.animal) ? prescription.animal[0] : prescription.animal,
+          client: Array.isArray(prescription.client) ? prescription.client[0] : prescription.client,
+        }));
       } catch (error) {
         console.error('Dynamic prescription fetch failed:', error);
         throw error;
@@ -1059,7 +1058,6 @@ export const usePrescriptionsByAnimal = (animalId: string) => {
     queryKey: ['prescriptions', 'animal', animalId],
     queryFn: async () => {
       try {
-        console.log(`Fetching prescriptions for animal: ${animalId}`);
         
         const { data, error } = await supabase
           .from('prescriptions')
@@ -1122,7 +1120,6 @@ export const usePrescriptionsByAnimal = (animalId: string) => {
           throw error;
         }
 
-        console.log(`Successfully fetched ${data?.length || 0} prescriptions for animal ${animalId}`);
         return data || [];
       } catch (error) {
         console.error('Dynamic prescription fetch by animal failed:', error);
@@ -1141,7 +1138,7 @@ export const useCreatePrescription = () => {
   return useMutation({
     mutationFn: async (prescriptionData: CreatePrescriptionData) => {
       try {
-        console.log('Creating prescription dynamically:', prescriptionData);
+        // Creating prescription dynamically
         
         const { data: { user } } = await supabase.auth.getUser();
         
@@ -1241,10 +1238,10 @@ export const useCreatePrescription = () => {
             throw new Error(`Error creating prescription medications: ${medicationsError.message}`);
           }
 
-          console.log(`Successfully created ${medicationsResult.length} prescription medications`);
+          // Successfully created prescription medications
         }
 
-        console.log('Successfully created prescription:', prescriptionResult.id);
+        // Successfully created prescription
         return {
           ...prescriptionResult,
           medications: medications || []
@@ -1275,7 +1272,7 @@ export const useStockItems = () => {
     queryKey: ['stock-items'],
     queryFn: async () => {
       try {
-        console.log('Fetching stock items dynamically');
+        // Fetching stock items dynamically
         
         const { data, error } = await supabase
           .from('stock_items')
@@ -1307,7 +1304,7 @@ export const useStockItems = () => {
           throw error;
         }
 
-        console.log(`Successfully fetched ${data?.length || 0} stock items`);
+        // Successfully fetched stock items
         return data || [];
       } catch (error) {
         console.error('Dynamic stock items fetch failed:', error);

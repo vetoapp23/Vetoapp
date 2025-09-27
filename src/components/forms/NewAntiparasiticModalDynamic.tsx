@@ -159,7 +159,6 @@ export default function NewAntiparasiticModalDynamic({
         notes: formData.notes || undefined,
       };
 
-      console.log('Antiparasitic data being sent:', antiparasiticData);
       await createAntiparasitic.mutateAsync(antiparasiticData);
       
       toast({

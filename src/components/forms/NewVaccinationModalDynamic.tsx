@@ -85,8 +85,6 @@ export default function NewVaccinationModal({
       administered_by: formData.administeredBy?.trim() || undefined,
       notes: formData.notes?.trim() || undefined
     };
-    
-    console.log('Vaccination payload:', payload);
 
     try {
       await createVaccinationMutation.mutateAsync(payload);
