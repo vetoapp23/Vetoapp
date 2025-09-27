@@ -6,12 +6,16 @@ import { NewClientModal } from "@/components/forms/NewClientModal";
 import { NewAppointmentModal } from "@/components/forms/NewAppointmentModal";
 import { NewPetModal } from "@/components/forms/NewPetModal";
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
-import { useClients } from "@/contexts/ClientContext";
+import { useClients, useAnimals, useConsultations, useVaccinations, useAntiparasitics } from "@/hooks/useDatabase";
 import { useSettings } from "@/contexts/SettingsContext";
 import { AdminOnly } from "./RoleGuard";
 
 export function HeroSection() {
-  const { clients, pets, consultations, vaccinations, antiparasitics, generateAccountingSummary } = useClients();
+  const { data: clients = [] } = useClients();
+  const { data: pets = [] } = useAnimals();
+  const { data: consultations = [] } = useConsultations();
+  const { data: vaccinations = [] } = useVaccinations();
+  const { data: antiparasitics = [] } = useAntiparasitics();
   const { settings } = useSettings();
   const vets: any[] = JSON.parse(localStorage.getItem('vetpro-veterinarians') || '[]');
   const greeting = vets.length === 1
@@ -28,18 +32,19 @@ export function HeroSection() {
   const totalVaccinations = vaccinations.length;
   const totalAntiparasitics = antiparasitics.length;
   const today = new Date().toISOString().split('T')[0];
-  const consultationsToday = consultations.filter(c => c.date === today).length;
+  const consultationsToday = consultations.filter(c => {
+    const consultationDate = c.consultation_date.split('T')[0]; // Extract date part only
+    return consultationDate === today;
+  }).length;
   
-  // Calculer les revenus de ce mois
-  const thisMonth = new Date().getMonth();
-  const thisYear = new Date().getFullYear();
-  const thisMonthStart = new Date(thisYear, thisMonth, 1).toISOString().split('T')[0];
-  const thisMonthEnd = new Date(thisYear, thisMonth + 1, 0).toISOString().split('T')[0];
-  const accountingSummary = generateAccountingSummary(
-    `${thisYear}-${String(thisMonth + 1).padStart(2, '0')}`,
-    thisMonthStart,
-    thisMonthEnd
-  );
+  // TODO: Implement proper accounting summary with database data
+  const accountingSummary = {
+    totalRevenue: 0,
+    totalExpenses: 0,
+    netIncome: 0,
+    revenueBreakdown: { consultations: 0, vaccinations: 0, antiparasitics: 0, prescriptions: 0, manualEntries: 0 },
+    expenseBreakdown: { stockPurchases: 0, salaries: 0, rent: 0, taxes: 0, other: 0 }
+  };
   
   return (
     <>
@@ -70,7 +75,7 @@ export function HeroSection() {
                 <div className="text-center"><div className="text-2xl font-bold text-blue-600">{totalVaccinations}</div><div className="text-sm text-muted-foreground">Vaccinations</div></div>
                 <div className="text-center"><div className="text-2xl font-bold text-purple-600">{totalAntiparasitics}</div><div className="text-sm text-muted-foreground">Antiparasitaires</div></div>
                 <AdminOnly>
-                  <div className="text-center"><div className="text-2xl font-bold text-emerald-600">{accountingSummary.totalRevenue.toFixed(0)} {settings.currency || '€'}</div><div className="text-sm text-muted-foreground">Revenus ce mois</div></div>
+                  <div className="text-center"><div className="text-2xl font-bold text-emerald-600">{accountingSummary.totalRevenue.toFixed(2)} {settings.currency || '€'}</div><div className="text-sm text-muted-foreground">Revenus ce mois</div></div>
                 </AdminOnly>
               </div>
             </div>

@@ -17,9 +17,10 @@ import type { Animal, Client, CreateConsultationData } from "@/lib/database";
 interface NewConsultationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefillData?: Partial<CreateConsultationData & { clientId: string; animalId: string }>;
 }
 
-export function NewConsultationModal({ open, onOpenChange }: NewConsultationModalProps) {
+export function NewConsultationModal({ open, onOpenChange, prefillData }: NewConsultationModalProps) {
   const { data: clients = [], isLoading: clientsLoading } = useClients();
   const { data: animals = [], isLoading: animalsLoading } = useAnimals();
   const createConsultationMutation = useCreateConsultation();
@@ -30,20 +31,20 @@ export function NewConsultationModal({ open, onOpenChange }: NewConsultationModa
 
   
   const [formData, setFormData] = useState({
-    clientId: "",
+    clientId: prefillData?.clientId || "",
     clientName: "",
-    animalId: "",
+    animalId: prefillData?.animalId || "",
     animalName: "",
-    date: "",
-    weight: "",
-    temperature: "",
-    symptoms: "",
-    diagnosis: "",
-    treatment: "",
-    followUp: "",
-    cost: settings.defaultConsultationPrice.toString(),
-    notes: "",
-    photos: [] as string[] // Added photos array
+    date: prefillData?.consultation_date ? new Date(prefillData.consultation_date).toISOString().split('T')[0] : "",
+    weight: prefillData?.weight?.toString() || "",
+    temperature: prefillData?.temperature?.toString() || "",
+    symptoms: prefillData?.symptoms || "",
+    diagnosis: prefillData?.diagnosis || "",
+    treatment: prefillData?.treatment || "",
+    followUp: prefillData?.follow_up_notes || "",
+    cost: prefillData?.cost?.toString() || settings.defaultConsultationPrice.toString(),
+    notes: prefillData?.notes || "",
+    photos: prefillData?.photos || [] as string[]
   });
 
   // Filtrer les animaux selon le client sélectionné

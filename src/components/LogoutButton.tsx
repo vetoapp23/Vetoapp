@@ -106,13 +106,13 @@ export function LogoutButton() {
           <User className="mr-2 h-4 w-4" />
           <span>Profil</span>
         </DropdownMenuItem>
-        <DropdownMenuItem 
+        {/* <DropdownMenuItem 
           className="cursor-pointer"
           onClick={() => navigate('/auth-settings')}
         >
           <Settings className="mr-2 h-4 w-4" />
           <span>Paramètres de connexion</span>
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
         <DropdownMenuSeparator />
         <DropdownMenuItem 
           className="cursor-pointer text-red-600 focus:text-red-600"

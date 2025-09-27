@@ -200,7 +200,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     </SettingsContext.Provider>
   );
 };
-
+//!/ note: AD - not important
 export const useSettings = () => {
   const context = useContext(SettingsContext);
   if (!context) {

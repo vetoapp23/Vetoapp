@@ -3,15 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Pill, Clock, AlertCircle, CheckCircle, XCircle, Plus, Edit, Trash2, Printer } from "lucide-react";
 import { useState } from "react";
-import { Prescription, useClients } from "@/contexts/ClientContext";
+import { usePrescriptions, usePrescriptionsByAnimal } from "@/hooks/useDatabase";
 import { useToast } from "@/hooks/use-toast";
 import { NewPrescriptionModal } from "@/components/forms/NewPrescriptionModal";
 import { PrescriptionEditModal } from "@/components/modals/PrescriptionEditModal";
 import { PrescriptionPrint } from "@/components/PrescriptionPrint";
 
 interface PrescriptionsListProps {
-  petId: number;
-  consultationId?: number;
+  petId: string;
+  consultationId?: string;
 }
 
 const statusStyles = {
@@ -27,44 +27,43 @@ const statusLabels = {
 };
 
 export function PrescriptionsList({ petId, consultationId }: PrescriptionsListProps) {
-  const { 
-    prescriptions, 
-    getPrescriptionsByPetId, 
-    getPrescriptionsByConsultationId,
-    deletePrescription 
-  } = useClients();
+  const { data: allPrescriptions = [] } = usePrescriptions();
+  const { data: prescriptionsByAnimal = [] } = usePrescriptionsByAnimal(petId);
   const { toast } = useToast();
   
   const [showNewPrescription, setShowNewPrescription] = useState(false);
   const [showEditPrescription, setShowEditPrescription] = useState(false);
-  const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
+  const [selectedPrescription, setSelectedPrescription] = useState<any>(null);
 
   // Filtrer les prescriptions selon le contexte
   const filteredPrescriptions = consultationId 
-    ? getPrescriptionsByConsultationId(consultationId)
-    : getPrescriptionsByPetId(petId);
+    ? allPrescriptions.filter(p => p.consultation_id === consultationId)
+    : prescriptionsByAnimal;
 
-  const handleEdit = (prescription: Prescription) => {
+  const handleEdit = (prescription: any) => {
     setSelectedPrescription(prescription);
     setShowEditPrescription(true);
   };
 
-  const handleDelete = (prescription: Prescription) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer la prescription pour ${prescription.medications.map(m => m.name).join(', ')} ?`)) {
-      deletePrescription(prescription.id);
+  const handleDelete = (prescription: any) => {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer la prescription pour ${prescription.medications?.map((m: any) => m.medication_name).join(', ') || 'médicaments'} ?`)) {
+      // TODO: Implement delete functionality with new hooks
       toast({
-        title: "Prescription supprimée",
-        description: "La prescription a été supprimée avec succès.",
+        title: "Fonctionnalité à implémenter",
+        description: "La suppression de prescription n'est pas encore implémentée.",
       });
     }
   };
 
-  const handleStatusChange = (prescriptionId: number, newStatus: Prescription['status']) => {
-    // Cette fonction sera implémentée dans le modal d'édition
-    // Update prescription status
+  const handleStatusChange = (prescriptionId: string, newStatus: string) => {
+    // TODO: Implement status change functionality with new hooks
+    toast({
+      title: "Fonctionnalité à implémenter",
+      description: "Le changement de statut n'est pas encore implémenté.",
+    });
   };
 
-  const getStatusIcon = (status: Prescription['status']) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active':
         return <AlertCircle className="h-4 w-4 text-green-600" />;
@@ -77,8 +76,39 @@ export function PrescriptionsList({ petId, consultationId }: PrescriptionsListPr
     }
   };
 
-  const calculateTotalCost = (medications: Prescription['medications']) => {
-    return medications.reduce((total, med) => total + (med.cost || 0), 0);
+  const transformPrescriptionForPrint = (dbPrescription: any) => {
+    return {
+      id: dbPrescription.id,
+      consultationId: dbPrescription.consultation_id,
+      clientId: dbPrescription.client_id,
+      clientName: `${dbPrescription.client?.first_name || ''} ${dbPrescription.client?.last_name || ''}`.trim(),
+      petId: dbPrescription.animal_id,
+      petName: dbPrescription.animal?.name || '',
+      date: dbPrescription.prescription_date,
+      prescribedBy: 'Non spécifié',
+      diagnosis: dbPrescription.diagnosis || '',
+      medications: dbPrescription.medications?.map((med: any) => ({
+        id: med.id,
+        name: med.medication_name,
+        dosage: med.dosage || '',
+        frequency: med.frequency || '',
+        duration: med.duration || '',
+        instructions: med.instructions || '',
+        quantity: med.quantity || 1,
+        unit: 'unit',
+        cost: 0
+      })) || [],
+      instructions: dbPrescription.notes || '',
+      duration: dbPrescription.valid_until || '',
+      followUpDate: undefined,
+      status: dbPrescription.status || 'active',
+      notes: dbPrescription.notes || '',
+      createdAt: dbPrescription.created_at
+    };
+  };
+
+  const calculateTotalCost = (medications: any[]) => {
+    return medications?.reduce((total, med) => total + (med.cost || 0), 0) || 0;
   };
 
   return (
@@ -111,7 +141,7 @@ export function PrescriptionsList({ petId, consultationId }: PrescriptionsListPr
         ) : (
           <div className="space-y-4">
             {filteredPrescriptions
-              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .sort((a, b) => new Date(b.prescription_date || b.date).getTime() - new Date(a.prescription_date || a.date).getTime())
               .map((prescription) => (
                 <Card key={prescription.id} className="card-hover">
                   <CardHeader className="pb-3">
@@ -125,11 +155,11 @@ export function PrescriptionsList({ petId, consultationId }: PrescriptionsListPr
                         </div>
                         <div className="text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4 inline mr-1" />
-                          {new Date(prescription.date).toLocaleDateString('fr-FR')}
+                          {new Date(prescription.prescription_date || prescription.date).toLocaleDateString('fr-FR')}
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <PrescriptionPrint prescription={prescription} />
+                        <PrescriptionPrint prescription={transformPrescriptionForPrint(prescription)} />
                         <Button 
                           size="sm" 
                           variant="outline"
@@ -157,7 +187,7 @@ export function PrescriptionsList({ petId, consultationId }: PrescriptionsListPr
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <span className="font-medium">Prescrit par:</span>
-                        <p className="text-muted-foreground">{prescription.prescribedBy}</p>
+                        <p className="text-muted-foreground">Non spécifié</p>
                       </div>
                       <div>
                         <span className="font-medium">Diagnostic:</span>
@@ -165,7 +195,7 @@ export function PrescriptionsList({ petId, consultationId }: PrescriptionsListPr
                       </div>
                       <div>
                         <span className="font-medium">Durée:</span>
-                        <p className="text-muted-foreground">{prescription.duration}</p>
+                        <p className="text-muted-foreground">{prescription.valid_until ? new Date(prescription.valid_until).toLocaleDateString('fr-FR') : 'N/A'}</p>
                       </div>
                       <div>
                         <span className="font-medium">Coût total:</span>
@@ -177,11 +207,11 @@ export function PrescriptionsList({ petId, consultationId }: PrescriptionsListPr
                     <div>
                       <h4 className="font-medium mb-3">Médicaments prescrits:</h4>
                       <div className="space-y-3">
-                        {prescription.medications.map((medication) => (
+                        {prescription.medications?.map((medication: any) => (
                           <div key={medication.id} className="p-3 border rounded-lg bg-muted/30">
                             <div className="flex items-start justify-between">
                               <div className="space-y-1">
-                                <div className="font-medium">{medication.name}</div>
+                                <div className="font-medium">{medication.medication_name}</div>
                                 <div className="text-sm text-muted-foreground">
                                   <span className="font-medium">Posologie:</span> {medication.dosage} - {medication.frequency}
                                 </div>
@@ -189,13 +219,8 @@ export function PrescriptionsList({ petId, consultationId }: PrescriptionsListPr
                                   <span className="font-medium">Durée:</span> {medication.duration}
                                 </div>
                                 <div className="text-sm text-muted-foreground">
-                                  <span className="font-medium">Quantité:</span> {medication.quantity} {medication.unit}
+                                  <span className="font-medium">Quantité:</span> {medication.quantity}
                                 </div>
-                                {medication.refills && medication.refills > 0 && (
-                                  <div className="text-sm text-muted-foreground">
-                                    <span className="font-medium">Renouvellements:</span> {medication.refills}
-                                  </div>
-                                )}
                                 {medication.instructions && (
                                   <div className="text-sm text-muted-foreground">
                                     <span className="font-medium">Instructions:</span> {medication.instructions}

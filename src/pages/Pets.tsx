@@ -101,6 +101,42 @@ const PetsContent = () => {
     if (!animalId) return [];
     return vaccinations.filter(v => v.animal_id === animalId);
   }, [pets, vaccinations]);
+
+  // Convert database consultation to old format for MedicalStats compatibility
+  const convertConsultationForStats = useCallback((dbConsultation: any) => {
+    return {
+      id: Math.abs(dbConsultation.id.split('').reduce((a: number, b: string) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0)),
+      clientId: Math.abs(dbConsultation.client_id.split('').reduce((a: number, b: string) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0)),
+      clientName: dbConsultation.client?.first_name && dbConsultation.client?.last_name 
+        ? `${dbConsultation.client.first_name} ${dbConsultation.client.last_name}` 
+        : 'Client inconnu',
+      petId: Math.abs(dbConsultation.animal_id.split('').reduce((a: number, b: string) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0)),
+      petName: dbConsultation.animal?.name || 'Animal inconnu',
+      date: dbConsultation.consultation_date || dbConsultation.created_at,
+      weight: dbConsultation.weight?.toString(),
+      temperature: dbConsultation.temperature?.toString(),
+      symptoms: dbConsultation.symptoms,
+      diagnosis: dbConsultation.diagnosis,
+      treatment: dbConsultation.treatment,
+      medications: dbConsultation.medications,
+      followUp: dbConsultation.follow_up,
+      cost: dbConsultation.cost?.toString(),
+      notes: dbConsultation.notes,
+      photos: dbConsultation.photos || [],
+      createdAt: dbConsultation.created_at,
+      purpose: dbConsultation.consultation_type || 'consultation',
+      veterinarian: dbConsultation.veterinarian_name || 'Vétérinaire'
+    };
+  }, []);
   const { currentView } = useDisplayPreference('pets');
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
@@ -133,7 +169,7 @@ const PetsContent = () => {
     sterilization_date: '',
     notes: '',
     photo_url: '',
-    status: 'healthy'
+    status: 'vivant'
   });
 
   const filteredPets = pets.filter(pet => {
@@ -170,7 +206,7 @@ const PetsContent = () => {
       sterilization_date: '',
       notes: pet.medicalNotes || '',
       photo_url: pet.photo || '',
-      status: pet.status
+      status: pet.status === 'healthy' ? 'vivant' : (pet.status === 'urgent' ? 'décédé' : 'perdu')
     });
     setShowEditModal(true);
   };
@@ -194,7 +230,7 @@ const PetsContent = () => {
         sterilization_date: '',
         notes: selectedPet.medicalNotes || '',
         photo_url: selectedPet.photo || '',
-        status: selectedPet.status
+        status: selectedPet.status === 'healthy' ? 'vivant' : (selectedPet.status === 'urgent' ? 'décédé' : 'perdu')
       });
     }
     setShowViewModal(false);
@@ -253,8 +289,8 @@ const PetsContent = () => {
   // Memoized consultations for selected pet to ensure reactivity
   const selectedPetConsultations = useMemo(() => {
     if (!selectedPet) return [];
-    return getConsultationsByPetId(selectedPet.id);
-  }, [selectedPet, getConsultationsByPetId]);
+    return getConsultationsByPetId(selectedPet.id).map(convertConsultationForStats);
+  }, [selectedPet, getConsultationsByPetId, convertConsultationForStats]);
 
   return (
     <div className="container mx-auto px-6 py-8 space-y-8">
@@ -457,17 +493,13 @@ const PetsContent = () => {
                   
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm">Vaccinations:</h4>
-                    <div className="flex gap-1 flex-wrap">
+                    <div className="text-sm text-muted-foreground">
                       {(() => {
                         const petVaccinations = getVaccinationsByPetId(pet.id);
                         return petVaccinations.length > 0 ? (
-                          petVaccinations.map((vacc) => (
-                            <Badge key={vacc.id} variant="outline" className="text-xs">
-                              {vacc.vaccin}
-                            </Badge>
-                          ))
+                          `${petVaccinations.length} vaccination${petVaccinations.length > 1 ? 's' : ''} enregistrée${petVaccinations.length > 1 ? 's' : ''}`
                         ) : (
-                          <span className="text-xs text-muted-foreground">Aucune vaccination enregistrée</span>
+                          'Aucune vaccination enregistrée'
                         );
                       })()}
                     </div>
@@ -485,9 +517,9 @@ const PetsContent = () => {
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => handleShowDossier(pet)}>
+                    {/* <Button size="sm" variant="outline" className="flex-1" onClick={() => handleShowDossier(pet)}>
                       Dossier Médical
-                    </Button>
+                    </Button> */}
                     <Button size="sm" className="flex-1" onClick={() => {
                       setSelectedPet(pet);
                       setShowConsultationModal(true);

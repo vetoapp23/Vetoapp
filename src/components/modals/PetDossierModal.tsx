@@ -6,23 +6,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, FileText, Stethoscope, Syringe, AlertCircle, TrendingUp, TrendingDown, Activity, Weight, Thermometer, Plus, Printer, Bug, Award, Edit, CheckCircle, CheckSquare } from "lucide-react";
 import { Pet, Consultation, useClients, Antiparasitic } from "@/contexts/ClientContext";
-import NewVaccinationModal from '@/components/forms/NewVaccinationModal';
-import NewAntiparasiticModal from '@/components/forms/NewAntiparasiticModal';
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
 import { NewAppointmentModal } from "@/components/forms/NewAppointmentModal";
 import { ConfirmVaccinationReminderModal } from "@/components/modals/ConfirmVaccinationReminderModal";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calculateAge, formatDate } from "@/lib/utils";
 import { PrescriptionsList } from "@/components/PrescriptionsList";
-import { useReactToPrint } from 'react-to-print';
-import { useRef } from 'react';
+
 import { useToast } from '@/hooks/use-toast';
-import CertificateVaccinationPrint from '@/components/CertificateVaccinationPrint';
+import CertificateVaccinationPrintDynamic from '@/components/CertificateVaccinationPrintDynamic';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import NewVaccinationModal from "../forms/NewVaccinationModalDynamic";
+import NewAntiparasiticModalDynamic from "../forms/NewAntiparasiticModalDynamic";
 
 interface PetDossierModalProps {
   open: boolean;
@@ -86,11 +85,7 @@ export function PetDossierModal({ open, onOpenChange, pet }: PetDossierModalProp
   const [selectedVaccinationForConfirmation, setSelectedVaccinationForConfirmation] = useState<any>(null);
   const [editingVaccinationStatus, setEditingVaccinationStatus] = useState<number | null>(null);
   const { toast } = useToast();
-  const printRef = useRef<any>(null);
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    onAfterPrint: () => onOpenChange(false)
-  });
+
 
   // Mettre à jour les statuts des vaccinations quand le modal s'ouvre
   useEffect(() => {
@@ -1370,10 +1365,7 @@ export function PetDossierModal({ open, onOpenChange, pet }: PetDossierModalProp
                             </div>
 
                             <div className="flex flex-col gap-2 ml-4">
-                              <Button size="sm" variant="outline" className="gap-2" onClick={handlePrint}>
-                                <FileText className="h-4 w-4" />
-                                Certificat
-                              </Button>
+                              <CertificateVaccinationPrintDynamic animalId={pet.id.toString()} />
                               {vaccination.nextDueDate && new Date(vaccination.nextDueDate) <= new Date() && vaccination.status !== 'completed' && !vaccination.reminderAppointmentId && (
                                 <Button 
                                   size="sm" 
@@ -1438,12 +1430,12 @@ export function PetDossierModal({ open, onOpenChange, pet }: PetDossierModalProp
             <TabsContent value="antiparasites" className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Historique antiparasitaire</h3>
-                <NewAntiparasiticModal selectedClientId={owner?.id} selectedPetId={pet.id}>
+                <NewAntiparasiticModalDynamic selectedClientId={owner?.id} selectedPetId={pet.id}>
                   <Button size="sm" className="gap-2">
                     <Plus className="h-4 w-4" />
                     Nouveau Traitement
                   </Button>
-                </NewAntiparasiticModal>
+                </NewAntiparasiticModalDynamic>
               </div>
               {sortedAntiparasitics.length === 0 ? (
                 <Card>
@@ -1889,8 +1881,8 @@ export function PetDossierModal({ open, onOpenChange, pet }: PetDossierModalProp
             setSelectedVaccinationForReminder(null);
           }
         }}
-        prefillClientId={alertPrefill.clientId}
-        prefillPetId={alertPrefill.petId}
+        prefillClientId={alertPrefill.clientId.toString()}
+        prefillPetId={alertPrefill.petId.toString()}
         prefillType={alertPrefill.type}
         prefillReason={alertPrefill.reason}
         originalVaccinationId={selectedVaccinationForReminder?.id} // Pass vaccination ID for reminder
@@ -1915,18 +1907,14 @@ export function PetDossierModal({ open, onOpenChange, pet }: PetDossierModalProp
         vaccination={selectedVaccinationForConfirmation}
       />
       {showNewAntiparasitic && (
-        <NewAntiparasiticModal 
+        <NewAntiparasiticModalDynamic 
           selectedClientId={owner?.id}
           selectedPetId={pet.id}
         >
           <Button onClick={() => setShowNewAntiparasitic(false)}>Fermer</Button>
-        </NewAntiparasiticModal>
+        </NewAntiparasiticModalDynamic>
       )}
-      {pet && (
-        <div style={{ display: 'none' }}>
-          <CertificateVaccinationPrint ref={printRef} petId={pet.id} />
-        </div>
-      )}
+
     </>
   );
 }

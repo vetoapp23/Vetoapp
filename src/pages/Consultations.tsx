@@ -3,22 +3,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, FileText, Heart, User, Calendar, Pill, Thermometer, Edit, Trash2, Grid, List } from "lucide-react";
+import { Plus, Search, FileText, Heart, User, Calendar, Pill, Thermometer, Edit, Trash2, Grid, List, Eye } from "lucide-react";
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
-import { ConsultationEditModal } from "@/components/modals/ConsultationEditModal";
-import { ConsultationPrint } from "@/components/ConsultationPrint";
+import { ConsultationEditModalNew } from "@/components/modals/ConsultationEditModalNew";
+import { ConsultationPrintNew } from "@/components/ConsultationPrintNew";
 import { NewPrescriptionModal } from "@/components/forms/NewPrescriptionModal";
-import { useClients, Consultation } from "@/contexts/ClientContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useToast } from "@/hooks/use-toast";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
-import { useConsultations, useCreateConsultation, useDeleteConsultation } from "@/hooks/useDatabase";
+import { useConsultations, useCreateConsultation, useUpdateConsultation, useDeleteConsultation, usePrescriptions, type Consultation } from "@/hooks/useDatabase";
+import type { CreateConsultationData } from "@/lib/database";
+import { deleteConsultationDirect } from "@/lib/consultationUtils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const Consultations = () => {
   const { data: consultations = [], isLoading } = useConsultations();
+  const { data: prescriptions = [] } = usePrescriptions();
   const createConsultationMutation = useCreateConsultation();
+  const updateConsultationMutation = useUpdateConsultation();
   const deleteConsultationMutation = useDeleteConsultation();
   const { settings } = useSettings();
   const { toast } = useToast();
@@ -29,9 +33,20 @@ const Consultations = () => {
   const [showNewConsultation, setShowNewConsultation] = useState(false);
   const [showEditConsultation, setShowEditConsultation] = useState(false);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
+  const [consultationPrefillData, setConsultationPrefillData] = useState<Partial<CreateConsultationData & { clientId: string; animalId: string }> | null>(null);
   const [showNewPrescription, setShowNewPrescription] = useState(false);
-  const [prescriptionPetId, setPrescriptionPetId] = useState<number | null>(null);
-  const [prescriptionConsultationId, setPrescriptionConsultationId] = useState<number | null>(null);
+  const [prescriptionPetId, setPrescriptionPetId] = useState<string | null>(null);
+  const [prescriptionConsultationId, setPrescriptionConsultationId] = useState<string | null>(null);
+  const [showPrescriptionDetails, setShowPrescriptionDetails] = useState(false);
+  const [selectedConsultationPrescriptions, setSelectedConsultationPrescriptions] = useState<any[]>([]);
+  const [selectedAnimalName, setSelectedAnimalName] = useState<string>('');
+
+  // Helper function to get prescriptions for a consultation
+  const getPrescriptionsForConsultation = (consultationId: string) => {
+    return prescriptions.filter(prescription => 
+      prescription.consultation_id === consultationId
+    );
+  };
 
   const filteredConsultations = consultations.filter(consultation => {
     const clientName = `${consultation.client?.first_name || ''} ${consultation.client?.last_name || ''}`.trim();
@@ -65,37 +80,79 @@ const Consultations = () => {
     setShowEditConsultation(true);
   };
 
-  const handleNewPrescription = (consultation: any) => {
-    setPrescriptionPetId(parseInt(consultation.animal_id));
-    setPrescriptionConsultationId(parseInt(consultation.id));
+  const handleNewPrescription = (consultation: Consultation) => {
+    setPrescriptionPetId(consultation.animal_id);
+    setPrescriptionConsultationId(consultation.id);
     setShowNewPrescription(true);
   };
 
-  const handleDeleteConsultation = (consultation: any) => {
+  const handleDeleteConsultation = async (consultation: Consultation) => {
+    // Simple confirmation dialog
     if (confirm(`Êtes-vous sûr de vouloir supprimer la consultation pour ${consultation.animal?.name || 'cet animal'} ?`)) {
-      deleteConsultationMutation.mutate(consultation.id);
-      toast({
-        title: "Consultation supprimée",
-        description: `La consultation pour ${consultation.animal?.name || 'cet animal'} a été supprimée.`,
-      });
+      try {
+        // Use both approaches for better chance of success
+        
+        // 1. Try direct deletion first
+        const result = await deleteConsultationDirect(consultation.id);
+        
+        if (result.success) {
+          toast({
+            title: "Succès",
+            description: `La consultation a été supprimée avec succès.`,
+          });
+          
+          // Manually refetch data after successful delete
+          window.location.reload();
+          return;
+        }
+        
+        // 2. If direct deletion fails, try mutation
+        deleteConsultationMutation.mutate(consultation.id, {
+          onSuccess: () => {
+            toast({
+              title: "Succès",
+              description: `La consultation a été supprimée avec succès.`,
+            });
+          },
+          onError: (error) => {
+            toast({
+              title: "Erreur",
+              description: `Impossible de supprimer la consultation: ${error.message}`,
+              variant: "destructive",
+            });
+          }
+        });
+      } catch (error: any) {
+        toast({
+          title: "Erreur",
+          description: `Erreur inattendue: ${error.message || "Erreur inconnue"}`,
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const handleNewFollowUp = (consultation: any) => {
+  const handleNewFollowUp = (consultation: Consultation) => {
     // Pré-remplir le formulaire avec les informations du client et de l'animal
-    setSelectedConsultation({
-      ...consultation,
-      id: '', // Nouveau ID sera généré
-      consultation_date: new Date().toISOString(), // Date d'aujourd'hui
+    setConsultationPrefillData({
+      clientId: consultation.client_id,
+      animalId: consultation.animal_id,
+      consultation_date: new Date().toISOString(),
+      consultation_type: 'follow-up',
       symptoms: "",
       diagnosis: "",
       treatment: "",
-      notes: "",
-      follow_up_date: null,
-      follow_up_notes: "",
+      notes: `Suivi de la consultation du ${new Date(consultation.consultation_date).toLocaleDateString('fr-FR')}`,
       status: "scheduled"
     });
     setShowNewConsultation(true);
+  };
+
+  const handleViewPrescriptions = (consultation: any) => {
+    const consultationPrescriptions = getPrescriptionsForConsultation(consultation.id);
+    setSelectedConsultationPrescriptions(consultationPrescriptions);
+    setSelectedAnimalName(consultation.animal?.name || 'Animal inconnu');
+    setShowPrescriptionDetails(true);
   };
 
   return (
@@ -246,15 +303,40 @@ const Consultations = () => {
                         </>
                       )}
                       
-                      {consultation.medications && (
-                        <>
-                          <h5 className="font-medium flex items-center gap-1">
-                            <Pill className="h-4 w-4" />
-                            Médicaments:
-                          </h5>
-                          <p className="text-sm">{consultation.medications}</p>
-                        </>
-                      )}
+                      {(() => {
+                        const consultationPrescriptions = getPrescriptionsForConsultation(consultation.id);
+                        return consultationPrescriptions.length > 0 && (
+                          <>
+                            <h5 className="font-medium flex items-center gap-1">
+                              <Pill className="h-4 w-4" />
+                              Prescriptions ({consultationPrescriptions.length}):
+                            </h5>
+                            <div className="space-y-1">
+                              {consultationPrescriptions.map((prescription: any) => (
+                                <div key={prescription.id} className="text-sm bg-blue-50 p-2 rounded border-l-2 border-blue-200">
+                                  <div className="font-medium text-blue-800">
+                                    Prescription #{prescription.id.slice(-8)}
+                                  </div>
+                                  <div className="text-blue-600 text-xs">
+                                    {new Date(prescription.prescription_date).toLocaleDateString('fr-FR')} - 
+                                    Status: {prescription.status}
+                                  </div>
+                                  {prescription.medications && prescription.medications.length > 0 && (
+                                    <div className="mt-1">
+                                      <div className="text-xs font-medium text-blue-700">Médicaments:</div>
+                                      {prescription.medications.map((med: any, idx: number) => (
+                                        <div key={idx} className="text-xs text-blue-600 ml-2">
+                                          • {med.medication_name} {med.dosage && `- ${med.dosage}`} {med.quantity && `(${med.quantity})`}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                   
@@ -272,11 +354,11 @@ const Consultations = () => {
                     </span>
                     
                     <div className="flex gap-2">
-                      <ConsultationPrint consultation={consultation} />
+                      <ConsultationPrintNew consultation={consultation as Consultation} />
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => handleEditConsultation(consultation)}
+                        onClick={() => handleEditConsultation(consultation as Consultation)}
                         className="gap-1"
                       >
                         <Edit className="h-3 w-3" />
@@ -285,13 +367,13 @@ const Consultations = () => {
                       <Button 
                         size="sm" 
                         variant="default"
-                        onClick={() => handleNewPrescription(consultation)}
+                        onClick={() => handleNewPrescription(consultation as Consultation)}
                         className="gap-1"
                       >
                         <Pill className="h-3 w-3" />
                         Prescription
                       </Button>
-                      <Button 
+                      {/* <Button 
                         size="sm" 
                         variant="outline"
                         onClick={() => handleDeleteConsultation(consultation)}
@@ -299,10 +381,10 @@ const Consultations = () => {
                       >
                         <Trash2 className="h-3 w-3" />
                         Supprimer
-                      </Button>
+                      </Button> */}
                       <Button 
                         size="sm"
-                        onClick={() => handleNewFollowUp(consultation)}
+                        onClick={() => handleNewFollowUp(consultation as Consultation)}
                       >
                         Nouveau suivi
                       </Button>
@@ -323,6 +405,7 @@ const Consultations = () => {
                     <TableHead>Symptômes</TableHead>
                     <TableHead>Diagnostic</TableHead>
                     <TableHead>Température</TableHead>
+                    <TableHead>Prescriptions</TableHead>
                     <TableHead>Coût</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -353,33 +436,58 @@ const Consultations = () => {
                         {consultation.temperature ? `${consultation.temperature}°C` : '-'}
                       </TableCell>
                       <TableCell>
+                        {(() => {
+                          const consultationPrescriptions = getPrescriptionsForConsultation(consultation.id);
+                          return consultationPrescriptions.length > 0 ? (
+                            <div className="space-y-1">
+                              <div 
+                                className="flex items-center gap-2 cursor-pointer p-1 rounded transition-colors w-fit"
+                                onClick={() => handleViewPrescriptions(consultation)}
+                                title="Cliquer pour voir les détails des prescriptions"
+                              >
+                                <Badge variant="outline" className="text-xs">
+                                  {consultationPrescriptions.length} prescription{consultationPrescriptions.length > 1 ? 's' : ''}
+                                </Badge>
+                                <Eye className="h-3 w-3 text-blue-600 hover:text-blue-800" />
+                              </div>
+                            
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">Aucune</span>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell>
                         {consultation.cost ? `${consultation.cost} ${settings.currency}` : '-'}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          <ConsultationPrint consultation={consultation} />
+                        <div className="flex gap-1 flex-wrap">
+                          <ConsultationPrintNew consultation={consultation as Consultation} />
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => handleEditConsultation(consultation)}
+                            onClick={() => handleEditConsultation(consultation as Consultation)}
+                            title="Modifier"
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
                           <Button 
                             size="sm" 
                             variant="default"
-                            onClick={() => handleNewPrescription(consultation)}
+                            onClick={() => handleNewPrescription(consultation as Consultation)}
+                            title="Nouvelle Prescription"
                           >
                             <Pill className="h-3 w-3" />
                           </Button>
-                          <Button 
+                          
+                          {/* <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => handleDeleteConsultation(consultation)}
+                            onClick={() => handleDeleteConsultation(consultation as Consultation)}
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-3 w-3" />
-                          </Button>
+                          </Button> */}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -393,10 +501,16 @@ const Consultations = () => {
       
       <NewConsultationModal 
         open={showNewConsultation} 
-        onOpenChange={setShowNewConsultation} 
+        onOpenChange={(open) => {
+          setShowNewConsultation(open);
+          if (!open) {
+            setConsultationPrefillData(null);
+          }
+        }}
+        prefillData={consultationPrefillData || undefined}
       />
       
-      <ConsultationEditModal
+      <ConsultationEditModalNew
         open={showEditConsultation}
         onOpenChange={setShowEditConsultation}
         consultation={selectedConsultation}
@@ -406,10 +520,112 @@ const Consultations = () => {
         <NewPrescriptionModal
           open={showNewPrescription}
           onOpenChange={setShowNewPrescription}
-          petId={prescriptionPetId.toString()}
-          consultationId={prescriptionConsultationId.toString()}
+          petId={prescriptionPetId}
+          consultationId={prescriptionConsultationId}
         />
       )}
+
+      {/* Prescription Details Modal */}
+      <Dialog open={showPrescriptionDetails} onOpenChange={setShowPrescriptionDetails}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <Pill className="h-5 w-5" />
+          Prescriptions pour {selectedAnimalName}
+        </DialogTitle>
+        <DialogDescription>
+          Détails des {selectedConsultationPrescriptions.length} prescription{selectedConsultationPrescriptions.length > 1 ? 's' : ''} associée{selectedConsultationPrescriptions.length > 1 ? 's' : ''} à cette consultation
+        </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+        {selectedConsultationPrescriptions.map((prescription: any, index: number) => (
+          <Card key={prescription.id} className="border-l-4 border-l-primary">
+            <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">
+              Prescription #{prescription.id.slice(-8)}
+            </CardTitle>
+            <Badge
+              variant={prescription.status === 'active' ? 'default' : prescription.status === 'completed' ? 'secondary' : 'destructive'}
+              className="text-xs"
+            >
+              {prescription.status}
+            </Badge>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Date: {new Date(prescription.prescription_date).toLocaleDateString('fr-FR')} à {new Date(prescription.prescription_date).toLocaleTimeString('fr-FR')}
+            {prescription.valid_until && (
+              <span className="ml-4">Valide jusqu'au: {new Date(prescription.valid_until).toLocaleDateString('fr-FR')}</span>
+            )}
+          </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+          {/* Diagnosis */}
+          {prescription.diagnosis && (
+            <div>
+              <h4 className="font-medium text-sm mb-1">Diagnostic:</h4>
+              <p className="text-sm bg-muted p-2 rounded">{prescription.diagnosis}</p>
+            </div>
+          )}
+
+          {/* Medications */}
+          {prescription.medications && prescription.medications.length > 0 && (
+            <div>
+              <h4 className="font-medium text-sm mb-2">Médicaments ({prescription.medications.length}):</h4>
+              <div className="grid gap-3 md:grid-cols-2">
+            {prescription.medications.map((med: any, medIndex: number) => (
+              <div key={medIndex} className="bg-muted p-3 rounded-lg">
+                <div className="font-medium">{med.medication_name}</div>
+                <div className="text-xs space-y-1 mt-1">
+              {med.dosage && <div>Dosage: {med.dosage}</div>}
+              {med.frequency && <div>Fréquence: {med.frequency}</div>}
+              {med.duration && <div>Durée: {med.duration}</div>}
+              {med.quantity && <div>Quantité: {med.quantity}</div>}
+              {med.route && <div>Voie: {med.route}</div>}
+                </div>
+                {med.instructions && (
+              <div className="mt-2 text-xs bg-background p-2 rounded border">
+                <span className="font-medium">Instructions: </span>
+                {med.instructions}
+              </div>
+                )}
+              </div>
+            ))}
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {prescription.notes && (
+            <div>
+              <h4 className="font-medium text-sm mb-1">Notes:</h4>
+              <p className="text-sm bg-muted p-2 rounded">{prescription.notes}</p>
+            </div>
+          )}
+
+          {/* Additional Info */}
+          <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
+            <span>Renouvellements: {prescription.refill_count || 0}</span>
+            <span>Créée le: {new Date(prescription.created_at).toLocaleDateString('fr-FR')}</span>
+            {prescription.updated_at !== prescription.created_at && (
+              <span>Modifiée le: {new Date(prescription.updated_at).toLocaleDateString('fr-FR')}</span>
+            )}
+          </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {selectedConsultationPrescriptions.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <Pill className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+            <p>Aucune prescription trouvée pour cette consultation</p>
+          </div>
+        )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

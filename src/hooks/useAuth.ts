@@ -165,7 +165,7 @@ export const useGoogleLogin = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${import.meta.env.VITE_APP_URL}`
+          redirectTo: `${import.meta.env.VITE_APP_URL}/dashboard`
         }
       })
 

@@ -5,11 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Clock, User, Heart, Plus, Search, Filter, Edit, Trash2, CheckCircle, XCircle, AlertCircle, Grid, List } from "lucide-react";
-import { NewAppointmentModal } from "@/components/forms/NewAppointmentModal";
-import { useClients, Appointment } from "@/contexts/ClientContext";
+import { SimpleAppointmentModal } from "../components/forms/SimpleAppointmentModal";
+import { useAppointments, useUpdateAppointment, useDeleteAppointment, type Appointment } from "@/hooks/useDatabase";
 import { useToast } from "@/hooks/use-toast";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
 import { UnifiedCalendar } from '@/components/UnifiedCalendar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import React from "react";
 
 const statusStyles = {
@@ -39,13 +40,9 @@ const typeLabels = {
 };
 
 export default function Appointments() {
-  const { 
-    appointments, 
-    deleteAppointment, 
-    updateAppointment, 
-    getUpcomingAppointments, 
-    getOverdueAppointments 
-  } = useClients();
+  const { data: appointments = [], isLoading, error } = useAppointments();
+  const updateAppointmentMutation = useUpdateAppointment();
+  const deleteAppointmentMutation = useDeleteAppointment();
   const { toast } = useToast();
   const { currentView } = useDisplayPreference('appointments');
   
@@ -58,9 +55,34 @@ export default function Appointments() {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [displayMode, setDisplayMode] = useState<'cards' | 'table'>(currentView);
   
+  // Delete confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
+  
   // Inline editing state
-  const [editingField, setEditingField] = useState<{ id: number; field: 'date' | 'time' | 'status' | 'reason'; } | null>(null);
+  const [editingField, setEditingField] = useState<{ id: string; field: 'date' | 'time' | 'status' | 'reason'; } | null>(null);
   const [fieldValue, setFieldValue] = useState<string>('');
+
+  // Helper functions for date and time formatting
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR');
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('fr-FR', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  const getAppointmentDate = (appointment: Appointment) => {
+    return new Date(appointment.appointment_date).toISOString().split('T')[0];
+  };
+
+  const getAppointmentTime = (appointment: Appointment) => {
+    const date = new Date(appointment.appointment_date);
+    return date.toTimeString().slice(0, 5); // HH:MM format
+  };
   
   // Date affichée pour la vue calendrier
   const [currentDate, setCurrentDate] = useState(() => {
@@ -70,71 +92,137 @@ export default function Appointments() {
   const prevMonth = () => setCurrentDate(date => new Date(date.getFullYear(), date.getMonth() - 1, 1));
   const nextMonth = () => setCurrentDate(date => new Date(date.getFullYear(), date.getMonth() + 1, 1));
 
+  // Helper functions to get client and animal names
+  const getClientName = (appointment: Appointment) => {
+    if (appointment.client) {
+      return `${appointment.client.first_name} ${appointment.client.last_name}`;
+    }
+    return 'Unknown Client';
+  };
+
+  const getAnimalName = (appointment: Appointment) => {
+    return appointment.animal?.name || 'Unknown Animal';
+  };
+
+  // Calculate stats from appointments data
+  const getUpcomingAppointments = () => {
+    const now = new Date();
+    return appointments.filter(apt => new Date(apt.appointment_date) > now);
+  };
+
+  const getOverdueAppointments = () => {
+    const now = new Date();
+    return appointments.filter(apt => 
+      new Date(apt.appointment_date) < now && 
+      apt.status === 'scheduled'
+    );
+  };
+
   const upcomingAppointments = getUpcomingAppointments();
   const overdueAppointments = getOverdueAppointments();
 
   const filteredAppointments = appointments.filter(appointment => {
+    const clientName = getClientName(appointment);
+    const petName = getAnimalName(appointment);
+    
     const matchesSearch = 
-      appointment.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.petName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (appointment.reason && appointment.reason.toLowerCase().includes(searchTerm.toLowerCase()));
+      clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      petName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (appointment.notes && appointment.notes.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = filterStatus === "all" || appointment.status === filterStatus;
-    const matchesType = filterType === "all" || appointment.type === filterType;
+    const matchesType = filterType === "all" || appointment.appointment_type === filterType;
     
     let matchesDate = true;
+    const appointmentDate = new Date(appointment.appointment_date);
+    const appointmentDateStr = appointmentDate.toISOString().split('T')[0];
+    
     if (filterDate === "today") {
-      matchesDate = appointment.date === new Date().toISOString().split('T')[0];
+      matchesDate = appointmentDateStr === new Date().toISOString().split('T')[0];
     } else if (filterDate === "week") {
-      const appointmentDate = new Date(appointment.date);
       const today = new Date();
       const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
       matchesDate = appointmentDate >= today && appointmentDate <= weekFromNow;
     } else if (filterDate === "month") {
-      const appointmentDate = new Date(appointment.date);
       const today = new Date();
       const currentMonth = today.getMonth();
       const currentYear = today.getFullYear();
       matchesDate = appointmentDate.getMonth() === currentMonth && appointmentDate.getFullYear() === currentYear;
     } else if (filterDate === "specific") {
-      matchesDate = appointment.date === selectedDate;
+      matchesDate = appointmentDateStr === selectedDate;
     }
     
     return matchesSearch && matchesStatus && matchesType && matchesDate;
   });
 
-  const handleStatusChange = (appointmentId: number, newStatus: Appointment['status']) => {
-    updateAppointment(appointmentId, { status: newStatus });
-    toast({
-      title: "Statut mis à jour",
-      description: `Le rendez-vous est maintenant ${statusLabels[newStatus].toLowerCase()}.`,
-    });
+  const handleStatusChange = async (appointmentId: string, newStatus: Appointment['status']) => {
+    try {
+      await updateAppointmentMutation.mutateAsync({
+        id: appointmentId,
+        data: { status: newStatus }
+      });
+      toast({
+        title: "Statut mis à jour",
+        description: `Le rendez-vous est maintenant ${statusLabels[newStatus].toLowerCase()}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleFieldSave = () => {
+  const handleFieldSave = async () => {
     if (!editingField) return;
     const { id, field } = editingField;
     const appointment = appointments.find(a => a.id === id);
     if (appointment) {
-      const updated = { ...appointment, [field]: fieldValue };
-      updateAppointment(id, updated as any);
-      toast({ title: 'Modifié', description: `${field} mis à jour`, });
+      try {
+        await updateAppointmentMutation.mutateAsync({
+          id: id,
+          data: { [field]: fieldValue }
+        });
+        toast({ title: 'Modifié', description: `${field} mis à jour`, });
+      } catch (error) {
+        toast({ title: 'Erreur', description: 'Impossible de mettre à jour', variant: 'destructive' });
+      }
     }
     setEditingField(null);
   };
 
-  const handleDelete = (appointment: Appointment) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer le rendez-vous pour ${appointment.petName} ?`)) {
-      deleteAppointment(appointment.id);
+  const handleDelete = async (appointment: Appointment) => {
+    setAppointmentToDelete(appointment);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteAppointment = async () => {
+    if (!appointmentToDelete) return;
+
+    const animalName = getAnimalName(appointmentToDelete);
+    try {
+      await deleteAppointmentMutation.mutateAsync(appointmentToDelete.id);
       toast({
         title: "Rendez-vous supprimé",
-        description: `Le rendez-vous pour ${appointment.petName} a été supprimé.`,
+        description: `Le rendez-vous pour ${animalName} a été supprimé.`,
+      });
+      setShowDeleteConfirm(false);
+      setAppointmentToDelete(null);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le rendez-vous",
+        variant: "destructive",
       });
     }
   };
 
   const getAppointmentsForDate = (date: string) => {
-    return appointments.filter(a => a.date === date);
+    return appointments.filter(a => {
+      const appointmentDate = new Date(a.appointment_date);
+      return appointmentDate.toISOString().split('T')[0] === date;
+    });
   };
 
   const getTodayAppointments = () => {
@@ -159,6 +247,32 @@ export default function Appointments() {
       dayCounter++;
     }
     weeks.push(week);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des rendez-vous...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6">
+            <div className="flex items-center text-red-800">
+              <AlertCircle className="w-5 h-5 mr-2" />
+              <span>Erreur lors du chargement des rendez-vous: {error.message}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -211,14 +325,14 @@ export default function Appointments() {
       {viewMode==='calendar' ? (
         <UnifiedCalendar
           events={appointments.map(appointment => ({
-            id: appointment.id,
+            id: parseInt(appointment.id),
             type: 'appointment' as const,
-            title: `${appointment.clientName} - ${appointment.petName}`,
-            time: appointment.time,
-            date: appointment.date,
+            title: `${getClientName(appointment)} - ${getAnimalName(appointment)}`,
+            time: getAppointmentTime(appointment),
+            date: getAppointmentDate(appointment),
             status: appointment.status,
-            clientName: appointment.clientName,
-            petName: appointment.petName,
+            clientName: getClientName(appointment),
+            petName: getAnimalName(appointment),
           }))}
           onEventClick={(event) => {
             // Gérer le clic sur un rendez-vous
@@ -396,7 +510,7 @@ export default function Appointments() {
         ) : displayMode === 'cards' ? (
           <div className="space-y-4">
             {filteredAppointments
-              .sort((a, b) => new Date(a.date + 'T' + a.time).getTime() - new Date(b.date + 'T' + b.time).getTime())
+              .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
               .map((appointment) => (
                 <Card key={appointment.id} className="card-hover">
                   <CardContent className="p-6">
@@ -405,11 +519,11 @@ export default function Appointments() {
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{appointment.clientName}</span>
+                            <span className="font-medium">{getClientName(appointment)}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Heart className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{appointment.petName}</span>
+                            <span className="font-medium">{getAnimalName(appointment)}</span>
                           </div>
                           <Badge className={statusStyles[appointment.status]}>
                             {statusLabels[appointment.status]}
@@ -419,26 +533,26 @@ export default function Appointments() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>{new Date(appointment.date).toLocaleDateString('fr-FR')}</span>
+                            <span>{formatDate(appointment.appointment_date)}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{appointment.time}</span>
+                            <span>{formatTime(appointment.appointment_date)}</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Type:</span>
-                            <span className="ml-1">{typeLabels[appointment.type]}</span>
+                            <span className="ml-1">{typeLabels[appointment.appointment_type as keyof typeof typeLabels] || appointment.appointment_type}</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Durée:</span>
-                            <span className="ml-1">{appointment.duration} min</span>
+                            <span className="ml-1">{appointment.duration_minutes || 30} min</span>
                           </div>
                         </div>
                         
-                        {appointment.reason && (
+                        {appointment.notes && (
                           <div>
                             <span className="text-sm text-muted-foreground">Motif:</span>
-                            <p className="text-sm mt-1">{appointment.reason}</p>
+                            <p className="text-sm mt-1">{appointment.notes}</p>
                           </div>
                         )}
                         
@@ -518,18 +632,18 @@ export default function Appointments() {
                   </thead>
                   <tbody>
                     {filteredAppointments
-                      .sort((a, b) => new Date(a.date + 'T' + a.time).getTime() - new Date(b.date + 'T' + b.time).getTime())
+                      .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
                       .map((appointment) => (
                         <tr key={appointment.id} className="border-b hover:bg-muted/50">
                           <td className="p-4">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
                                 <User className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{appointment.clientName}</span>
+                                <span className="font-medium">{getClientName(appointment)}</span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <Heart className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">{appointment.petName}</span>
+                                <span className="text-sm text-muted-foreground">{getAnimalName(appointment)}</span>
                               </div>
                             </div>
                           </td>
@@ -537,7 +651,7 @@ export default function Appointments() {
                             <div className="space-y-1">
                               <div 
                                 className="flex items-center gap-2 cursor-pointer"
-                                onClick={() => { setEditingField({ id: appointment.id, field: 'date' }); setFieldValue(appointment.date); }}
+                                onClick={() => { setEditingField({ id: appointment.id, field: 'date' }); setFieldValue(getAppointmentDate(appointment)); }}
                               >
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 {editingField?.id === appointment.id && editingField.field === 'date' ? (
@@ -550,12 +664,12 @@ export default function Appointments() {
                                     className="w-32"
                                   />
                                 ) : (
-                                  <span>{new Date(appointment.date).toLocaleDateString('fr-FR')}</span>
+                                  <span>{formatDate(appointment.appointment_date)}</span>
                                 )}
                               </div>
                               <div 
                                 className="flex items-center gap-2 cursor-pointer"
-                                onClick={() => { setEditingField({ id: appointment.id, field: 'time' }); setFieldValue(appointment.time); }}
+                                onClick={() => { setEditingField({ id: appointment.id, field: 'time' }); setFieldValue(getAppointmentTime(appointment)); }}
                               >
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                                 {editingField?.id === appointment.id && editingField.field === 'time' ? (
@@ -568,15 +682,15 @@ export default function Appointments() {
                                     className="w-24"
                                   />
                                 ) : (
-                                  <span className="text-sm text-muted-foreground">{appointment.time}</span>
+                                  <span className="text-sm text-muted-foreground">{formatTime(appointment.appointment_date)}</span>
                                 )}
                               </div>
                             </div>
                           </td>
                           <td className="p-4">
                             <div>
-                              <div className="font-medium">{typeLabels[appointment.type]}</div>
-                              <div className="text-sm text-muted-foreground">{appointment.duration} min</div>
+                              <div className="font-medium">{typeLabels[appointment.appointment_type as keyof typeof typeLabels] || appointment.appointment_type}</div>
+                              <div className="text-sm text-muted-foreground">{appointment.duration_minutes || 30} min</div>
                             </div>
                           </td>
                           <td className="p-4">
@@ -589,7 +703,7 @@ export default function Appointments() {
                                   value={fieldValue}
                                   onValueChange={value => {
                                     setFieldValue(value);
-                                    updateAppointment(appointment.id, { status: value as any });
+                                    handleStatusChange(appointment.id, value as Appointment['status']);
                                     setEditingField(null);
                                   }}
                                 >
@@ -614,7 +728,7 @@ export default function Appointments() {
                           <td className="p-4">
                             <div 
                               className="max-w-xs cursor-pointer"
-                              onClick={() => { setEditingField({ id: appointment.id, field: 'reason' }); setFieldValue(appointment.reason || ''); }}
+                              onClick={() => { setEditingField({ id: appointment.id, field: 'reason' }); setFieldValue(appointment.notes || ''); }}
                             >
                               {editingField?.id === appointment.id && editingField.field === 'reason' ? (
                                 <Input
@@ -626,8 +740,8 @@ export default function Appointments() {
                                 />
                               ) : (
                                 <>
-                                  {appointment.reason && (
-                                    <div className="text-sm">{appointment.reason}</div>
+                                  {appointment.notes && (
+                                    <div className="text-sm">{appointment.notes}</div>
                                   )}
                                   {appointment.notes && (
                                     <div className="text-xs text-muted-foreground mt-1">{appointment.notes}</div>
@@ -688,10 +802,37 @@ export default function Appointments() {
         )}
       </div>
 
-      <NewAppointmentModal 
-        open={showNewAppointment} 
-        onOpenChange={setShowNewAppointment} 
+      <SimpleAppointmentModal
+        open={showNewAppointment}
+        onOpenChange={setShowNewAppointment}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          {appointmentToDelete && (
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Êtes-vous sûr de vouloir supprimer le rendez-vous pour <strong>{getAnimalName(appointmentToDelete)}</strong> ?
+              </p>
+              <p className="text-sm text-red-600">
+                Cette action est irréversible.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                  Annuler
+                </Button>
+                <Button variant="destructive" onClick={confirmDeleteAppointment}>
+                  Supprimer
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

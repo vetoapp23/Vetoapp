@@ -77,6 +77,10 @@ export interface Consultation {
   created_at: string
   updated_at: string
   
+  // UI compatibility fields
+  cost?: number
+  followUp?: string | null
+  
   // Relations
   animal?: Animal
   client?: Client
@@ -316,13 +320,14 @@ export interface CreateAnimalData {
   sterilization_date?: string
   notes?: string
   photo_url?: string
-  status?: 'healthy' | 'treatment' | 'urgent'
+  status?: 'vivant' | 'décédé' | 'perdu'
 }
 
 export interface CreateConsultationData {
   animal_id: string
   client_id: string
   veterinarian_id?: string
+  consultation_date?: string
   consultation_type: string
   symptoms?: string
   diagnosis?: string
@@ -335,6 +340,8 @@ export interface CreateConsultationData {
   photos?: string[]
   follow_up_date?: string
   follow_up_notes?: string
+  status?: string
+  cost?: number
 }
 
 export interface CreateVaccinationData {
@@ -350,15 +357,34 @@ export interface CreateVaccinationData {
   notes?: string
 }
 
+export interface CreateAntiparasiticData {
+  animal_id: string
+  consultation_id?: string
+  product_name: string
+  active_ingredient?: string
+  parasite_type?: string
+  administration_route?: string
+  dosage?: string
+  treatment_date: string
+  next_treatment_date?: string
+  administered_by?: string
+  effectiveness_rating?: number
+  notes?: string
+}
+
 export interface CreatePrescriptionData {
   consultation_id: string
   animal_id: string
   client_id: string
   veterinarian_id?: string
+  prescription_date?: string
   diagnosis?: string
   notes?: string
+  status?: string
+  refill_count?: number
   valid_until?: string
   medications: {
+    stock_item_id?: string
     medication_name: string
     dosage?: string
     frequency?: string
@@ -377,6 +403,18 @@ export interface CreateAppointmentData {
   duration_minutes?: number
   appointment_type: 'consultation' | 'vaccination' | 'surgery' | 'follow-up'
   notes?: string
+}
+
+export interface UpdateAppointmentData {
+  client_id?: string
+  animal_id?: string
+  veterinarian_id?: string
+  appointment_date?: string
+  duration_minutes?: number
+  appointment_type?: 'consultation' | 'vaccination' | 'surgery' | 'follow-up'
+  status?: 'scheduled' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show'
+  notes?: string
+  reminder_sent?: boolean
 }
 
 // =============================================
@@ -828,11 +866,24 @@ export const createVaccination = async (vaccinationData: CreateVaccinationData):
     throw new Error('User not authenticated')
   }
 
+  // Ensure administered_by is either a valid UUID or null
+  let administeredBy = vaccinationData.administered_by;
+  if (!administeredBy || administeredBy.trim() === '') {
+    // Check if the current user has a profile in user_profiles
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+    
+    administeredBy = userProfile ? user.id : null;
+  }
+
   const { data, error } = await supabase
     .from('vaccinations')
     .insert({
       ...vaccinationData,
-      administered_by: vaccinationData.administered_by || user.id
+      administered_by: administeredBy
     })
     .select(`
       *,
@@ -845,6 +896,294 @@ export const createVaccination = async (vaccinationData: CreateVaccinationData):
   }
 
   return data
+}
+
+export const updateVaccination = async (id: string, updates: Partial<CreateVaccinationData>): Promise<Vaccination> => {
+  const { data, error } = await supabase
+    .from('vaccinations')
+    .update(updates)
+    .eq('id', id)
+    .select(`
+      *,
+      animal:animals(*)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating vaccination: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteVaccination = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('vaccinations')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting vaccination: ${error.message}`)
+  }
+}
+
+// =============================================
+// VACCINATION PROTOCOL OPERATIONS
+// =============================================
+
+export const getVaccinationProtocols = async (): Promise<VaccinationProtocol[]> => {
+  const { data, error } = await supabase
+    .from('vaccination_protocols')
+    .select('*')
+    .order('species', { ascending: true })
+    .order('vaccine_name', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching vaccination protocols: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const getVaccinationProtocolsBySpecies = async (species: string): Promise<VaccinationProtocol[]> => {
+  const { data, error } = await supabase
+    .from('vaccination_protocols')
+    .select('*')
+    .eq('species', species)
+    .eq('active', true)
+    .order('vaccine_name', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching vaccination protocols for species: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const createVaccinationProtocol = async (protocolData: Omit<VaccinationProtocol, 'id' | 'created_at' | 'updated_at'>): Promise<VaccinationProtocol> => {
+  const { data, error } = await supabase
+    .from('vaccination_protocols')
+    .insert(protocolData)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Error creating vaccination protocol: ${error.message}`)
+  }
+
+  return data
+}
+
+export const updateVaccinationProtocol = async (id: string, updates: Partial<VaccinationProtocol>): Promise<VaccinationProtocol> => {
+  const { data, error } = await supabase
+    .from('vaccination_protocols')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating vaccination protocol: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteVaccinationProtocol = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('vaccination_protocols')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting vaccination protocol: ${error.message}`)
+  }
+}
+
+// =============================================
+// ANTIPARASITIC OPERATIONS
+// =============================================
+
+export const getAntiparasitics = async (): Promise<Antiparasitic[]> => {
+  const { data, error } = await supabase
+    .from('antiparasitics')
+    .select(`
+      *,
+      animal:animals(*)
+    `)
+    .order('treatment_date', { ascending: false })
+
+  if (error) {
+    throw new Error(`Error fetching antiparasitics: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const getAntiparasiticsByAnimal = async (animalId: string): Promise<Antiparasitic[]> => {
+  const { data, error } = await supabase
+    .from('antiparasitics')
+    .select(`
+      *,
+      animal:animals(*)
+    `)
+    .eq('animal_id', animalId)
+    .order('treatment_date', { ascending: false })
+
+  if (error) {
+    throw new Error(`Error fetching antiparasitics for animal: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const createAntiparasitic = async (antiparasiticData: CreateAntiparasiticData): Promise<Antiparasitic> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to create antiparasitic')
+  }
+
+  // Validate administered_by field if provided
+  if (antiparasiticData.administered_by) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('id', antiparasiticData.administered_by)
+      .single()
+    
+    if (!profile) {
+      console.warn('administered_by user not found, setting to null')
+      antiparasiticData.administered_by = null
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('antiparasitics')
+    .insert([antiparasiticData])
+    .select(`
+      *,
+      animal:animals(*)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Error creating antiparasitic: ${error.message}`)
+  }
+
+  return data
+}
+
+export const updateAntiparasitic = async (id: string, updates: Partial<CreateAntiparasiticData>): Promise<Antiparasitic> => {
+  // Validate administered_by field if provided
+  if (updates.administered_by) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('id', updates.administered_by)
+      .single()
+    
+    if (!profile) {
+      console.warn('administered_by user not found, setting to null')
+      updates.administered_by = null
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('antiparasitics')
+    .update(updates)
+    .eq('id', id)
+    .select(`
+      *,
+      animal:animals(*)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating antiparasitic: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteAntiparasitic = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('antiparasitics')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting antiparasitic: ${error.message}`)
+  }
+}
+
+// Antiparasitic Protocol Operations
+export const getAntiparasiticProtocols = async (): Promise<AntiparasiticProtocol[]> => {
+  const { data, error } = await supabase
+    .from('antiparasitic_protocols')
+    .select('*')
+    .order('species', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching antiparasitic protocols: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const getAntiparasiticProtocolsBySpecies = async (species: string): Promise<AntiparasiticProtocol[]> => {
+  const { data, error } = await supabase
+    .from('antiparasitic_protocols')
+    .select('*')
+    .eq('species', species)
+    .eq('active', true)
+    .order('parasite_type', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching antiparasitic protocols for species: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const createAntiparasiticProtocol = async (protocolData: Omit<AntiparasiticProtocol, 'id' | 'created_at' | 'updated_at'>): Promise<AntiparasiticProtocol> => {
+  const { data, error } = await supabase
+    .from('antiparasitic_protocols')
+    .insert([protocolData])
+    .select('*')
+    .single()
+
+  if (error) {
+    throw new Error(`Error creating antiparasitic protocol: ${error.message}`)
+  }
+
+  return data
+}
+
+export const updateAntiparasiticProtocol = async (id: string, updates: Partial<Omit<AntiparasiticProtocol, 'id' | 'created_at' | 'updated_at'>>): Promise<AntiparasiticProtocol> => {
+  const { data, error } = await supabase
+    .from('antiparasitic_protocols')
+    .update(updates)
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating antiparasitic protocol: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteAntiparasiticProtocol = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('antiparasitic_protocols')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting antiparasitic protocol: ${error.message}`)
+  }
 }
 
 // =============================================
@@ -1012,6 +1351,57 @@ export const createAppointment = async (appointmentData: CreateAppointmentData):
   }
 
   return data
+}
+
+export const updateAppointment = async (id: string, appointmentData: UpdateAppointmentData): Promise<Appointment> => {
+  const { data, error } = await supabase
+    .from('appointments')
+    .update({
+      ...appointmentData,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select(`
+      *,
+      client:clients(*),
+      animal:animals(*)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating appointment: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteAppointment = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('appointments')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting appointment: ${error.message}`)
+  }
+}
+
+export const getAppointmentsByClient = async (clientId: string): Promise<Appointment[]> => {
+  const { data, error } = await supabase
+    .from('appointments')
+    .select(`
+      *,
+      client:clients(*),
+      animal:animals(*)
+    `)
+    .eq('client_id', clientId)
+    .order('appointment_date', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching appointments for client: ${error.message}`)
+  }
+
+  return data || []
 }
 
 // =============================================

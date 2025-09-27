@@ -6,16 +6,50 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Heart, Grid, List, Eye, Edit, Plus, Search, Clock, Users, FileText, Shield, Syringe } from 'lucide-react';
-import { useClients } from '@/contexts/ClientContext';
+import { useConsultations, usePrescriptions, useClients, useAnimals, type Prescription } from '@/hooks/useDatabase';
 import ConsultationViewModal from '@/components/modals/ConsultationViewModal';
 import { NewPrescriptionModal } from '@/components/forms/NewPrescriptionModal';
 import { PrescriptionPrint } from '@/components/PrescriptionPrint';
 import { InvoicePrescriptionPrint } from '@/components/InvoicePrescriptionPrint';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Prescription } from '@/contexts/ClientContext';
 
 const History = () => {
-  const { consultations, prescriptions, getClientById, getPetById } = useClients();
+  const { data: consultations = [] } = useConsultations();
+  const { data: prescriptions = [] } = usePrescriptions();
+  const { data: clients = [] } = useClients();
+  const { data: animals = [] } = useAnimals();
+
+  // Helper function to transform database prescription to old format
+  const transformPrescription = (dbPrescription: any) => {
+    return {
+      id: dbPrescription.id,
+      consultationId: dbPrescription.consultation_id,
+      clientId: dbPrescription.client_id,
+      clientName: `${dbPrescription.client?.first_name || ''} ${dbPrescription.client?.last_name || ''}`.trim(),
+      petId: dbPrescription.animal_id,
+      petName: dbPrescription.animal?.name || '',
+      date: dbPrescription.prescription_date,
+      prescribedBy: 'Non spécifié', // TODO: Add veterinarian name
+      diagnosis: dbPrescription.diagnosis || '',
+      medications: dbPrescription.medications?.map((med: any) => ({
+        id: med.id,
+        name: med.medication_name,
+        dosage: med.dosage || '',
+        frequency: med.frequency || '',
+        duration: med.duration || '',
+        instructions: med.instructions || '',
+        quantity: med.quantity || 1,
+        unit: 'unit',
+        cost: 0
+      })) || [],
+      instructions: dbPrescription.notes || '',
+      duration: dbPrescription.valid_until || '',
+      followUpDate: undefined,
+      status: dbPrescription.status || 'active',
+      notes: dbPrescription.notes || '',
+      createdAt: dbPrescription.created_at
+    };
+  };
   
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPet, setFilterPet] = useState("all");
@@ -28,23 +62,23 @@ const History = () => {
   const [showNewPrescription, setShowNewPrescription] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<any>(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState<Prescription | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
 
   // Construire l'historique médical complet incluant consultations, prescriptions
   const medicalHistory = [
     // Consultations
     ...consultations.map(c => ({
       id: c.id,
-      date: c.date,
-      petName: c.petName,
-      petType: getPetById(c.petId)?.type || '',
-      client: c.clientName,
+      date: c.consultation_date?.split('T')[0] || '',
+      petName: c.animal?.name || '',
+      petType: c.animal?.species || '',
+      client: `${c.client?.first_name || ''} ${c.client?.last_name || ''}`.trim(),
       type: 'consultation',
       title: c.diagnosis || 'Consultation',
       veterinarian: c.notes || 'Non spécifié',
       details: c.symptoms || '',
       prescriptions: [],
-      cost: c.cost,
+      cost: c.cost || 0,
       status: 'completed'
     }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -52,14 +86,14 @@ const History = () => {
   // Historique des prescriptions dynamique
   const prescriptionHistory = prescriptions.map(p => ({
     id: p.id,
-    date: p.date,
-    petName: p.petName,
-    client: p.clientName,
-    medication: p.medications.map(m => m.name).join(', '),
-    dosage: p.medications[0]?.dosage || '',
-    frequency: p.medications[0]?.frequency || '',
-    duration: p.duration,
-    veterinarian: p.prescribedBy,
+    date: p.prescription_date?.split('T')[0] || '',
+    petName: p.animal?.name || '',
+    client: `${p.client?.first_name || ''} ${p.client?.last_name || ''}`.trim(),
+    medication: p.medications?.map(m => m.medication_name).join(', ') || '',
+    dosage: p.medications?.[0]?.dosage || '',
+    frequency: p.medications?.[0]?.frequency || '',
+    duration: p.medications?.[0]?.duration || '',
+    veterinarian: 'Non spécifié', // TODO: Add veterinarian name
     status: p.status as string
   }));
 
@@ -283,13 +317,17 @@ const History = () => {
                       
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => {
-                          setSelectedConsultation(item);
+                          const consultation = consultations.find(c => c.id === item.id);
+                          if (consultation) {
+                            setSelectedConsultation({
+                              ...consultation,
+                              petId: consultation.animal_id,
+                              clientId: consultation.client_id
+                            });
+                          }
                           setShowConsultationModal(true);
                         }}>
                           <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Edit className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -336,7 +374,14 @@ const History = () => {
                           <td className="p-4">
                             <div className="flex gap-1">
                               <Button size="sm" variant="outline" onClick={() => {
-                                setSelectedConsultation(item);
+                                const consultation = consultations.find(c => c.id === item.id);
+                                if (consultation) {
+                                  setSelectedConsultation({
+                                    ...consultation,
+                                    petId: consultation.animal_id,
+                                    clientId: consultation.client_id
+                                  });
+                                }
                                 setShowConsultationModal(true);
                               }}>
                                 <Eye className="h-4 w-4" />
@@ -434,11 +479,20 @@ const History = () => {
                     <Button size="sm" variant="outline" onClick={() => { setSelectedPrescription(prescription); setShowNewPrescription(true); }}>
                       Renouveler
                     </Button>
-                    <PrescriptionPrint prescription={prescriptions.find(p => p.id === prescription.id)!} />
+                    {(() => {
+                      const rawPrescription = prescriptions.find(p => p.id === prescription.id);
+                      if (rawPrescription) {
+                        return <PrescriptionPrint prescription={transformPrescription(rawPrescription)} />;
+                      } else {
+                        return <Button size="sm" variant="outline" disabled>Prescription indisponible</Button>;
+                      }
+                    })()}
                     <Button size="sm" variant="outline" onClick={() => {
-                      const pres = prescriptions.find(p => p.id === prescription.id)!;
-                      setSelectedInvoice(pres);
-                      setShowInvoiceModal(true);
+                      const pres = prescriptions.find(p => p.id === prescription.id);
+                      if (pres) {
+                        setSelectedInvoice(transformPrescription(pres));
+                        setShowInvoiceModal(true);
+                      }
                     }}>
                       Facture
                     </Button>
@@ -502,10 +556,10 @@ const History = () => {
                             <Button size="sm" variant="outline" onClick={() => { setSelectedPrescription(prescription); setShowNewPrescription(true); }}>
                               Renouveler
                             </Button>
-                            <PrescriptionPrint prescription={prescriptions.find(p => p.id === prescription.id)!} />
+                            <PrescriptionPrint prescription={transformPrescription(prescriptions.find(p => p.id === prescription.id)!)} />
                             <Button size="sm" variant="outline" onClick={() => {
                               const pres = prescriptions.find(p => p.id === prescription.id)!;
-                              setSelectedInvoice(pres);
+                              setSelectedInvoice(transformPrescription(pres));
                               setShowInvoiceModal(true);
                             }}>
                               Facture
@@ -534,7 +588,7 @@ const History = () => {
         <NewPrescriptionModal
           open={showNewPrescription}
           onOpenChange={setShowNewPrescription}
-          petId={prescriptions.find(p => p.id === selectedPrescription?.id)?.petId?.toString() || ""}
+          petId={prescriptions.find(p => p.id === selectedPrescription?.id)?.animal_id?.toString() || ""}
           consultationId={selectedPrescription.id.toString()}
         />
       )}

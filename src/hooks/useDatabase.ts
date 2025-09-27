@@ -15,11 +15,47 @@ import {
   searchClients,
   searchAnimals,
   getClientStats,
+  getAppointments,
+  getAppointmentsByAnimal,
+  getAppointmentsByClient,
+  createAppointment,
+  updateAppointment,
+  deleteAppointment,
+  getVaccinations,
+  getVaccinationsByAnimal,
+  createVaccination,
+  updateVaccination,
+  deleteVaccination,
+  getVaccinationProtocols,
+  getVaccinationProtocolsBySpecies,
+  createVaccinationProtocol,
+  updateVaccinationProtocol,
+  deleteVaccinationProtocol,
+  getAntiparasitics,
+  getAntiparasiticsByAnimal,
+  createAntiparasitic,
+  updateAntiparasitic,
+  deleteAntiparasitic,
+  getAntiparasiticProtocols,
+  getAntiparasiticProtocolsBySpecies,
+  createAntiparasiticProtocol,
+  updateAntiparasiticProtocol,
+  deleteAntiparasiticProtocol,
   type Client,
   type Animal,
+  type Appointment,
+  type Consultation,
+  type Vaccination,
+  type VaccinationProtocol,
+  type Antiparasitic,
+  type AntiparasiticProtocol,
   type CreateClientData,
   type CreateAnimalData,
-  type CreateConsultationData
+  type CreateConsultationData,
+  type CreateAppointmentData,
+  type CreateVaccinationData,
+  type CreateAntiparasiticData,
+  type UpdateAppointmentData
 } from '../lib/database'
 import {
   getCurrentUserProfile,
@@ -57,6 +93,16 @@ export const animalKeys = {
   detail: (id: string) => [...animalKeys.details(), id] as const,
   byClient: (clientId: string) => [...animalKeys.all, 'client', clientId] as const,
   search: (query: string) => [...animalKeys.all, 'search', query] as const,
+}
+
+export const appointmentKeys = {
+  all: ['appointments'] as const,
+  lists: () => [...appointmentKeys.all, 'list'] as const,
+  list: (filters: string) => [...appointmentKeys.lists(), { filters }] as const,
+  details: () => [...appointmentKeys.all, 'detail'] as const,
+  detail: (id: string) => [...appointmentKeys.details(), id] as const,
+  byAnimal: (animalId: string) => [...appointmentKeys.all, 'animal', animalId] as const,
+  byClient: (clientId: string) => [...appointmentKeys.all, 'client', clientId] as const,
 }
 
 export const statsKeys = {
@@ -261,18 +307,80 @@ export const useConsultations = () => {
   return useQuery({
     queryKey: ['consultations'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('consultations')
-        .select(`
-          *,
-          animal:animals(*),
-          client:clients(*)
-        `)
-        .order('consultation_date', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
+      try {
+        // Dynamic query that adapts to the actual database schema
+        const { data, error } = await supabase
+          .from('consultations')
+          .select(`
+            id,
+            animal_id,
+            client_id,
+            veterinarian_id,
+            consultation_date,
+            consultation_type,
+            symptoms,
+            diagnosis,
+            treatment,
+            notes,
+            weight,
+            temperature,
+            heart_rate,
+            respiratory_rate,
+            photos,
+            follow_up_date,
+            follow_up_notes,
+            status,
+            created_at,
+            updated_at,
+            animal:animals(
+              id,
+              name,
+              species,
+              breed,
+              color,
+              sex,
+              weight,
+              birth_date,
+              microchip_number,
+              status
+            ),
+            client:clients(
+              id,
+              first_name,
+              last_name,
+              email,
+              phone,
+              mobile_phone,
+              address,
+              city,
+              client_type
+            )
+          `)
+          .order('consultation_date', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching consultations:', error);
+          throw error;
+        }
+        
+        // Return data with dynamic field mapping to ensure UI compatibility
+        return (data || []).map(consultation => ({
+          ...consultation,
+          // Ensure backward compatibility with any missing fields
+          followUp: consultation.follow_up_notes || null,
+          cost: null, // This field isn't in the current schema but UI expects it
+          // Fix the joined data to be objects instead of arrays
+          animal: Array.isArray(consultation.animal) ? consultation.animal[0] : consultation.animal,
+          client: Array.isArray(consultation.client) ? consultation.client[0] : consultation.client,
+        }));
+      } catch (error) {
+        console.error('Failed to fetch consultations:', error);
+        throw error;
+      }
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };
 
@@ -280,16 +388,78 @@ export const useConsultationsByAnimal = (animalId: string) => {
   return useQuery({
     queryKey: ['consultations', 'animal', animalId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('consultations')
-        .select('*')
-        .eq('animal_id', animalId)
-        .order('consultation_date', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
+      try {
+        const { data, error } = await supabase
+          .from('consultations')
+          .select(`
+            id,
+            animal_id,
+            client_id,
+            veterinarian_id,
+            consultation_date,
+            consultation_type,
+            symptoms,
+            diagnosis,
+            treatment,
+            notes,
+            weight,
+            temperature,
+            heart_rate,
+            respiratory_rate,
+            photos,
+            follow_up_date,
+            follow_up_notes,
+            status,
+            created_at,
+            updated_at,
+            animal:animals(
+              id,
+              name,
+              species,
+              breed,
+              color,
+              sex,
+              weight,
+              birth_date,
+              microchip_number,
+              status
+            ),
+            client:clients(
+              id,
+              first_name,
+              last_name,
+              email,
+              phone,
+              mobile_phone,
+              address,
+              city,
+              client_type
+            )
+          `)
+          .eq('animal_id', animalId)
+          .order('consultation_date', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching consultations by animal:', error);
+          throw error;
+        }
+        
+        return (data || []).map(consultation => ({
+          ...consultation,
+          followUp: consultation.follow_up_notes || null,
+          cost: null, // UI compatibility
+          // Fix the joined data to be objects instead of arrays
+          animal: Array.isArray(consultation.animal) ? consultation.animal[0] : consultation.animal,
+          client: Array.isArray(consultation.client) ? consultation.client[0] : consultation.client,
+        }));
+      } catch (error) {
+        console.error('Failed to fetch consultations by animal:', error);
+        throw error;
+      }
     },
     enabled: !!animalId,
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
   });
 };
 
@@ -299,23 +469,121 @@ export const useCreateConsultation = () => {
   
   return useMutation({
     mutationFn: async (data: CreateConsultationData & { consultation_date?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
+        // Dynamic data preparation that adapts to the actual schema
+        const consultationData = {
+          animal_id: data.animal_id,
+          client_id: data.client_id,
+          veterinarian_id: user.id,
+          consultation_date: data.consultation_date || new Date().toISOString(),
+          consultation_type: data.consultation_type,
+          symptoms: data.symptoms || null,
+          diagnosis: data.diagnosis || null,
+          treatment: data.treatment || null,
+          notes: data.notes || null,
+          weight: data.weight || null,
+          temperature: data.temperature || null,
+          heart_rate: data.heart_rate || null,
+          respiratory_rate: data.respiratory_rate || null,
+          photos: data.photos || null,
+          follow_up_date: data.follow_up_date || null,
+          follow_up_notes: data.follow_up_notes || null,
+          status: data.status || 'completed'
+        };
+
+        const { data: consultation, error } = await supabase
+          .from('consultations')
+          .insert(consultationData)
+          .select(`
+            id,
+            animal_id,
+            client_id,
+            veterinarian_id,
+            consultation_date,
+            consultation_type,
+            symptoms,
+            diagnosis,
+            treatment,
+            notes,
+            weight,
+            temperature,
+            heart_rate,
+            respiratory_rate,
+            photos,
+            follow_up_date,
+            follow_up_notes,
+            status,
+            created_at,
+            updated_at,
+            animal:animals(
+              id,
+              name,
+              species,
+              breed,
+              color,
+              sex,
+              weight,
+              birth_date,
+              microchip_number,
+              status
+            ),
+            client:clients(
+              id,
+              first_name,
+              last_name,
+              email,
+              phone,
+              mobile_phone,
+              address,
+              city,
+              client_type
+            )
+          `)
+          .single();
+        
+        if (error) {
+          console.error('Error creating consultation:', error);
+          throw error;
+        }
+        
+        return {
+          ...consultation,
+          followUp: consultation.follow_up_notes || null,
+          cost: null, // UI compatibility
+        };
+      } catch (error) {
+        console.error('Failed to create consultation:', error);
+        throw error;
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
+};
 
-      const consultationData = {
-        ...data,
-        veterinarian_id: user.id,
-        consultation_date: data.consultation_date || new Date().toISOString(),
-        status: 'completed' as const
-      };
-
+// Update consultation hook
+export const useUpdateConsultation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateConsultationData> }) => {
       const { data: consultation, error } = await supabase
         .from('consultations')
-        .insert(consultationData)
-        .select()
+        .update(data)
+        .eq('id', id)
+        .select(`
+          *,
+          animal:animals(*),
+          client:clients(*)
+        `)
         .single();
       
       if (error) throw error;
@@ -328,23 +596,94 @@ export const useCreateConsultation = () => {
   });
 };
 
-// Delete consultation hook
+// Delete consultation hook - Dynamic approach
 export const useDeleteConsultation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('consultations')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
+      try {
+        // Step 1: Check for and handle related records dynamically
+        const relatedTables = [
+          { table: 'prescriptions', field: 'consultation_id' },
+          { table: 'vaccinations', field: 'consultation_id' },
+          { table: 'lab_results', field: 'consultation_id' },
+          { table: 'antiparasitics', field: 'consultation_id' }
+        ];
+        
+        for (const relation of relatedTables) {
+          try {
+            const { data: relatedRecords, error: checkError } = await supabase
+              .from(relation.table)
+              .select('id')
+              .eq(relation.field, id);
+              
+            if (checkError) {
+              console.warn(`Could not check ${relation.table}: ${checkError.message}`);
+              continue;
+            }
+            
+            if (relatedRecords && relatedRecords.length > 0) {
+              
+              // For prescriptions, we also need to delete prescription_medications
+              if (relation.table === 'prescriptions') {
+                for (const prescription of relatedRecords) {
+                  const { error: medError } = await supabase
+                    .from('prescription_medications')
+                    .delete()
+                    .eq('prescription_id', prescription.id);
+                    
+                  if (medError) {
+                    console.warn(`Could not delete prescription medications: ${medError.message}`);
+                  }
+                }
+              }
+              
+              // Delete the related records
+              const { error: deleteError } = await supabase
+                .from(relation.table)
+                .delete()
+                .eq(relation.field, id);
+                
+              if (deleteError) {
+                console.warn(`Could not delete from ${relation.table}: ${deleteError.message}`);
+              } else {
+              }
+            }
+          } catch (relationError) {
+            console.warn(`Error handling ${relation.table}:`, relationError);
+            // Continue with deletion even if some relations fail
+          }
+        }
+        
+        // Step 2: Delete the main consultation record
+        const { error: mainError } = await supabase
+          .from('consultations')
+          .delete()
+          .eq('id', id);
+        
+        if (mainError) {
+          console.error(`Database error during consultation deletion: ${mainError.message}`);
+          throw new Error(`Failed to delete consultation: ${mainError.message}`);
+        }
+        
+        // Successfully deleted consultation
+        return { success: true, id };
+        
+      } catch (error: any) {
+        console.error(`Dynamic deletion failed:`, error);
+        throw new Error(`Deletion failed: ${error.message || 'Unknown error'}`);
+      }
     },
     onSuccess: () => {
+      // Invalidate all related queries dynamically
       queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
+      queryClient.invalidateQueries({ queryKey: ['lab-results'] });
     },
+    retry: 1, // Retry once if deletion fails
   });
 };
 
@@ -355,36 +694,210 @@ export const useDeleteConsultation = () => {
 export const useVaccinations = () => {
   return useQuery({
     queryKey: ['vaccinations'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('vaccinations')
-        .select(`
-          *,
-          animal:animals(*),
-          client:clients(*)
-        `)
-        .order('date_vaccination', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => getVaccinations(),
   });
 };
 
 export const useVaccinationsByAnimal = (animalId: string) => {
   return useQuery({
     queryKey: ['vaccinations', 'animal', animalId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('vaccinations')
-        .select('*')
-        .eq('animal_id', animalId)
-        .order('date_vaccination', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => getVaccinationsByAnimal(animalId),
     enabled: !!animalId,
+  });
+};
+
+export const useCreateVaccination = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createVaccination,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
+      queryClient.invalidateQueries({ queryKey: ['animals'] });
+    },
+  });
+};
+
+export const useUpdateVaccination = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateVaccinationData> }) => 
+      updateVaccination(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
+      queryClient.invalidateQueries({ queryKey: ['animals'] });
+    },
+  });
+};
+
+export const useDeleteVaccination = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: deleteVaccination,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
+      queryClient.invalidateQueries({ queryKey: ['animals'] });
+    },
+  });
+};
+
+// =============================================
+// VACCINATION PROTOCOL HOOKS
+// =============================================
+
+export const useVaccinationProtocols = () => {
+  return useQuery({
+    queryKey: ['vaccination-protocols'],
+    queryFn: () => getVaccinationProtocols(),
+  });
+};
+
+export const useVaccinationProtocolsBySpecies = (species: string) => {
+  return useQuery({
+    queryKey: ['vaccination-protocols', 'species', species],
+    queryFn: () => getVaccinationProtocolsBySpecies(species),
+    enabled: !!species,
+  });
+};
+
+export const useCreateVaccinationProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createVaccinationProtocol,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccination-protocols'] });
+    },
+  });
+};
+
+export const useUpdateVaccinationProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<VaccinationProtocol> }) => 
+      updateVaccinationProtocol(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccination-protocols'] });
+    },
+  });
+};
+
+export const useDeleteVaccinationProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: deleteVaccinationProtocol,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vaccination-protocols'] });
+    },
+  });
+};
+
+// =============================================
+// ANTIPARASITIC HOOKS
+// =============================================
+
+export const useAntiparasitics = () => {
+  return useQuery({
+    queryKey: ['antiparasitics'],
+    queryFn: getAntiparasitics,
+  });
+};
+
+export const useAntiparasiticsByAnimal = (animalId?: string) => {
+  return useQuery({
+    queryKey: ['antiparasitics', 'by-animal', animalId],
+    queryFn: () => animalId ? getAntiparasiticsByAnimal(animalId) : Promise.resolve([]),
+    enabled: !!animalId,
+  });
+};
+
+export const useCreateAntiparasitic = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createAntiparasitic,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitics'] });
+    },
+  });
+};
+
+export const useUpdateAntiparasitic = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<CreateAntiparasiticData> }) =>
+      updateAntiparasitic(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitics'] });
+    },
+  });
+};
+
+export const useDeleteAntiparasitic = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: deleteAntiparasitic,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitics'] });
+    },
+  });
+};
+
+// Antiparasitic Protocol Hooks
+export const useAntiparasiticProtocols = () => {
+  return useQuery({
+    queryKey: ['antiparasitic-protocols'],
+    queryFn: getAntiparasiticProtocols,
+  });
+};
+
+export const useAntiparasiticProtocolsBySpecies = (species?: string) => {
+  return useQuery({
+    queryKey: ['antiparasitic-protocols', 'by-species', species],
+    queryFn: () => species ? getAntiparasiticProtocolsBySpecies(species) : Promise.resolve([]),
+    enabled: !!species,
+  });
+};
+
+export const useCreateAntiparasiticProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createAntiparasiticProtocol,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitic-protocols'] });
+    },
+  });
+};
+
+export const useUpdateAntiparasiticProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, updates }: { 
+      id: string; 
+      updates: Partial<Omit<AntiparasiticProtocol, 'id' | 'created_at' | 'updated_at'>> 
+    }) => updateAntiparasiticProtocol(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitic-protocols'] });
+    },
+  });
+};
+
+export const useDeleteAntiparasiticProtocol = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: deleteAntiparasiticProtocol,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['antiparasitic-protocols'] });
+    },
   });
 };
 
@@ -460,17 +973,162 @@ export const useClientStats = () => {
 export const usePrescriptions = () => {
   return useQuery({
     queryKey: ['prescriptions'],
-    queryFn: getPrescriptions,
+    queryFn: async () => {
+      try {
+        
+        const { data, error } = await supabase
+          .from('prescriptions')
+          .select(`
+            id,
+            consultation_id,
+            animal_id,
+            client_id,
+            veterinarian_id,
+            prescription_date,
+            diagnosis,
+            notes,
+            status,
+            refill_count,
+            valid_until,
+            created_at,
+            updated_at,
+            animal:animals(
+              id,
+              name,
+              species,
+              breed,
+              color,
+              sex,
+              weight,
+              birth_date,
+              microchip_number,
+              status
+            ),
+            client:clients(
+              id,
+              first_name,
+              last_name,
+              email,
+              phone,
+              mobile_phone,
+              address,
+              city,
+              client_type
+            ),
+            medications:prescription_medications(
+              id,
+              prescription_id,
+              stock_item_id,
+              medication_name,
+              dosage,
+              frequency,
+              duration,
+              quantity,
+              instructions,
+              route,
+              created_at
+            )
+          `)
+          .order('prescription_date', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching prescriptions:', error);
+          throw error;
+        }
+
+        return (data || []).map(prescription => ({
+          ...prescription,
+          // Fix the joined data to be objects instead of arrays
+          animal: Array.isArray(prescription.animal) ? prescription.animal[0] : prescription.animal,
+          client: Array.isArray(prescription.client) ? prescription.client[0] : prescription.client,
+        }));
+      } catch (error) {
+        console.error('Dynamic prescription fetch failed:', error);
+        throw error;
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };
 
 export const usePrescriptionsByAnimal = (animalId: string) => {
   return useQuery({
     queryKey: ['prescriptions', 'animal', animalId],
-    queryFn: () => getPrescriptionsByAnimal(animalId),
+    queryFn: async () => {
+      try {
+        
+        const { data, error } = await supabase
+          .from('prescriptions')
+          .select(`
+            id,
+            consultation_id,
+            animal_id,
+            client_id,
+            veterinarian_id,
+            prescription_date,
+            diagnosis,
+            notes,
+            status,
+            refill_count,
+            valid_until,
+            created_at,
+            updated_at,
+            animal:animals(
+              id,
+              name,
+              species,
+              breed,
+              color,
+              sex,
+              weight,
+              birth_date,
+              microchip_number,
+              status
+            ),
+            client:clients(
+              id,
+              first_name,
+              last_name,
+              email,
+              phone,
+              mobile_phone,
+              address,
+              city,
+              client_type
+            ),
+            medications:prescription_medications(
+              id,
+              prescription_id,
+              stock_item_id,
+              medication_name,
+              dosage,
+              frequency,
+              duration,
+              quantity,
+              instructions,
+              route,
+              created_at
+            )
+          `)
+          .eq('animal_id', animalId)
+          .order('prescription_date', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching prescriptions by animal:', error);
+          throw error;
+        }
+
+        return data || [];
+      } catch (error) {
+        console.error('Dynamic prescription fetch by animal failed:', error);
+        throw error;
+      }
+    },
     enabled: !!animalId,
     staleTime: 5 * 60 * 1000,
+    retry: 2,
   });
 };
 
@@ -478,11 +1136,130 @@ export const useCreatePrescription = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: createPrescription,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    mutationFn: async (prescriptionData: CreatePrescriptionData) => {
+      try {
+        // Creating prescription dynamically
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
+        // Dynamic data preparation that adapts to the actual schema
+        const { medications, ...prescriptionDataWithoutMedications } = prescriptionData;
+
+        // Prepare prescription data dynamically
+        const dynamicPrescriptionData = {
+          consultation_id: prescriptionDataWithoutMedications.consultation_id,
+          animal_id: prescriptionDataWithoutMedications.animal_id,
+          client_id: prescriptionDataWithoutMedications.client_id,
+          veterinarian_id: prescriptionDataWithoutMedications.veterinarian_id || user.id,
+          prescription_date: prescriptionDataWithoutMedications.prescription_date || new Date().toISOString(),
+          diagnosis: prescriptionDataWithoutMedications.diagnosis || null,
+          notes: prescriptionDataWithoutMedications.notes || null,
+          status: prescriptionDataWithoutMedications.status || 'active',
+          refill_count: prescriptionDataWithoutMedications.refill_count || 0,
+          valid_until: prescriptionDataWithoutMedications.valid_until || null,
+        };
+
+        // Create the prescription first
+        const { data: prescriptionResult, error: prescriptionError } = await supabase
+          .from('prescriptions')
+          .insert(dynamicPrescriptionData)
+          .select(`
+            id,
+            consultation_id,
+            animal_id,
+            client_id,
+            veterinarian_id,
+            prescription_date,
+            diagnosis,
+            notes,
+            status,
+            refill_count,
+            valid_until,
+            created_at,
+            updated_at,
+            animal:animals(
+              id,
+              name,
+              species,
+              breed,
+              color,
+              sex,
+              weight,
+              birth_date,
+              microchip_number,
+              status
+            ),
+            client:clients(
+              id,
+              first_name,
+              last_name,
+              email,
+              phone,
+              mobile_phone,
+              address,
+              city,
+              client_type
+            )
+          `)
+          .single();
+
+        if (prescriptionError) {
+          console.error('Error creating prescription:', prescriptionError);
+          throw new Error(`Error creating prescription: ${prescriptionError.message}`);
+        }
+
+        // Then create the medications dynamically if they exist
+        if (medications && medications.length > 0) {
+          const medicationsWithPrescriptionId = medications.map(med => ({
+            prescription_id: prescriptionResult.id,
+            stock_item_id: med.stock_item_id || null,
+            medication_name: med.medication_name,
+            dosage: med.dosage || null,
+            frequency: med.frequency || null,
+            duration: med.duration || null,
+            quantity: med.quantity || 1,
+            instructions: med.instructions || null,
+            route: med.route || null,
+          }));
+
+          const { data: medicationsResult, error: medicationsError } = await supabase
+            .from('prescription_medications')
+            .insert(medicationsWithPrescriptionId)
+            .select();
+
+          if (medicationsError) {
+            console.error('Error creating prescription medications:', medicationsError);
+            // Try to cleanup the prescription if medications failed
+            await supabase.from('prescriptions').delete().eq('id', prescriptionResult.id);
+            throw new Error(`Error creating prescription medications: ${medicationsError.message}`);
+          }
+
+          // Successfully created prescription medications
+        }
+
+        // Successfully created prescription
+        return {
+          ...prescriptionResult,
+          medications: medications || []
+        };
+        
+      } catch (error: any) {
+        console.error('Dynamic prescription creation failed:', error);
+        throw error;
+      }
     },
+    onSuccess: () => {
+      // Invalidate all related queries dynamically
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+    },
+    retry: 1,
   });
 };
 
@@ -493,8 +1270,50 @@ export const useCreatePrescription = () => {
 export const useStockItems = () => {
   return useQuery({
     queryKey: ['stock-items'],
-    queryFn: getStockItems,
+    queryFn: async () => {
+      try {
+        // Fetching stock items dynamically
+        
+        const { data, error } = await supabase
+          .from('stock_items')
+          .select(`
+            id,
+            name,
+            description,
+            category,
+            unit,
+            current_quantity,
+            minimum_quantity,
+            maximum_quantity,
+            unit_cost,
+            selling_price,
+            supplier,
+            batch_number,
+            expiration_date,
+            location,
+            requires_prescription,
+            active,
+            created_at,
+            updated_at
+          `)
+          .eq('active', true)
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching stock items:', error);
+          throw error;
+        }
+
+        // Successfully fetched stock items
+        return data || [];
+      } catch (error) {
+        console.error('Dynamic stock items fetch failed:', error);
+        throw error;
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };
 
@@ -524,3 +1343,120 @@ export const useUpdateUserProfile = () => {
     },
   })
 }
+
+// =============================================
+// APPOINTMENT HOOKS
+// =============================================
+
+export const useAppointments = () => {
+  return useQuery({
+    queryKey: appointmentKeys.lists(),
+    queryFn: getAppointments,
+    staleTime: 2 * 60 * 1000, // 2 minutes for real-time-ish data
+  })
+}
+
+export const useAppointmentsByAnimal = (animalId: string) => {
+  return useQuery({
+    queryKey: appointmentKeys.byAnimal(animalId),
+    queryFn: () => getAppointmentsByAnimal(animalId),
+    enabled: !!animalId,
+    staleTime: 2 * 60 * 1000,
+  })
+}
+
+export const useAppointmentsByClient = (clientId: string) => {
+  return useQuery({
+    queryKey: appointmentKeys.byClient(clientId),
+    queryFn: () => getAppointmentsByClient(clientId),
+    enabled: !!clientId,
+    staleTime: 2 * 60 * 1000,
+  })
+}
+
+export const useCreateAppointment = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: createAppointment,
+    onSuccess: (newAppointment) => {
+      // Invalidate and refetch appointments list
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() })
+      
+      // Invalidate related animal and client queries
+      if (newAppointment.animal_id) {
+        queryClient.invalidateQueries({ queryKey: appointmentKeys.byAnimal(newAppointment.animal_id) })
+      }
+      if (newAppointment.client_id) {
+        queryClient.invalidateQueries({ queryKey: appointmentKeys.byClient(newAppointment.client_id) })
+        queryClient.invalidateQueries({ queryKey: clientKeys.detail(newAppointment.client_id) })
+      }
+      
+      // Invalidate stats
+      queryClient.invalidateQueries({ queryKey: statsKeys.clients() })
+    },
+  })
+}
+
+export const useUpdateAppointment = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateAppointmentData }) => 
+      updateAppointment(id, data),
+    onSuccess: (updatedAppointment) => {
+      // Invalidate and refetch appointments list
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() })
+      
+      // Update the specific appointment in cache
+      queryClient.setQueryData(appointmentKeys.lists(), (old: Appointment[] | undefined) => {
+        if (!old) return []
+        return old.map(appointment => 
+          appointment.id === updatedAppointment.id ? updatedAppointment : appointment
+        )
+      })
+      
+      // Invalidate related queries
+      if (updatedAppointment.animal_id) {
+        queryClient.invalidateQueries({ queryKey: appointmentKeys.byAnimal(updatedAppointment.animal_id) })
+      }
+      if (updatedAppointment.client_id) {
+        queryClient.invalidateQueries({ queryKey: appointmentKeys.byClient(updatedAppointment.client_id) })
+      }
+    },
+  })
+}
+
+export const useDeleteAppointment = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: deleteAppointment,
+    onSuccess: (_, deletedId) => {
+      // Remove from appointments list cache
+      queryClient.setQueryData(appointmentKeys.lists(), (old: Appointment[] | undefined) => {
+        if (!old) return []
+        return old.filter(appointment => appointment.id !== deletedId)
+      })
+      
+      // Invalidate related queries  
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: statsKeys.clients() })
+    },
+  })
+}
+
+// Re-export types for convenience
+export type { 
+  Client, 
+  Animal, 
+  Appointment, 
+  CreateClientData, 
+  CreateAnimalData, 
+  CreateAppointmentData,
+  UpdateAppointmentData,
+  Consultation,
+  Prescription,
+  CreatePrescriptionData,
+  StockItem
+} from '../lib/database'

@@ -14,8 +14,18 @@ export function PrescriptionPrint({ prescription }: PrescriptionPrintProps) {
   const vets = JSON.parse(localStorage.getItem(VETS_KEY) || '[]');
   const prescriber = prescription.prescribedBy;
   const handlePrint = () => {
+    if (!prescription) {
+      return;
+    }
+
+    if (!prescription.petName || !prescription.clientName) {
+      return;
+    }
+
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    if (!printWindow) {
+      return;
+    }
 
     const content = `
       <html>
@@ -196,9 +206,12 @@ export function PrescriptionPrint({ prescription }: PrescriptionPrintProps) {
 
     printWindow.document.write(content);
     printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+    
+    // Wait a moment for content to load before printing
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
   };
 
   return (

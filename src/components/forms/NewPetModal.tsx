@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useClients, useCreateAnimal, useAnimals } from "@/hooks/useDatabase";
-import { useSettings } from "@/contexts/SettingsContext";
 import type { CreateAnimalData } from "@/lib/database";
 
 interface NewPetModalProps {
@@ -20,7 +19,6 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
   const { data: clients = [] } = useClients();
   const { data: animals = [] } = useAnimals();
   const createAnimalMutation = useCreateAnimal();
-  const { settings } = useSettings();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
@@ -34,7 +32,7 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
     microchip: "",
     medicalNotes: "",
     photo: "", // added official photo
-    status: "healthy", // added status field
+    status: "vivant", // added status field
     // Propriétés du pedigree
     hasPedigree: false,
     officialName: "",
@@ -105,7 +103,7 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
         ...(formData.microchip && formData.microchip.trim() ? { microchip_number: formData.microchip.trim() } : {}),
         notes: formData.medicalNotes || undefined,
         photo_url: formData.photo || undefined,
-        status: formData.status as 'healthy' | 'treatment' | 'urgent'
+        status: formData.status === 'healthy' ? 'vivant' : (formData.status === 'urgent' ? 'décédé' : 'perdu')
       };
 
       await createAnimalMutation.mutateAsync(animalData);
@@ -128,7 +126,7 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
         microchip: "",
         medicalNotes: "",
         photo: "",
-        status: "healthy", // reset status to default
+        status: "vivant", // reset status to default
         hasPedigree: false,
         officialName: "",
         pedigreeNumber: "",
@@ -182,14 +180,7 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
                   <SelectValue placeholder="Sélectionner le type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {settings.species ? settings.species.split(',').map((sp, idx) => {
-                    const trimmed = sp.trim();
-                    return trimmed ? (
-                      <SelectItem key={idx} value={trimmed}>
-                        {trimmed}
-                      </SelectItem>
-                    ) : null;
-                  }).filter(Boolean) : (
+               
                     <><SelectItem value="Chien">Chien</SelectItem>
                     <SelectItem value="Chat">Chat</SelectItem>
                     <SelectItem value="Oiseau">Oiseau</SelectItem>
@@ -201,7 +192,7 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
                     <SelectItem value="Autre">Autre</SelectItem>
                     </>
 
-                  )}
+                
                 </SelectContent>
               </Select>
             </div>
@@ -322,132 +313,7 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
             </Select>
           </div>
 
-          {/* Section Pedigree */}
-          <div className="space-y-4 border-t pt-4">
-            <div className="flex items-center gap-2">
-              <Checkbox 
-                id="hasPedigree"
-                checked={formData.hasPedigree}
-                onCheckedChange={(checked) => 
-                  setFormData(prev => ({ ...prev, hasPedigree: checked as boolean }))
-                }
-              />
-              <Label htmlFor="hasPedigree" className="text-lg font-medium">Cet animal a un pedigree officiel</Label>
-            </div>
-
-            {formData.hasPedigree && (
-              <div className="space-y-4 pl-6 border-l-2 border-primary/20">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="officialName">Nom officiel</Label>
-                    <Input
-                      id="officialName"
-                      value={formData.officialName}
-                      onChange={handleChange}
-                      placeholder="Nom officiel du pedigree"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="pedigreeNumber">N° pedigree/LOF</Label>
-                    <Input
-                      id="pedigreeNumber"
-                      value={formData.pedigreeNumber}
-                      onChange={handleChange}
-                      placeholder="Numéro de pedigree"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="breeder">Éleveur</Label>
-                  <Input
-                    id="breeder"
-                    value={formData.breeder}
-                    onChange={handleChange}
-                    placeholder="Nom de l'éleveur"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Père */}
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-sm">Père</h4>
-                    <div className="space-y-2">
-                      <Input
-                        placeholder="Nom du père"
-                        value={formData.fatherName}
-                        onChange={handleChange}
-                      />
-                      <Input
-                        placeholder="N° pedigree du père"
-                        value={formData.fatherPedigree}
-                        onChange={handleChange}
-                      />
-                      <Input
-                        placeholder="Race du père"
-                        value={formData.fatherBreed}
-                        onChange={handleChange}
-                      />
-                      <Textarea
-                        placeholder="Titres du père"
-                        value={formData.fatherTitles}
-                        onChange={handleChange}
-                        rows={2}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Mère */}
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-sm">Mère</h4>
-                    <div className="space-y-2">
-                      <Input
-                        placeholder="Nom de la mère"
-                        value={formData.motherName}
-                        onChange={handleChange}
-                      />
-                      <Input
-                        placeholder="N° pedigree de la mère"
-                        value={formData.motherPedigree}
-                        onChange={handleChange}
-                      />
-                      <Input
-                        placeholder="Race de la mère"
-                        value={formData.motherBreed}
-                        onChange={handleChange}
-                      />
-                      <Textarea
-                        placeholder="Titres de la mère"
-                        value={formData.motherTitles}
-                        onChange={handleChange}
-                        rows={2}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Photo du document pedigree */}
-                <div className="space-y-2">
-                  <Label>Document pedigree</Label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = () => setFormData(prev => ({ ...prev, pedigreePhoto: reader.result as string }));
-                      reader.readAsDataURL(file);
-                    }}
-                  />
-                  {formData.pedigreePhoto && (
-                    <img src={formData.pedigreePhoto} alt="Document pedigree" className="h-32 w-auto object-contain rounded border" />
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-          
+     
           {/* Official Photo */}
           <div className="space-y-2">
             <Label>Photo de l'animal</Label>

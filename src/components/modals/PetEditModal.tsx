@@ -31,7 +31,7 @@ export function PetEditModal({ open, onOpenChange, pet }: PetEditModalProps) {
     ownerId: 0,
     microchip: "",
     medicalNotes: "",
-    status: "healthy" as "healthy" | "treatment" | "urgent",
+    status: "vivant" as "vivant" | "décédé" | "perdu",
     // Propriétés du pedigree
     hasPedigree: false,
     officialName: "",
@@ -96,21 +96,21 @@ export function PetEditModal({ open, onOpenChange, pet }: PetEditModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!pet) return;
-    
+
     const owner = clients.find(c => c.id === formData.ownerId);
-    
+
     updatePet(pet.id, {
       ...formData,
       owner: owner?.name || pet.owner
     });
-    
+
     toast({
       title: "Animal modifié",
       description: `Les informations de ${formData.name} ont été mises à jour.`,
     });
-    
+
     onOpenChange(false);
   };
 
@@ -122,7 +122,7 @@ export function PetEditModal({ open, onOpenChange, pet }: PetEditModalProps) {
         <DialogHeader>
           <DialogTitle>Modifier Animal</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -141,21 +141,23 @@ export function PetEditModal({ open, onOpenChange, pet }: PetEditModalProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {settings.species ? settings.species.split(',').map((sp, idx) => {
-                    const trimmed = sp.trim();
-                    return trimmed ? (
-                      <SelectItem key={idx} value={trimmed}>
-                        {trimmed}
-                      </SelectItem>
-                    ) : null;
-                  }).filter(Boolean) : (
-                    <SelectItem value="Chien">Chien</SelectItem>
-                  )}
+
+                    <><SelectItem value="Chien">Chien</SelectItem>
+                    <SelectItem value="Chat">Chat</SelectItem>
+                    <SelectItem value="Oiseau">Oiseau</SelectItem>
+                    <SelectItem value="Lapin">Lapin</SelectItem>
+                    <SelectItem value="Furet">Furet</SelectItem>
+                    <SelectItem value="Souris">Souris</SelectItem>
+                    <SelectItem value="Hamster">Hamster</SelectItem>
+                    <SelectItem value="Reptile">Reptile</SelectItem>
+                    <SelectItem value="Autre">Autre</SelectItem></>
+
+                  
                 </SelectContent>
               </Select>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="breed">Race</Label>
@@ -178,7 +180,7 @@ export function PetEditModal({ open, onOpenChange, pet }: PetEditModalProps) {
               </Select>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="birthDate">Date de naissance</Label>
@@ -199,7 +201,7 @@ export function PetEditModal({ open, onOpenChange, pet }: PetEditModalProps) {
               />
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="color">Couleur</Label>
@@ -213,7 +215,7 @@ export function PetEditModal({ open, onOpenChange, pet }: PetEditModalProps) {
               {/* Champ vide pour maintenir la grille */}
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Propriétaire *</Label>
@@ -244,7 +246,7 @@ export function PetEditModal({ open, onOpenChange, pet }: PetEditModalProps) {
               </Select>
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="microchip">Numéro de puce électronique</Label>
             <Input
@@ -253,7 +255,7 @@ export function PetEditModal({ open, onOpenChange, pet }: PetEditModalProps) {
               onChange={handleChange}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="medicalNotes">Notes médicales</Label>
             <Textarea
@@ -267,10 +269,10 @@ export function PetEditModal({ open, onOpenChange, pet }: PetEditModalProps) {
           {/* Section Pedigree */}
           <div className="space-y-4 border-t pt-4">
             <div className="flex items-center gap-2">
-              <Checkbox 
+              <Checkbox
                 id="hasPedigree"
                 checked={formData.hasPedigree}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   setFormData(prev => ({ ...prev, hasPedigree: checked as boolean }))
                 }
               />
@@ -389,7 +391,7 @@ export function PetEditModal({ open, onOpenChange, pet }: PetEditModalProps) {
               </div>
             )}
           </div>
-          
+
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Annuler
