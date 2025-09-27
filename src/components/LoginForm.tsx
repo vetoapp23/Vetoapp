@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Heart, Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
-import { useGoogleLogin, useResetPassword } from '@/hooks/useAuth';
+import { useGoogleLogin, useResetPassword, useLogin } from '@/hooks/useAuth';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -15,7 +15,8 @@ export function LoginForm() {
   const [error, setError] = useState('');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
-  const { login, isLoading } = useAuth();
+  const { user } = useAuth();
+  const loginMutation = useLogin();
   const googleLoginMutation = useGoogleLogin();
   const resetPasswordMutation = useResetPassword();
 
@@ -28,11 +29,13 @@ export function LoginForm() {
       return;
     }
 
-    const success = await login(email, password);
-    if (!success) {
-      setError('Email ou mot de passe incorrect, ou email non confirmé');
+    try {
+      await loginMutation.mutateAsync({ email, password });
+      // Success - the auth state change will handle navigation
+    } catch (error) {
+      // Display the specific error message from the backend
+      setError(error instanceof Error ? error.message : 'Une erreur inattendue est survenue');
     }
-    // No need for manual navigation - the auth state change will handle redirect
   };
 
   const handleGoogleLogin = async () => {
@@ -179,7 +182,7 @@ export function LoginForm() {
                     placeholder="vet@vetpro.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
+                    disabled={loginMutation.isPending}
                     required
                   />
                 </div>
@@ -193,7 +196,7 @@ export function LoginForm() {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      disabled={isLoading}
+                      disabled={loginMutation.isPending}
                       required
                     />
                     <Button
@@ -202,7 +205,7 @@ export function LoginForm() {
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
-                      disabled={isLoading}
+                      disabled={loginMutation.isPending}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -226,9 +229,9 @@ export function LoginForm() {
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={isLoading}
+                  disabled={loginMutation.isPending}
                 >
-                  {isLoading ? (
+                  {loginMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Connexion...
@@ -255,7 +258,7 @@ export function LoginForm() {
                 variant="outline"
                 className="w-full"
                 onClick={handleGoogleLogin}
-                disabled={isLoading || googleLoginMutation.isPending}
+                disabled={loginMutation.isPending || googleLoginMutation.isPending}
               >
                 {googleLoginMutation.isPending ? (
                   <>
