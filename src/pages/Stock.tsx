@@ -415,562 +415,571 @@ export default function Stock() {
   };
 
   return (
-    <div className="container mx-auto px-6 py-8 space-y-8">
+    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-8">
       {/* En-tête */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Package className="h-8 w-8 text-primary" />
-            Gestion de Stock
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Gérez votre inventaire de médicaments, vaccins et consommables
-          </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
+        <Package className="h-6 sm:h-8 w-6 sm:w-8 text-primary" />
+        Gestion de Stock
+        </h1>
+        <p className="text-muted-foreground mt-2 text-sm sm:text-base">
+        Gérez votre inventaire de médicaments, vaccins et consommables
+        </p>
+      </div>
+      
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <Button 
+        variant="outline" 
+        onClick={exportToExcel}
+        className="gap-2 text-xs sm:text-sm"
+        size="sm"
+        >
+        <Download className="h-3 sm:h-4 w-3 sm:w-4" />
+        Exporter CSV
+        </Button>
+        <div className="relative">
+        <input
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          onChange={importFromExcel}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          id="import-file"
+        />
+        <Button 
+          variant="outline" 
+          className="gap-2 text-xs sm:text-sm"
+          size="sm"
+          asChild
+        >
+          <label htmlFor="import-file" className="cursor-pointer">
+          <Upload className="h-3 sm:h-4 w-3 sm:w-4" />
+          Importer CSV
+          </label>
+        </Button>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={exportToExcel}
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Exporter CSV
-          </Button>
-          <div className="relative">
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={importFromExcel}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              id="import-file"
-            />
-            <Button 
-              variant="outline" 
-              className="gap-2"
-              asChild
-            >
-              <label htmlFor="import-file" className="cursor-pointer">
-                <Upload className="h-4 w-4" />
-                Importer CSV
-              </label>
-            </Button>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={downloadTemplate}
-            className="gap-2"
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            Gabarit
-          </Button>
-          <Button 
-            className="gap-2 medical-glow"
-            onClick={() => setShowNewItemModal(true)}
-          >
-            <Plus className="h-4 w-4" />
-            Nouvel Élément
-          </Button>
-        </div>
+        <Button 
+        variant="outline" 
+        onClick={downloadTemplate}
+        className="gap-2 text-xs sm:text-sm"
+        size="sm"
+        >
+        <FileSpreadsheet className="h-3 sm:h-4 w-3 sm:w-4" />
+        Gabarit
+        </Button>
+        <Button 
+        className="gap-2 medical-glow text-xs sm:text-sm"
+        size="sm"
+        onClick={() => setShowNewItemModal(true)}
+        >
+        <Plus className="h-3 sm:h-4 w-3 sm:w-4" />
+        Nouvel Élément
+        </Button>
+      </div>
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Éléments</p>
-                <p className="text-2xl font-bold">{stats.totalItems}</p>
-              </div>
-              <Package className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Valeur Totale</p>
-                <p className="text-2xl font-bold">{stats.totalValue.toFixed(2)} {settings.currency}</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Stock Bas</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.lowStockItems}</p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Expirés</p>
-                <p className="text-2xl font-bold text-red-600">{stats.expiredItems}</p>
-              </div>
-              <XCircle className="h-8 w-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Expirent Bientôt</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.expiringSoonItems}</p>
-              </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+        <div className="flex items-center justify-between">
+          <div>
+          <p className="text-sm font-medium text-muted-foreground">Total Éléments</p>
+          <p className="text-xl sm:text-2xl font-bold">{stats.totalItems}</p>
+          </div>
+          <Package className="h-6 sm:h-8 w-6 sm:w-8 text-muted-foreground" />
+        </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+        <div className="flex items-center justify-between">
+          <div>
+          <p className="text-sm font-medium text-muted-foreground">Valeur Totale</p>
+          <p className="text-xl sm:text-2xl font-bold">{stats.totalValue.toFixed(2)} {settings.currency}</p>
+          </div>
+          <DollarSign className="h-6 sm:h-8 w-6 sm:w-8 text-green-600" />
+        </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+        <div className="flex items-center justify-between">
+          <div>
+          <p className="text-sm font-medium text-muted-foreground">Stock Bas</p>
+          <p className="text-xl sm:text-2xl font-bold text-orange-600">{stats.lowStockItems}</p>
+          </div>
+          <AlertTriangle className="h-6 sm:h-8 w-6 sm:w-8 text-orange-600" />
+        </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+        <div className="flex items-center justify-between">
+          <div>
+          <p className="text-sm font-medium text-muted-foreground">Expirés</p>
+          <p className="text-xl sm:text-2xl font-bold text-red-600">{stats.expiredItems}</p>
+          </div>
+          <XCircle className="h-6 sm:h-8 w-6 sm:w-8 text-red-600" />
+        </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+        <div className="flex items-center justify-between">
+          <div>
+          <p className="text-sm font-medium text-muted-foreground">Expirent Bientôt</p>
+          <p className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.expiringSoonItems}</p>
+          </div>
+          <Clock className="h-6 sm:h-8 w-6 sm:w-8 text-yellow-600" />
+        </div>
+        </CardContent>
+      </Card>
       </div>
 
       {/* Filtres et recherche */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Rechercher et filtrer
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-4 flex-wrap">
-            <div className="flex-1 min-w-[300px]">
-              <Input 
-                placeholder="Rechercher par nom, fabricant, lot..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les catégories</SelectItem>
-                {Object.entries(categoryConfig).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>
-                    {config.icon} {config.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="active">Actifs</SelectItem>
-                <SelectItem value="low_stock">Stock bas</SelectItem>
-                <SelectItem value="expired">Expirés</SelectItem>
-                <SelectItem value="expiring_soon">Expirent bientôt</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Trier par" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">Nom</SelectItem>
-                <SelectItem value="currentStock">Stock actuel</SelectItem>
-                <SelectItem value="totalValue">Valeur totale</SelectItem>
-                <SelectItem value="expirationDate">Date d'expiration</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Button
-              variant="outline"
-              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-            >
-              {sortOrder === "asc" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-            </Button>
-          </div>
-        </CardContent>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+        <Filter className="h-4 sm:h-5 w-4 sm:w-5" />
+        Rechercher et filtrer
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+        <div className="flex-1 min-w-[250px] sm:min-w-[300px]">
+          <Input 
+          placeholder="Rechercher par nom, fabricant, lot..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full"
+          />
+        </div>
+        
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-full sm:w-48">
+          <SelectValue placeholder="Catégorie" />
+          </SelectTrigger>
+          <SelectContent>
+          <SelectItem value="all">Toutes les catégories</SelectItem>
+          {Object.entries(categoryConfig).map(([key, config]) => (
+            <SelectItem key={key} value={key}>
+            {config.icon} {config.label}
+            </SelectItem>
+          ))}
+          </SelectContent>
+        </Select>
+        
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-full sm:w-48">
+          <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+          <SelectItem value="all">Tous les statuts</SelectItem>
+          <SelectItem value="active">Actifs</SelectItem>
+          <SelectItem value="low_stock">Stock bas</SelectItem>
+          <SelectItem value="expired">Expirés</SelectItem>
+          <SelectItem value="expiring_soon">Expirent bientôt</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-full sm:w-48">
+          <SelectValue placeholder="Trier par" />
+          </SelectTrigger>
+          <SelectContent>
+          <SelectItem value="name">Nom</SelectItem>
+          <SelectItem value="currentStock">Stock actuel</SelectItem>
+          <SelectItem value="totalValue">Valeur totale</SelectItem>
+          <SelectItem value="expirationDate">Date d'expiration</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Button
+          variant="outline"
+          onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+          size="sm"
+          className="w-full sm:w-auto"
+        >
+          {sortOrder === "asc" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+        </Button>
+        </div>
+      </CardContent>
       </Card>
 
       {/* Section d'aide pour l'import */}
       <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <FileSpreadsheet className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div className="space-y-2">
-              <h3 className="font-semibold text-blue-900">Import en masse</h3>
-              <p className="text-sm text-blue-700">
-                Utilisez le bouton "Gabarit" pour télécharger un fichier CSV avec le format correct. 
-                Les données importées seront ajoutées au stock existant.
-              </p>
-              <div className="text-xs text-blue-600">
-                <strong>Catégories valides :</strong> medication, vaccine, consumable, equipment, supplement
-              </div>
-              <div className="text-xs text-blue-600">
-                <strong>Unités valides :</strong> box, vial, unit, ml, mg, g, kg, l, pack, tube, sachet
-              </div>
-            </div>
+      <CardContent className="pt-4 sm:pt-6">
+        <div className="flex items-start gap-3">
+        <FileSpreadsheet className="h-4 sm:h-5 w-4 sm:w-5 text-blue-600 mt-0.5" />
+        <div className="space-y-2">
+          <h3 className="font-semibold text-blue-900 text-sm sm:text-base">Import en masse</h3>
+          <p className="text-sm text-blue-700">
+          Utilisez le bouton "Gabarit" pour télécharger un fichier CSV avec le format correct. 
+          Les données importées seront ajoutées au stock existant.
+          </p>
+          <div className="text-xs text-blue-600">
+          <strong>Catégories valides :</strong> medication, vaccine, consumable, equipment, supplement
           </div>
-        </CardContent>
+          <div className="text-xs text-blue-600">
+          <strong>Unités valides :</strong> box, vial, unit, ml, mg, g, kg, l, pack, tube, sachet
+          </div>
+        </div>
+        </div>
+      </CardContent>
       </Card>
 
       {/* Tableau de stock */}
       <Card>
-        <CardHeader>
-          <CardTitle>Inventaire ({filteredItems.length} éléments)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Catégorie</TableHead>
-                  <TableHead>Fabricant</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Prix d'achat</TableHead>
-                  <TableHead>Prix de vente</TableHead>
-                  <TableHead>Valeur totale</TableHead>
-                  <TableHead>Expiration</TableHead>
-                  <TableHead>Emplacement</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItems.map((item) => {
-                  const isLowStock = item.currentStock <= item.minimumStock;
-                  const isExpired = item.expirationDate && new Date(item.expirationDate) < new Date();
-                  const isExpiringSoon = item.expirationDate && 
-                    new Date(item.expirationDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) &&
-                    new Date(item.expirationDate) > new Date();
-                  
-                  return (
-                    <TableRow key={item.id} className={!item.isActive ? "opacity-50" : ""}>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium">{item.name}</div>
-                          {item.batchNumber && (
-                            <div className="text-sm text-muted-foreground">
-                              Lot: {item.batchNumber}
-                            </div>
-                          )}
-                          {item.dosage && (
-                            <div className="text-sm text-muted-foreground">
-                              {item.dosage}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <Badge className={categoryConfig[item.category].color}>
-                          {categoryConfig[item.category].icon} {categoryConfig[item.category].label}
-                        </Badge>
-                        {item.subcategory && (
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {item.subcategory}
-                          </div>
-                        )}
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div>{item.manufacturer || '-'}</div>
-                          {item.supplier && (
-                            <div className="text-sm text-muted-foreground">
-                              {item.supplier}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className={`font-medium ${isLowStock ? 'text-orange-600' : ''}`}>
-                            {item.currentStock} {units.find(u => u.value === item.unit)?.label || item.unit}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Min: {item.minimumStock}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {isLowStock && (
-                              <Badge variant="destructive" className="text-xs">
-                                Stock bas
-                              </Badge>
-                            )}
-                            {item.lastUpdated && new Date(item.lastUpdated).getTime() > Date.now() - 24 * 60 * 60 * 1000 && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                                Mis à jour
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        {editingField?.id === item.id && editingField.field === 'purchasePrice' ? (
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={fieldValue}
-                            onChange={(e) => setFieldValue(e.target.value)}
-                            onBlur={() => handleFieldSave(item.id, 'purchasePrice', fieldValue)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleFieldSave(item.id, 'purchasePrice', fieldValue);
-                              }
-                            }}
-                            autoFocus
-                            className="w-20"
-                          />
-                        ) : (
-                          <div
-                            className="cursor-pointer hover:bg-muted p-1 rounded"
-                            onClick={() => {
-                              setEditingField({ id: item.id, field: 'purchasePrice' });
-                              setFieldValue(item.purchasePrice.toString());
-                            }}
-                          >
-                            {item.purchasePrice.toFixed(2)} {settings.currency}
-                          </div>
-                        )}
-                      </TableCell>
-                      
-                      <TableCell>
-                        {editingField?.id === item.id && editingField.field === 'sellingPrice' ? (
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={fieldValue}
-                            onChange={(e) => setFieldValue(e.target.value)}
-                            onBlur={() => handleFieldSave(item.id, 'sellingPrice', fieldValue)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleFieldSave(item.id, 'sellingPrice', fieldValue);
-                              }
-                            }}
-                            autoFocus
-                            className="w-20"
-                          />
-                        ) : (
-                          <div
-                            className="cursor-pointer hover:bg-muted p-1 rounded"
-                            onClick={() => {
-                              setEditingField({ id: item.id, field: 'sellingPrice' });
-                              setFieldValue(item.sellingPrice.toString());
-                            }}
-                          >
-                            <div className="font-medium">{item.sellingPrice.toFixed(2)} {settings.currency}</div>
-                            <div className="text-xs text-green-600">
-                              Marge: {((item.sellingPrice - item.purchasePrice) * item.currentStock).toFixed(2)} {settings.currency}
-                            </div>
-                          </div>
-                        )}
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="font-medium">
-                          {item.totalValue.toFixed(2)} {settings.currency}
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        {item.expirationDate ? (
-                          <div className="space-y-1">
-                            <div className={`text-sm ${isExpired ? 'text-red-600 font-medium' : isExpiringSoon ? 'text-yellow-600 font-medium' : ''}`}>
-                              {format(new Date(item.expirationDate), 'dd/MM/yyyy', { locale: fr })}
-                            </div>
-                            {isExpired && (
-                              <Badge variant="destructive" className="text-xs">
-                                Expiré
-                              </Badge>
-                            )}
-                            {isExpiringSoon && !isExpired && (
-                              <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">
-                                Expire bientôt
-                              </Badge>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      
-                      <TableCell>
-                        {editingField?.id === item.id && editingField.field === 'location' ? (
-                          <Input
-                            value={fieldValue}
-                            onChange={(e) => setFieldValue(e.target.value)}
-                            onBlur={() => handleFieldSave(item.id, 'location', fieldValue)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleFieldSave(item.id, 'location', fieldValue);
-                              }
-                            }}
-                            autoFocus
-                            className="w-32"
-                          />
-                        ) : (
-                          <div
-                            className="cursor-pointer hover:bg-muted p-1 rounded flex items-center gap-1"
-                            onClick={() => {
-                              setEditingField({ id: item.id, field: 'location' });
-                              setFieldValue(item.location || '');
-                            }}
-                          >
-                            <MapPin className="h-3 w-3" />
-                            {item.location || 'Non défini'}
-                          </div>
-                        )}
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleMovement(item)}
-                          >
-                            <TrendingUp className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditItem(item)}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDeleteItem(item)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-          
-          {filteredItems.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Aucun élément trouvé</p>
-              <p className="text-sm">Ajustez vos filtres ou ajoutez de nouveaux éléments</p>
-            </div>
-          )}
-        </CardContent>
+      <CardHeader>
+        <CardTitle className="text-lg sm:text-xl">Inventaire ({filteredItems.length} éléments)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+          <TableRow>
+            <TableHead className="min-w-[150px]">Nom</TableHead>
+            <TableHead className="min-w-[120px]">Catégorie</TableHead>
+            <TableHead className="min-w-[100px] hidden sm:table-cell">Fabricant</TableHead>
+            <TableHead className="min-w-[100px]">Stock</TableHead>
+            <TableHead className="min-w-[100px] hidden md:table-cell">Prix d'achat</TableHead>
+            <TableHead className="min-w-[100px] hidden md:table-cell">Prix de vente</TableHead>
+            <TableHead className="min-w-[100px] hidden lg:table-cell">Valeur totale</TableHead>
+            <TableHead className="min-w-[100px] hidden md:table-cell">Expiration</TableHead>
+            <TableHead className="min-w-[120px] hidden lg:table-cell">Emplacement</TableHead>
+            <TableHead className="min-w-[120px]">Actions</TableHead>
+          </TableRow>
+          </TableHeader>
+          <TableBody>
+          {filteredItems.map((item) => {
+            const isLowStock = item.currentStock <= item.minimumStock;
+            const isExpired = item.expirationDate && new Date(item.expirationDate) < new Date();
+            const isExpiringSoon = item.expirationDate && 
+            new Date(item.expirationDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) &&
+            new Date(item.expirationDate) > new Date();
+            
+            return (
+            <TableRow key={item.id} className={!item.isActive ? "opacity-50" : ""}>
+              <TableCell>
+              <div className="space-y-1">
+                <div className="font-medium text-sm sm:text-base">{item.name}</div>
+                {item.batchNumber && (
+                <div className="text-xs sm:text-sm text-muted-foreground">
+                  Lot: {item.batchNumber}
+                </div>
+                )}
+                {item.dosage && (
+                <div className="text-xs sm:text-sm text-muted-foreground">
+                  {item.dosage}
+                </div>
+                )}
+              </div>
+              </TableCell>
+              
+              <TableCell>
+              <Badge className={`${categoryConfig[item.category].color} text-xs sm:text-sm`}>
+                {categoryConfig[item.category].icon} {categoryConfig[item.category].label}
+              </Badge>
+              {item.subcategory && (
+                <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+                {item.subcategory}
+                </div>
+              )}
+              </TableCell>
+              
+              <TableCell className="hidden sm:table-cell">
+              <div className="space-y-1">
+                <div className="text-sm">{item.manufacturer || '-'}</div>
+                {item.supplier && (
+                <div className="text-xs text-muted-foreground">
+                  {item.supplier}
+                </div>
+                )}
+              </div>
+              </TableCell>
+              
+              <TableCell>
+              <div className="space-y-1">
+                <div className={`font-medium text-sm sm:text-base ${isLowStock ? 'text-orange-600' : ''}`}>
+                {item.currentStock} {units.find(u => u.value === item.unit)?.label || item.unit}
+                </div>
+                <div className="text-xs sm:text-sm text-muted-foreground">
+                Min: {item.minimumStock}
+                </div>
+                <div className="flex items-center gap-2">
+                {isLowStock && (
+                  <Badge variant="destructive" className="text-xs">
+                  Stock bas
+                  </Badge>
+                )}
+                {item.lastUpdated && new Date(item.lastUpdated).getTime() > Date.now() - 24 * 60 * 60 * 1000 && (
+                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                  Mis à jour
+                  </Badge>
+                )}
+                </div>
+              </div>
+              </TableCell>
+              
+              <TableCell className="hidden md:table-cell">
+              {editingField?.id === item.id && editingField.field === 'purchasePrice' ? (
+                <Input
+                type="number"
+                step="0.01"
+                value={fieldValue}
+                onChange={(e) => setFieldValue(e.target.value)}
+                onBlur={() => handleFieldSave(item.id, 'purchasePrice', fieldValue)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                  handleFieldSave(item.id, 'purchasePrice', fieldValue);
+                  }
+                }}
+                autoFocus
+                className="w-16 sm:w-20"
+                />
+              ) : (
+                <div
+                className="cursor-pointer hover:bg-muted p-1 rounded text-sm"
+                onClick={() => {
+                  setEditingField({ id: item.id, field: 'purchasePrice' });
+                  setFieldValue(item.purchasePrice.toString());
+                }}
+                >
+                {item.purchasePrice.toFixed(2)} {settings.currency}
+                </div>
+              )}
+              </TableCell>
+              
+              <TableCell className="hidden md:table-cell">
+              {editingField?.id === item.id && editingField.field === 'sellingPrice' ? (
+                <Input
+                type="number"
+                step="0.01"
+                value={fieldValue}
+                onChange={(e) => setFieldValue(e.target.value)}
+                onBlur={() => handleFieldSave(item.id, 'sellingPrice', fieldValue)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                  handleFieldSave(item.id, 'sellingPrice', fieldValue);
+                  }
+                }}
+                autoFocus
+                className="w-16 sm:w-20"
+                />
+              ) : (
+                <div
+                className="cursor-pointer hover:bg-muted p-1 rounded"
+                onClick={() => {
+                  setEditingField({ id: item.id, field: 'sellingPrice' });
+                  setFieldValue(item.sellingPrice.toString());
+                }}
+                >
+                <div className="font-medium text-sm">{item.sellingPrice.toFixed(2)} {settings.currency}</div>
+                <div className="text-xs text-green-600">
+                  Marge: {((item.sellingPrice - item.purchasePrice) * item.currentStock).toFixed(2)} {settings.currency}
+                </div>
+                </div>
+              )}
+              </TableCell>
+              
+              <TableCell className="hidden lg:table-cell">
+              <div className="font-medium text-sm">
+                {item.totalValue.toFixed(2)} {settings.currency}
+              </div>
+              </TableCell>
+              
+              <TableCell className="hidden md:table-cell">
+              {item.expirationDate ? (
+                <div className="space-y-1">
+                <div className={`text-xs sm:text-sm ${isExpired ? 'text-red-600 font-medium' : isExpiringSoon ? 'text-yellow-600 font-medium' : ''}`}>
+                  {format(new Date(item.expirationDate), 'dd/MM/yyyy', { locale: fr })}
+                </div>
+                {isExpired && (
+                  <Badge variant="destructive" className="text-xs">
+                  Expiré
+                  </Badge>
+                )}
+                {isExpiringSoon && !isExpired && (
+                  <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">
+                  Expire bientôt
+                  </Badge>
+                )}
+                </div>
+              ) : (
+                <span className="text-muted-foreground text-xs sm:text-sm">-</span>
+              )}
+              </TableCell>
+              
+              <TableCell className="hidden lg:table-cell">
+              {editingField?.id === item.id && editingField.field === 'location' ? (
+                <Input
+                value={fieldValue}
+                onChange={(e) => setFieldValue(e.target.value)}
+                onBlur={() => handleFieldSave(item.id, 'location', fieldValue)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                  handleFieldSave(item.id, 'location', fieldValue);
+                  }
+                }}
+                autoFocus
+                className="w-24 sm:w-32"
+                />
+              ) : (
+                <div
+                className="cursor-pointer hover:bg-muted p-1 rounded flex items-center gap-1 text-xs sm:text-sm"
+                onClick={() => {
+                  setEditingField({ id: item.id, field: 'location' });
+                  setFieldValue(item.location || '');
+                }}
+                >
+                <MapPin className="h-3 w-3" />
+                {item.location || 'Non défini'}
+                </div>
+              )}
+              </TableCell>
+              
+              <TableCell>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleMovement(item)}
+                className="p-1 sm:p-2"
+                >
+                <TrendingUp className="h-3 w-3" />
+                </Button>
+                <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleEditItem(item)}
+                className="p-1 sm:p-2"
+                >
+                <Edit className="h-3 w-3" />
+                </Button>
+                <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleDeleteItem(item)}
+                className="p-1 sm:p-2"
+                >
+                <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+              </TableCell>
+            </TableRow>
+            );
+          })}
+          </TableBody>
+        </Table>
+        </div>
+        
+        {filteredItems.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          <Package className="h-8 sm:h-12 w-8 sm:w-12 mx-auto mb-4 opacity-50" />
+          <p className="text-sm sm:text-base">Aucun élément trouvé</p>
+          <p className="text-xs sm:text-sm">Ajustez vos filtres ou ajoutez de nouveaux éléments</p>
+        </div>
+        )}
+      </CardContent>
       </Card>
 
       {/* Historique des mouvements */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Historique des Mouvements ({stockMovements.length})
-          </CardTitle>
-          <div className="text-sm text-muted-foreground">
-            Derniers mouvements de stock (prescriptions, achats, ajustements)
-          </div>
-        </CardHeader>
-        <CardContent>
-          {stockMovements.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Aucun mouvement de stock enregistré</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {stockMovements
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .slice(0, 20) // Afficher les 20 derniers mouvements
-                .map((movement) => {
-                  const movementTypeConfig = {
-                    in: { label: 'Entrée', color: 'text-green-600', icon: '↗️' },
-                    out: { 
-                      label: movement.reason === 'Prescription médicale' ? 'Prescription' : 'Sortie', 
-                      color: movement.reason === 'Prescription médicale' ? 'text-orange-600' : 'text-red-600', 
-                      icon: movement.reason === 'Prescription médicale' ? '💊' : '↘️' 
-                    },
-                    adjustment: { label: 'Ajustement', color: 'text-blue-600', icon: '⚖️' },
-                    transfer: { label: 'Transfert', color: 'text-purple-600', icon: '↔️' }
-                  };
-                  
-                  const config = movementTypeConfig[movement.type];
-                  
-                  return (
-                    <div key={movement.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
-                      <div className="flex items-center gap-4">
-                        <div className="text-2xl">{config.icon}</div>
-                        <div>
-                          <div className="font-medium">{movement.itemName}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {movement.reason} • {movement.performedBy || 'Non spécifié'}
-                          </div>
-                          {movement.reference && (
-                            <div className="text-xs text-muted-foreground">
-                              Référence: {movement.reference}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className={`font-semibold ${config.color}`}>
-                          {movement.type === 'in' ? '+' : movement.type === 'out' ? '-' : ''}{movement.quantity}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {format(new Date(movement.date), 'dd/MM/yyyy HH:mm', { locale: fr })}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              
-              {stockMovements.length > 20 && (
-                <div className="text-center pt-4">
-                  <Button variant="outline" size="sm">
-                    Voir tous les mouvements ({stockMovements.length})
-                  </Button>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+        <Clock className="h-4 sm:h-5 w-4 sm:w-5" />
+        Historique des Mouvements ({stockMovements.length})
+        </CardTitle>
+        <div className="text-xs sm:text-sm text-muted-foreground">
+        Derniers mouvements de stock (prescriptions, achats, ajustements)
+        </div>
+      </CardHeader>
+      <CardContent>
+        {stockMovements.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <Clock className="h-8 sm:h-12 w-8 sm:w-12 mx-auto mb-4 opacity-50" />
+          <p className="text-sm sm:text-base">Aucun mouvement de stock enregistré</p>
+        </div>
+        ) : (
+        <div className="space-y-4">
+          {stockMovements
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 20) // Afficher les 20 derniers mouvements
+          .map((movement) => {
+            const movementTypeConfig = {
+            in: { label: 'Entrée', color: 'text-green-600', icon: '↗️' },
+            out: { 
+              label: movement.reason === 'Prescription médicale' ? 'Prescription' : 'Sortie', 
+              color: movement.reason === 'Prescription médicale' ? 'text-orange-600' : 'text-red-600', 
+              icon: movement.reason === 'Prescription médicale' ? '💊' : '↘️' 
+            },
+            adjustment: { label: 'Ajustement', color: 'text-blue-600', icon: '⚖️' },
+            transfer: { label: 'Transfert', color: 'text-purple-600', icon: '↔️' }
+            };
+            
+            const config = movementTypeConfig[movement.type];
+            
+            return (
+            <div key={movement.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-muted/50 gap-2 sm:gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="text-xl sm:text-2xl">{config.icon}</div>
+              <div>
+                <div className="font-medium text-sm sm:text-base">{movement.itemName}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">
+                {movement.reason} • {movement.performedBy || 'Non spécifié'}
                 </div>
-              )}
+                {movement.reference && (
+                <div className="text-xs text-muted-foreground">
+                  Référence: {movement.reference}
+                </div>
+                )}
+              </div>
+              </div>
+              <div className="text-right sm:text-left">
+              <div className={`font-semibold text-sm sm:text-base ${config.color}`}>
+                {movement.type === 'in' ? '+' : movement.type === 'out' ? '-' : ''}{movement.quantity}
+              </div>
+              <div className="text-xs sm:text-sm text-muted-foreground">
+                {format(new Date(movement.date), 'dd/MM/yyyy HH:mm', { locale: fr })}
+              </div>
+              </div>
             </div>
+            );
+          })}
+          
+          {stockMovements.length > 20 && (
+          <div className="text-center pt-4">
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+            Voir tous les mouvements ({stockMovements.length})
+            </Button>
+          </div>
           )}
-        </CardContent>
+        </div>
+        )}
+      </CardContent>
       </Card>
 
       {/* Modales */}
       <NewStockItemModal 
-        open={showNewItemModal}
-        onOpenChange={setShowNewItemModal}
+      open={showNewItemModal}
+      onOpenChange={setShowNewItemModal}
       />
       
       <NewStockItemModal 
-        open={showEditModal}
-        onOpenChange={handleCloseEditModal}
-        editingItem={editingItem}
+      open={showEditModal}
+      onOpenChange={handleCloseEditModal}
+      editingItem={editingItem}
       />
       
       <StockMovementModal
-        open={showMovementModal}
-        onOpenChange={setShowMovementModal}
-        item={selectedItem}
+      open={showMovementModal}
+      onOpenChange={setShowMovementModal}
+      item={selectedItem}
       />
     </div>
   );

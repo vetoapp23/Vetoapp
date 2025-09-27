@@ -46,7 +46,7 @@ const App = () => (
             <SettingsProvider>
               <ThemeProvider>
                 <BrowserRouter>
-                  <div className="min-h-screen bg-background">
+                  <div className="min-h-screen bg-background w-full text-foreground overflow-x-hidden">
                     <Routes>
                       <Route path="/" element={<Landing />} />
                       <Route

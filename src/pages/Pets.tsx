@@ -293,511 +293,508 @@ const PetsContent = () => {
   }, [selectedPet, getConsultationsByPetId, convertConsultationForStats]);
 
   return (
-    <div className="container mx-auto px-6 py-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Gestion des Animaux</h1>
-          <p className="text-muted-foreground mt-2">
-            Suivez tous les animaux et leurs informations médicales
-          </p>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            size="sm" 
-            variant={viewMode === 'cards' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('cards')}
-            className="gap-2"
-          >
-            <Grid className="h-4 w-4" />
-            Cartes
-          </Button>
-          <Button 
-            size="sm" 
-            variant={viewMode === 'table' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('table')}
-            className="gap-2"
-          >
-            <List className="h-4 w-4" />
-            Tableau
-          </Button>
-          <Button className="gap-2 medical-glow" onClick={() => setShowPetModal(true)}>
-            <Plus className="h-4 w-4" />
-            Nouvel Animal
-          </Button>
-        </div>
+    <div className="container mx-auto px-4 py-8 space-y-8 sm:px-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold sm:text-3xl">Gestion des Animaux</h1>
+        <p className="text-muted-foreground mt-2 text-sm sm:text-base">
+        Suivez tous les animaux et leurs informations médicales
+        </p>
+      </div>
+      
+      <div className="flex gap-2 flex-wrap">
+        <Button 
+        size="sm" 
+        variant={viewMode === 'cards' ? 'default' : 'outline'} 
+        onClick={() => setViewMode('cards')}
+        className="gap-2 flex-1 sm:flex-none"
+        >
+        <Grid className="h-4 w-4" />
+        Cartes
+        </Button>
+        <Button 
+        size="sm" 
+        variant={viewMode === 'table' ? 'default' : 'outline'} 
+        onClick={() => setViewMode('table')}
+        className="gap-2 flex-1 sm:flex-none"
+        >
+        <List className="h-4 w-4" />
+        Tableau
+        </Button>
+        <Button className="gap-2 medical-glow flex-1 sm:flex-none" onClick={() => setShowPetModal(true)}>
+        <Plus className="h-4 w-4" />
+        Nouvel Animal
+        </Button>
+      </div>
       </div>
 
       {/* Statistiques médicales globales */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total animaux</p>
-                <p className="text-2xl font-bold">{stats?.totalAnimals || pets.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">En bonne santé</p>
-                <p className="text-2xl font-bold">{stats?.animalsByStatus?.vivant || pets.filter(p => p.status === 'healthy').length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">En traitement</p>
-                <p className="text-2xl font-bold">{pets.filter(p => p.status === 'treatment').length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Clients actifs</p>
-                <p className="text-2xl font-bold">{stats?.totalClients || clients.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Rechercher et filtrer
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Input 
-            placeholder="Rechercher par nom, race ou propriétaire..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-md"
-          />
-          
-          <div className="flex gap-4">
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Tous types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous types</SelectItem>
-                {speciesList.map((sp, idx) => (
-                  <SelectItem key={idx} value={sp.toLowerCase()}>
-                    {sp}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous statuts</SelectItem>
-                <SelectItem value="healthy">En bonne santé</SelectItem>
-                <SelectItem value="treatment">En traitement</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
-              </SelectContent>
-            </Select>
+        <CardContent className="p-4">
+        <div className="flex items-center gap-2">
+          <Heart className="h-5 w-5 text-primary" />
+          <div>
+          <p className="text-sm text-muted-foreground">Total animaux</p>
+          <p className="text-2xl font-bold">{stats?.totalAnimals || pets.length}</p>
           </div>
+        </div>
         </CardContent>
       </Card>
 
-      {viewMode === 'cards' ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredPets.map((pet) => (
-            <Card key={pet.id} className="card-hover">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-16 w-16">
-                        {pet.photo ? (
-                          <AvatarImage src={pet.photo} alt={pet.name} />
-                        ) : (
-                          <AvatarFallback className="bg-primary-glow text-primary-foreground">
-                            <Heart className="h-8 w-8" />
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      
-                      <div>
-                        <h3 className="text-xl font-semibold">{pet.name}</h3>
-                        <p className="text-muted-foreground">{pet.breed}</p>
-                        <Badge 
-                          variant="outline"
-                          className={statusStyles[pet.status as keyof typeof statusStyles]}
-                        >
-                          {pet.status === 'healthy' ? 'En bonne santé' : 
-                           pet.status === 'treatment' ? 'En traitement' : 'Urgent'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium">Type:</span> {pet.type}
-                    </div>
-                    <div>
-                      <span className="font-medium">Âge:</span> {pet.birthDate ? calculateAge(pet.birthDate) : 'Non renseigné'}
-                    </div>
-                    <div>
-                      <span className="font-medium">Poids:</span> {pet.weight}
-                    </div>
-                    <div>
-                      <span className="font-medium">Couleur:</span> {pet.color}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span>Propriétaire: {typeof pet.owner === 'string' ? pet.owner : 
-                         (() => {
-                           const client = clients.find(c => String(c.id) === String(pet.ownerId));
-                           return client ? `${client.first_name} ${client.last_name}` : 'Non spécifié';
-                         })()}</span>
-                         
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>Dernière visite: {pet.lastVisit ? new Date(pet.lastVisit).toLocaleDateString('fr-FR') : 'Aucune'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Stethoscope className="h-4 w-4 text-muted-foreground" />
-                      <span>Consultations: {getConsultationsByPetId(pet.id).length}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm">Vaccinations:</h4>
-                    <div className="text-sm text-muted-foreground">
-                      {(() => {
-                        const petVaccinations = getVaccinationsByPetId(pet.id);
-                        return petVaccinations.length > 0 ? (
-                          `${petVaccinations.length} vaccination${petVaccinations.length > 1 ? 's' : ''} enregistrée${petVaccinations.length > 1 ? 's' : ''}`
-                        ) : (
-                          'Aucune vaccination enregistrée'
-                        );
-                      })()}
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2 mb-2">
-                    <Button size="sm" variant="outline" className="gap-2" onClick={() => handleView(pet)}>
-                      <Eye className="h-4 w-4" />
-                      Voir
-                    </Button>
-                    <Button size="sm" variant="outline" className="gap-2" onClick={() => handleEdit(pet)}>
-                      <Edit className="h-4 w-4" />
-                      Modifier
-                    </Button>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    {/* <Button size="sm" variant="outline" className="flex-1" onClick={() => handleShowDossier(pet)}>
-                      Dossier Médical
-                    </Button> */}
-                    <Button size="sm" className="flex-1" onClick={() => {
-                      setSelectedPet(pet);
-                      setShowConsultationModal(true);
-                    }}>
-                      <Stethoscope className="h-4 w-4 mr-2" />
-                      Consultation
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      <Card>
+        <CardContent className="p-4">
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-5 w-5 text-green-500" />
+          <div>
+          <p className="text-sm text-muted-foreground">En bonne santé</p>
+          <p className="text-2xl font-bold">{stats?.animalsByStatus?.vivant || pets.filter(p => p.status === 'healthy').length}</p>
+          </div>
         </div>
-      ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b">
-                  <tr className="text-left">
-                    <th className="p-4 font-medium">Animal</th>
-                    <th className="p-4 font-medium">Type</th>
-                    <th className="p-4 font-medium">Âge</th>
-                    <th className="p-4 font-medium">Propriétaire</th>
-                    <th className="p-4 font-medium">Statut</th>
-                    <th className="p-4 font-medium">Dernière visite</th>
-                    <th className="p-4 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPets.map((pet) => (
-                    <tr key={pet.id} className="border-b hover:bg-muted/50">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
-                            {pet.photo ? (
-                              <AvatarImage src={pet.photo} alt={pet.name} />
-                            ) : (
-                              <AvatarFallback className="bg-primary-glow text-primary-foreground">
-                                <Heart className="h-5 w-5" />
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">{pet.name}</div>
-                            <div className="text-sm text-muted-foreground">{pet.breed}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">{pet.type}</td>
-                      <td className="p-4">{pet.birthDate ? calculateAge(pet.birthDate) : 'Non renseigné'}</td>
-                      <td className="p-4">
-                        {typeof pet.owner === 'string' ? pet.owner : 
-                         (() => {
-                           const client = clients.find(c => String(c.id) === String(pet.ownerId));
-                           return client ? `${client.first_name} ${client.last_name}` : 'Non spécifié';
-                         })()}
-                      </td>
-                      <td className="p-4">
-                        <Badge 
-                          variant="outline"
-                          className={statusStyles[pet.status as keyof typeof statusStyles]}
-                        >
-                          {pet.status === 'healthy' ? 'En bonne santé' : 
-                           pet.status === 'treatment' ? 'En traitement' : 'Urgent'}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        {pet.lastVisit ? new Date(pet.lastVisit).toLocaleDateString('fr-FR') : 'Aucune'}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="outline" onClick={() => handleView(pet)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleEdit(pet)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleShowDossier(pet)}>
-                            Dossier
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-yellow-500" />
+          <div>
+          <p className="text-sm text-muted-foreground">En traitement</p>
+          <p className="text-2xl font-bold">{pets.filter(p => p.status === 'treatment').length}</p>
+          </div>
+        </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4">
+        <div className="flex items-center gap-2">
+          <User className="h-5 w-5 text-primary" />
+          <div>
+          <p className="text-sm text-muted-foreground">Clients actifs</p>
+          <p className="text-2xl font-bold">{stats?.totalClients || clients.length}</p>
+          </div>
+        </div>
+        </CardContent>
+      </Card>
+      </div>
+
+      <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+        <Search className="h-5 w-5" />
+        Rechercher et filtrer
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Input 
+        placeholder="Rechercher par nom, race ou propriétaire..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full max-w-md"
+        />
+        
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-full sm:w-40">
+          <SelectValue placeholder="Tous types" />
+          </SelectTrigger>
+          <SelectContent>
+          <SelectItem value="all">Tous types</SelectItem>
+          {speciesList.map((sp, idx) => (
+            <SelectItem key={idx} value={sp.toLowerCase()}>
+            {sp}
+            </SelectItem>
+          ))}
+          </SelectContent>
+        </Select>
+        
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-full sm:w-40">
+          <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+          <SelectItem value="all">Tous statuts</SelectItem>
+          <SelectItem value="healthy">En bonne santé</SelectItem>
+          <SelectItem value="treatment">En traitement</SelectItem>
+          <SelectItem value="urgent">Urgent</SelectItem>
+          </SelectContent>
+        </Select>
+        </div>
+      </CardContent>
+      </Card>
+
+      {viewMode === 'cards' ? (
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {filteredPets.map((pet) => (
+        <Card key={pet.id} className="card-hover">
+          <CardContent className="p-4 sm:p-6">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-12 w-12 sm:h-16 sm:w-16">
+              {pet.photo ? (
+                <AvatarImage src={pet.photo} alt={pet.name} />
+              ) : (
+                <AvatarFallback className="bg-primary-glow text-primary-foreground">
+                <Heart className="h-6 w-6 sm:h-8 sm:w-8" />
+                </AvatarFallback>
+              )}
+              </Avatar>
+              
+              <div className="min-w-0 flex-1">
+              <h3 className="text-lg sm:text-xl font-semibold truncate">{pet.name}</h3>
+              <p className="text-muted-foreground text-sm truncate">{pet.breed}</p>
+              <Badge 
+                variant="outline"
+                className={`${statusStyles[pet.status as keyof typeof statusStyles]} text-xs`}
+              >
+                {pet.status === 'healthy' ? 'En bonne santé' : 
+                 pet.status === 'treatment' ? 'En traitement' : 'Urgent'}
+              </Badge>
+              </div>
             </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="font-medium">Type:</span> {pet.type}
+            </div>
+            <div>
+              <span className="font-medium">Âge:</span> {pet.birthDate ? calculateAge(pet.birthDate) : 'Non renseigné'}
+            </div>
+            <div>
+              <span className="font-medium">Poids:</span> {pet.weight}
+            </div>
+            <div>
+              <span className="font-medium">Couleur:</span> {pet.color}
+            </div>
+            </div>
+            
+            <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="truncate">Propriétaire: {typeof pet.owner === 'string' ? pet.owner : 
+               (() => {
+                 const client = clients.find(c => String(c.id) === String(pet.ownerId));
+                 return client ? `${client.first_name} ${client.last_name}` : 'Non spécifié';
+               })()}</span>
+               
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span>Dernière visite: {pet.lastVisit ? new Date(pet.lastVisit).toLocaleDateString('fr-FR') : 'Aucune'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Stethoscope className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span>Consultations: {getConsultationsByPetId(pet.id).length}</span>
+            </div>
+            </div>
+            
+            <div className="space-y-2">
+            <h4 className="font-medium text-sm">Vaccinations:</h4>
+            <div className="text-sm text-muted-foreground">
+              {(() => {
+              const petVaccinations = getVaccinationsByPetId(pet.id);
+              return petVaccinations.length > 0 ? (
+                `${petVaccinations.length} vaccination${petVaccinations.length > 1 ? 's' : ''} enregistrée${petVaccinations.length > 1 ? 's' : ''}`
+              ) : (
+                'Aucune vaccination enregistrée'
+              );
+              })()}
+            </div>
+            </div>
+            
+            <div className="flex flex-col gap-2 sm:flex-row">
+            <Button size="sm" variant="outline" className="gap-2 flex-1" onClick={() => handleView(pet)}>
+              <Eye className="h-4 w-4" />
+              Voir
+            </Button>
+            <Button size="sm" variant="outline" className="gap-2 flex-1" onClick={() => handleEdit(pet)}>
+              <Edit className="h-4 w-4" />
+              Modifier
+            </Button>
+            </div>
+            
+            <div className="flex gap-2">
+            <Button size="sm" className="flex-1" onClick={() => {
+              setSelectedPet(pet);
+              setShowConsultationModal(true);
+            }}>
+              <Stethoscope className="h-4 w-4 mr-2" />
+              Consultation
+            </Button>
+            </div>
+          </div>
           </CardContent>
         </Card>
+        ))}
+      </div>
+      ) : (
+      <Card>
+        <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[600px]">
+          <thead className="border-b">
+            <tr className="text-left">
+            <th className="p-4 font-medium">Animal</th>
+            <th className="p-4 font-medium">Type</th>
+            <th className="p-4 font-medium">Âge</th>
+            <th className="p-4 font-medium">Propriétaire</th>
+            <th className="p-4 font-medium">Statut</th>
+            <th className="p-4 font-medium">Dernière visite</th>
+            <th className="p-4 font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredPets.map((pet) => (
+            <tr key={pet.id} className="border-b hover:bg-muted/50">
+              <td className="p-4">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                {pet.photo ? (
+                  <AvatarImage src={pet.photo} alt={pet.name} />
+                ) : (
+                  <AvatarFallback className="bg-primary-glow text-primary-foreground">
+                  <Heart className="h-5 w-5" />
+                  </AvatarFallback>
+                )}
+                </Avatar>
+                <div>
+                <div className="font-medium">{pet.name}</div>
+                <div className="text-sm text-muted-foreground">{pet.breed}</div>
+                </div>
+              </div>
+              </td>
+              <td className="p-4">{pet.type}</td>
+              <td className="p-4">{pet.birthDate ? calculateAge(pet.birthDate) : 'Non renseigné'}</td>
+              <td className="p-4">
+              {typeof pet.owner === 'string' ? pet.owner : 
+               (() => {
+                 const client = clients.find(c => String(c.id) === String(pet.ownerId));
+                 return client ? `${client.first_name} ${client.last_name}` : 'Non spécifié';
+               })()}
+              </td>
+              <td className="p-4">
+              <Badge 
+                variant="outline"
+                className={statusStyles[pet.status as keyof typeof statusStyles]}
+              >
+                {pet.status === 'healthy' ? 'En bonne santé' : 
+                 pet.status === 'treatment' ? 'En traitement' : 'Urgent'}
+              </Badge>
+              </td>
+              <td className="p-4">
+              {pet.lastVisit ? new Date(pet.lastVisit).toLocaleDateString('fr-FR') : 'Aucune'}
+              </td>
+              <td className="p-4">
+              <div className="flex gap-1 flex-wrap">
+                <Button size="sm" variant="outline" onClick={() => handleView(pet)}>
+                <Eye className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleEdit(pet)}>
+                <Edit className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleShowDossier(pet)}>
+                Dossier
+                </Button>
+              </div>
+              </td>
+            </tr>
+            ))}
+          </tbody>
+          </table>
+        </div>
+        </CardContent>
+      </Card>
       )}
 
-            {/* Statistiques médicales détaillées pour l'animal sélectionné */}
+        {/* Statistiques médicales détaillées pour l'animal sélectionné */}
       {selectedPet && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Statistiques médicales - {selectedPet.name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MedicalStats 
-              pet={selectedPet} 
-              consultations={selectedPetConsultations} 
-            />
-          </CardContent>
-        </Card>
+      <Card>
+        <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+          <Activity className="h-5 w-5" />
+          Statistiques médicales - {selectedPet.name}
+        </CardTitle>
+        </CardHeader>
+        <CardContent>
+        <MedicalStats 
+          pet={selectedPet} 
+          consultations={selectedPetConsultations} 
+        />
+        </CardContent>
+      </Card>
       )}
       
       <NewPetModal 
-        open={showPetModal} 
-        onOpenChange={setShowPetModal} 
+      open={showPetModal} 
+      onOpenChange={setShowPetModal} 
       />
       
       <NewConsultationModal 
-        open={showConsultationModal} 
-        onOpenChange={setShowConsultationModal} 
+      open={showConsultationModal} 
+      onOpenChange={setShowConsultationModal} 
       />
       
       <PetViewModal
-        open={showViewModal}
-        onOpenChange={setShowViewModal}
-        pet={selectedPet}
-        onEdit={handleEditFromView}
-        onShowDossier={handleShowDossierFromView}
+      open={showViewModal}
+      onOpenChange={setShowViewModal}
+      pet={selectedPet}
+      onEdit={handleEditFromView}
+      onShowDossier={handleShowDossierFromView}
       />
       
       {/* Custom Dynamic Pet Edit Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Modifier Animal</DialogTitle>
-            <DialogDescription>
-              Modifiez les informations de l'animal.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nom *</Label>
-                <Input
-                  id="name"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="species">Espèce *</Label>
-                <Select value={editForm.species} onValueChange={(value) => setEditForm(prev => ({ ...prev, species: value as 'Chien' | 'Chat' | 'Oiseau' | 'Lapin' | 'Furet' | 'Autre' }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner l'espèce" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Chien">Chien</SelectItem>
-                    <SelectItem value="Chat">Chat</SelectItem>
-                    <SelectItem value="Oiseau">Oiseau</SelectItem>
-                    <SelectItem value="Lapin">Lapin</SelectItem>
-                    <SelectItem value="Furet">Furet</SelectItem>
-                    <SelectItem value="Autre">Autre</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="client_id">Propriétaire *</Label>
-              <Select value={editForm.client_id} onValueChange={(value) => setEditForm(prev => ({ ...prev, client_id: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner le propriétaire" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.first_name} {client.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-                   
-          
-  
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="breed">Race</Label>
-                <Input
-                  id="breed"
-                  value={editForm.breed || ""}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, breed: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sex">Sexe</Label>
-                <Select value={editForm.sex} onValueChange={(value) => setEditForm(prev => ({ ...prev, sex: value as 'Mâle' | 'Femelle' | 'Inconnu' }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner le sexe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Mâle">Mâle</SelectItem>
-                    <SelectItem value="Femelle">Femelle</SelectItem>
-                    <SelectItem value="Inconnu">Inconnu</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="birth_date">Date de naissance</Label>
-                <Input
-                  id="birth_date"
-                  type="date"
-                  value={editForm.birth_date || ""}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, birth_date: e.target.value || undefined }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="weight">Poids (kg)</Label>
-                <Input
-                  id="weight"
-                  type="number"
-                  step="0.1"
-                  value={editForm.weight || ""}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, weight: e.target.value ? parseFloat(e.target.value) : undefined }))}
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="color">Couleur</Label>
-                <Input
-                  id="color"
-                  value={editForm.color || ""}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, color: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="microchip_number">N° puce électronique</Label>
-                <Input
-                  id="microchip_number"
-                  value={editForm.microchip_number || ""}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, microchip_number: e.target.value }))}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes médicales</Label>
-              <Textarea
-                id="notes"
-                value={editForm.notes || ""}
-                onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Notes additionnelles..."
-              />
-            </div>
-            
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>
-                Annuler
-              </Button>
-              <Button onClick={handleSaveEdit} disabled={updateAnimalMutation.isPending}>
-                {updateAnimalMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sauvegarder
-              </Button>
-            </div>
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto mx-4">
+        <DialogHeader>
+        <DialogTitle>Modifier Animal</DialogTitle>
+        <DialogDescription>
+          Modifiez les informations de l'animal.
+        </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+          <Label htmlFor="name">Nom *</Label>
+          <Input
+            id="name"
+            value={editForm.name}
+            onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+            required
+          />
           </div>
-        </DialogContent>
+          <div className="space-y-2">
+          <Label htmlFor="species">Espèce *</Label>
+          <Select value={editForm.species} onValueChange={(value) => setEditForm(prev => ({ ...prev, species: value as 'Chien' | 'Chat' | 'Oiseau' | 'Lapin' | 'Furet' | 'Autre' }))}>
+            <SelectTrigger>
+            <SelectValue placeholder="Sélectionner l'espèce" />
+            </SelectTrigger>
+            <SelectContent>
+            <SelectItem value="Chien">Chien</SelectItem>
+            <SelectItem value="Chat">Chat</SelectItem>
+            <SelectItem value="Oiseau">Oiseau</SelectItem>
+            <SelectItem value="Lapin">Lapin</SelectItem>
+            <SelectItem value="Furet">Furet</SelectItem>
+            <SelectItem value="Autre">Autre</SelectItem>
+            </SelectContent>
+          </Select>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="client_id">Propriétaire *</Label>
+          <Select value={editForm.client_id} onValueChange={(value) => setEditForm(prev => ({ ...prev, client_id: value }))}>
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner le propriétaire" />
+          </SelectTrigger>
+          <SelectContent>
+            {clients.map((client) => (
+            <SelectItem key={client.id} value={client.id}>
+              {client.first_name} {client.last_name}
+            </SelectItem>
+            ))}
+          </SelectContent>
+          </Select>
+             
+        
+    
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+          <Label htmlFor="breed">Race</Label>
+          <Input
+            id="breed"
+            value={editForm.breed || ""}
+            onChange={(e) => setEditForm(prev => ({ ...prev, breed: e.target.value }))}
+          />
+          </div>
+          <div className="space-y-2">
+          <Label htmlFor="sex">Sexe</Label>
+          <Select value={editForm.sex} onValueChange={(value) => setEditForm(prev => ({ ...prev, sex: value as 'Mâle' | 'Femelle' | 'Inconnu' }))}>
+            <SelectTrigger>
+            <SelectValue placeholder="Sélectionner le sexe" />
+            </SelectTrigger>
+            <SelectContent>
+            <SelectItem value="Mâle">Mâle</SelectItem>
+            <SelectItem value="Femelle">Femelle</SelectItem>
+            <SelectItem value="Inconnu">Inconnu</SelectItem>
+            </SelectContent>
+          </Select>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+          <Label htmlFor="birth_date">Date de naissance</Label>
+          <Input
+            id="birth_date"
+            type="date"
+            value={editForm.birth_date || ""}
+            onChange={(e) => setEditForm(prev => ({ ...prev, birth_date: e.target.value || undefined }))}
+          />
+          </div>
+          <div className="space-y-2">
+          <Label htmlFor="weight">Poids (kg)</Label>
+          <Input
+            id="weight"
+            type="number"
+            step="0.1"
+            value={editForm.weight || ""}
+            onChange={(e) => setEditForm(prev => ({ ...prev, weight: e.target.value ? parseFloat(e.target.value) : undefined }))}
+          />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+          <Label htmlFor="color">Couleur</Label>
+          <Input
+            id="color"
+            value={editForm.color || ""}
+            onChange={(e) => setEditForm(prev => ({ ...prev, color: e.target.value }))}
+          />
+          </div>
+          <div className="space-y-2">
+          <Label htmlFor="microchip_number">N° puce électronique</Label>
+          <Input
+            id="microchip_number"
+            value={editForm.microchip_number || ""}
+            onChange={(e) => setEditForm(prev => ({ ...prev, microchip_number: e.target.value }))}
+          />
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="notes">Notes médicales</Label>
+          <Textarea
+          id="notes"
+          value={editForm.notes || ""}
+          onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+          placeholder="Notes additionnelles..."
+          />
+        </div>
+        
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end pt-4">
+          <Button type="button" variant="outline" onClick={() => setShowEditModal(false)} className="w-full sm:w-auto">
+          Annuler
+          </Button>
+          <Button onClick={handleSaveEdit} disabled={updateAnimalMutation.isPending} className="w-full sm:w-auto">
+          {updateAnimalMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Sauvegarder
+          </Button>
+        </div>
+        </div>
+      </DialogContent>
       </Dialog>
       
       <SimplePetDossierModal
-        open={showDossierModal}
-        onOpenChange={setShowDossierModal}
-        pet={selectedPet}
+      open={showDossierModal}
+      onOpenChange={setShowDossierModal}
+      pet={selectedPet}
       />
     </div>
   );

@@ -23,59 +23,59 @@ const Dashboard = () => {
       
       {/* KPI en temps réel */}
       <section>
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">KPI en Temps Réel</h2>
-        <RealTimeKPIs />
+      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 lg:mb-6">KPI en Temps Réel</h2>
+      <RealTimeKPIs />
       </section>
       
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
-        <SyncStatus />
-        <DataManager />
-        <DashboardAlerts />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 lg:gap-6">
+      <SyncStatus />
+      <DataManager />
+      <DashboardAlerts />
       </div>
       
       <section>
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Vue d'ensemble</h2>
-        <DashboardStats />
+      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 lg:mb-6">Vue d'ensemble</h2>
+      <DashboardStats />
       </section>
       
       {/* Graphiques de performance */}
       <section>
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Analyses et Tendances</h2>
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-          <AdminOnly>
-            <RevenueChart />
-          </AdminOnly>
-          <ActivityChart />
-        </div>
+      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 lg:mb-6">Analyses et Tendances</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 lg:gap-6">
+        <AdminOnly>
+        <RevenueChart />
+        </AdminOnly>
+        <ActivityChart />
+      </div>
       </section>
       
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
-        <StockChart />
-        <ClientGrowthChart />
-        <AppointmentStatusChart />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 lg:gap-6">
+      <StockChart />
+      <ClientGrowthChart />
+      <AppointmentStatusChart />
       </div>
       
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-        <ConsultationTrendsChart />
-        <PetSpeciesChart />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 lg:gap-6">
+      <ConsultationTrendsChart />
+      <PetSpeciesChart />
       </div>
       
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-        <ClientsOverview />
-        <PetsOverview />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 lg:gap-6">
+      <ClientsOverview />
+      <PetsOverview />
       </div>
       
       <section>
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Activité Récente</h2>
-        <ConsultationsOverview />
+      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 lg:mb-6">Activité Récente</h2>
+      <ConsultationsOverview />
       </section>
 
       {/* Admin Only Section */}
       <AdminOnly>
-        <section>
-          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Admin Dashboard</h2>
-          {/* Admin specific components or charts can be added here */}
-        </section>
+      <section>
+        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 lg:mb-6">Admin Dashboard</h2>
+        {/* Admin specific components or charts can be added here */}
+      </section>
       </AdminOnly>
     </div>
   );
