@@ -13,22 +13,17 @@ import {
   Clock,
   AlertTriangle
 } from 'lucide-react';
-import { useClients } from '@/contexts/ClientContext';
+import { useClients, useAnimals, useConsultations, useAppointments, useVaccinations, useAntiparasitics, useStockItems } from "@/hooks/useDatabase";
 import { useSettings } from '@/contexts/SettingsContext';
 
 export function RealTimeKPIs() {
-  const { 
-    clients, 
-    pets, 
-    consultations, 
-    appointments, 
-    vaccinations, 
-    antiparasitics,
-    stockItems,
-    getUpcomingAppointments,
-    getOverdueAppointments,
-    generateAccountingSummary
-  } = useClients();
+  const { data: clients = [] } = useClients();
+  const { data: pets = [] } = useAnimals();
+  const { data: consultations = [] } = useConsultations();
+  const { data: appointments = [] } = useAppointments();
+  const { data: vaccinations = [] } = useVaccinations();
+  const { data: antiparasitics = [] } = useAntiparasitics();
+  const { data: stockItems = [] } = useStockItems();
   const { settings } = useSettings();
 
   // Calculer les KPI en temps réel
@@ -37,47 +32,57 @@ export function RealTimeKPIs() {
   const thisYear = new Date().getFullYear();
   
   // Consultations d'aujourd'hui
-  const consultationsToday = consultations.filter(c => c.date === today).length;
+  const consultationsToday = consultations.filter(c => {
+    const consultationDate = c.consultation_date.split('T')[0]; // Extract date part only
+    return consultationDate === today;
+  }).length;
   
   // Rendez-vous d'aujourd'hui
-  const appointmentsToday = appointments.filter(a => a.date === today && a.status !== 'cancelled').length;
+  const appointmentsToday = appointments.filter(a => {
+    const appointmentDate = a.appointment_date.split('T')[0]; // Extract date part only
+    return appointmentDate === today && a.status !== 'cancelled';
+  }).length;
   
   // Rendez-vous à venir (7 prochains jours)
-  const upcomingAppointments = getUpcomingAppointments();
-  const upcomingThisWeek = upcomingAppointments.filter(a => {
-    const appointmentDate = new Date(a.date);
-    const todayDate = new Date();
-    const weekFromNow = new Date(todayDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-    return appointmentDate <= weekFromNow;
-  }).length;
+  // TODO: Implement upcoming appointments logic
+  const upcomingAppointments = [];
+  const upcomingThisWeek = 0; // upcomingAppointments.filter(a => {
+  //   const appointmentDate = new Date(a.appointment_date);
+  //   const todayDate = new Date();
+  //   const weekFromNow = new Date(todayDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+  //   return appointmentDate <= weekFromNow;
+  // }).length;
   
   // Rendez-vous en retard
-  const overdueAppointments = getOverdueAppointments();
+  // TODO: Implement overdue appointments logic
+  const overdueAppointments = [];
   
   // Stock critique
-  const lowStockItems = stockItems.filter(item => item.currentStock <= item.minimumStock).length;
-  const outOfStockItems = stockItems.filter(item => item.currentStock === 0).length;
+  const lowStockItems = stockItems.filter(item => item.current_quantity <= item.minimum_quantity).length;
+  const outOfStockItems = stockItems.filter(item => item.current_quantity === 0).length;
   
-  // Revenus du mois
-  const thisMonthStart = new Date(thisYear, thisMonth, 1).toISOString().split('T')[0];
-  const thisMonthEnd = new Date(thisYear, thisMonth + 1, 0).toISOString().split('T')[0];
-  const accountingSummary = generateAccountingSummary(
-    `${thisYear}-${String(thisMonth + 1).padStart(2, '0')}`,
-    thisMonthStart,
-    thisMonthEnd
-  );
+  // TODO: Implement proper accounting summary with database data
+  const accountingSummary = {
+    totalRevenue: 0,
+    totalExpenses: 0,
+    netIncome: 0,
+    revenueBreakdown: { consultations: 0, vaccinations: 0, antiparasitics: 0, prescriptions: 0, manualEntries: 0 },
+    expenseBreakdown: { stockPurchases: 0, salaries: 0, rent: 0, taxes: 0, other: 0 }
+  };
   
   // Nouveaux clients ce mois
-  const newClientsThisMonth = clients.filter(c => {
-    const clientDate = new Date(c.createdAt);
-    return clientDate.getMonth() === thisMonth && clientDate.getFullYear() === thisYear;
-  }).length;
+  // TODO: Implement with proper data source that includes created_at dates
+  const newClientsThisMonth = 0; // clients.filter(c => {
+  //   const clientDate = new Date(c.created_at);
+  //   return clientDate.getMonth() === thisMonth && clientDate.getFullYear() === thisYear;
+  // }).length;
   
   // Nouveaux animaux ce mois
-  const newPetsThisMonth = pets.filter(p => {
-    const petDate = new Date(p.createdAt);
-    return petDate.getMonth() === thisMonth && petDate.getFullYear() === thisYear;
-  }).length;
+  // TODO: Implement with proper data source that includes created_at dates
+  const newPetsThisMonth = 0; // pets.filter(p => {
+  //   const petDate = new Date(p.created_at);
+  //   return petDate.getMonth() === thisMonth && petDate.getFullYear() === thisYear;
+  // }).length;
 
   const kpis = [
     {

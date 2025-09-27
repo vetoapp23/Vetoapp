@@ -1,25 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Heart, Calendar, TrendingUp, Stethoscope, Clock, DollarSign, Activity, Syringe, Shield, Package, AlertTriangle } from "lucide-react";
-import { useClients } from "@/contexts/ClientContext";
+import { useClients, useAnimals, useConsultations, useAppointments, usePrescriptions, useVaccinations, useAntiparasitics, useStockItems } from "@/hooks/useDatabase";
 import { useSettings } from "@/contexts/SettingsContext";
 
 export function DashboardStats() {
-  const { 
-    clients, 
-    pets, 
-    consultations, 
-    appointments, 
-    prescriptions, 
-    farms,
-    vaccinations,
-    antiparasitics,
-    stockItems,
-    stockMovements,
-    accountingEntries,
-    getUpcomingAppointments, 
-    getOverdueAppointments,
-    generateAccountingSummary
-  } = useClients();
+  const { data: clients = [] } = useClients();
+  const { data: pets = [] } = useAnimals();
+  const { data: consultations = [] } = useConsultations();
+  const { data: appointments = [] } = useAppointments();
+  const { data: prescriptions = [] } = usePrescriptions();
+  const { data: vaccinations = [] } = useVaccinations();
+  const { data: antiparasitics = [] } = useAntiparasitics();
+  const { data: stockItems = [] } = useStockItems();
   const { settings } = useSettings();
 
   // Calculer les statistiques en temps réel
@@ -28,7 +20,7 @@ export function DashboardStats() {
   const totalConsultations = consultations.length;
   const totalAppointments = appointments.length;
   const totalPrescriptions = prescriptions.length;
-  const totalFarms = farms.length;
+  const totalFarms = 0; // TODO: Add farms hook when available
   const totalVaccinations = vaccinations.length;
   const totalAntiparasitics = antiparasitics.length;
   const totalStockItems = stockItems.length;
@@ -36,49 +28,59 @@ export function DashboardStats() {
   // Calculer les consultations de ce mois
   const thisMonth = new Date().getMonth();
   const thisYear = new Date().getFullYear();
+    // Consultations ce mois
   const consultationsThisMonth = consultations.filter(c => {
-    const consultationDate = new Date(c.date);
+    const consultationDate = new Date(c.consultation_date);
     return consultationDate.getMonth() === thisMonth && consultationDate.getFullYear() === thisYear;
   }).length;
 
-  // Calculer les vaccinations de ce mois
+    // Vaccinations ce mois
   const vaccinationsThisMonth = vaccinations.filter(v => {
-    const vaccinationDate = new Date(v.dateGiven);
+    const vaccinationDate = new Date(v.vaccination_date);
     return vaccinationDate.getMonth() === thisMonth && vaccinationDate.getFullYear() === thisYear;
   }).length;
 
-  // Calculer les antiparasitaires de ce mois
+  // Antiparasitaires ce mois
   const antiparasiticsThisMonth = antiparasitics.filter(a => {
-    const antiparasiticDate = new Date(a.dateGiven);
+    const antiparasiticDate = new Date(a.treatment_date);
     return antiparasiticDate.getMonth() === thisMonth && antiparasiticDate.getFullYear() === thisYear;
   }).length;
 
   // Calculer les consultations d'aujourd'hui
   const today = new Date().toISOString().split('T')[0];
-  const consultationsToday = consultations.filter(c => c.date === today).length;
+  const consultationsToday = consultations.filter(c => {
+    const consultationDate = c.consultation_date.split('T')[0]; // Extract date part only
+    return consultationDate === today;
+  }).length;
 
   // Calculer les rendez-vous d'aujourd'hui
-  const appointmentsToday = appointments.filter(a => a.date === today && a.status !== 'cancelled' && a.status !== 'completed').length;
+  const appointmentsToday = appointments.filter(a => {
+    const appointmentDate = a.appointment_date.split('T')[0]; // Extract date part only
+    return appointmentDate === today && a.status !== 'cancelled' && a.status !== 'completed';
+  }).length;
 
   // Rendez-vous à venir et en retard
-  const upcomingAppointments = getUpcomingAppointments();
-  const overdueAppointments = getOverdueAppointments();
+  // TODO: Implement upcoming/overdue appointments logic
+  const upcomingAppointments = [];
+  const overdueAppointments = [];
 
   // Calculer les statistiques du stock
-  const lowStockItems = stockItems.filter(item => item.currentStock <= item.minimumStock).length;
-  const outOfStockItems = stockItems.filter(item => item.currentStock === 0).length;
-  const totalStockValue = stockItems.reduce((sum, item) => sum + (item.currentStock * item.purchasePrice), 0);
+  const lowStockItems = stockItems.filter(item => item.current_quantity <= item.minimum_quantity).length;
+  const outOfStockItems = stockItems.filter(item => item.current_quantity === 0).length;
+  const totalStockValue = stockItems.reduce((sum, item) => sum + (item.current_quantity * (item.unit_cost || 0)), 0);
 
   // Calculer les revenus réels basés sur les données comptables
   const thisMonthStart = new Date(thisYear, thisMonth, 1).toISOString().split('T')[0];
   const thisMonthEnd = new Date(thisYear, thisMonth + 1, 0).toISOString().split('T')[0];
   
-  // Générer le résumé comptable pour ce mois
-  const accountingSummary = generateAccountingSummary(
-    `${thisYear}-${String(thisMonth + 1).padStart(2, '0')}`,
-    thisMonthStart,
-    thisMonthEnd
-  );
+  // TODO: Implement proper accounting summary with database data
+  const accountingSummary = {
+    totalRevenue: 0,
+    totalExpenses: 0,
+    netIncome: 0,
+    revenueBreakdown: { consultations: 0, vaccinations: 0, antiparasitics: 0, prescriptions: 0, manualEntries: 0 },
+    expenseBreakdown: { stockPurchases: 0, salaries: 0, rent: 0, taxes: 0, other: 0 }
+  };
   
   const realRevenue = accountingSummary.totalRevenue;
   const realExpenses = accountingSummary.totalExpenses;
@@ -96,23 +98,24 @@ export function DashboardStats() {
   const previousYear = thisMonth === 0 ? thisYear - 1 : thisYear;
   
   const consultationsPreviousMonth = consultations.filter(c => {
-    const consultationDate = new Date(c.date);
+    const consultationDate = new Date(c.consultation_date);
     return consultationDate.getMonth() === previousMonth && consultationDate.getFullYear() === previousYear;
   }).length;
 
-  const clientsPreviousMonth = clients.filter(c => {
-    const lastVisit = new Date(c.lastVisit);
-    return lastVisit.getMonth() === previousMonth && lastVisit.getFullYear() === previousYear;
-  }).length;
+  // TODO: Implement proper client/pet activity tracking
+  const clientsPreviousMonth = 0; // clients.filter(c => {
+  //   const lastVisit = new Date(c.lastVisit);
+  //   return lastVisit.getMonth() === previousMonth && lastVisit.getFullYear() === previousYear;
+  // }).length;
 
-  const petsPreviousMonth = pets.filter(p => {
-    if (!p.lastVisit) return false;
-    const lastVisit = new Date(p.lastVisit);
-    return lastVisit.getMonth() === previousMonth && lastVisit.getFullYear() === previousYear;
-  }).length;
+  const petsPreviousMonth = 0; // pets.filter(p => {
+  //   if (!p.lastVisit) return false;
+  //   const lastVisit = new Date(p.lastVisit);
+  //   return lastVisit.getMonth() === previousMonth && lastVisit.getFullYear() === previousYear;
+  // }).length;
 
   const appointmentsPreviousMonth = appointments.filter(a => {
-    const appointmentDate = new Date(a.date);
+    const appointmentDate = new Date(a.appointment_date);
     return appointmentDate.getMonth() === previousMonth && appointmentDate.getFullYear() === previousYear;
   }).length;
 
