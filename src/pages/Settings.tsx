@@ -1035,14 +1035,14 @@ export default function Settings() {
                 <User className="h-4 w-4" />
                 Mon Profil
               </Button>
-              <Button 
+              {/* <Button 
                 variant="outline" 
                 className="w-full justify-start gap-2"
                 onClick={() => window.location.href = '/auth-settings'}
               >
                 <Shield className="h-4 w-4" />
                 Paramètres de Connexion
-              </Button>
+              </Button> */}
             </CardContent>
           </Card>
         </div>

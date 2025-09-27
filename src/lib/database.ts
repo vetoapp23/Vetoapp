@@ -320,7 +320,7 @@ export interface CreateAnimalData {
   sterilization_date?: string
   notes?: string
   photo_url?: string
-  status?: 'healthy' | 'treatment' | 'urgent'
+  status?: 'vivant' | 'décédé' | 'perdu'
 }
 
 export interface CreateConsultationData {

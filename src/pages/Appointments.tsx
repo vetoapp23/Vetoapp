@@ -10,6 +10,7 @@ import { useAppointments, useUpdateAppointment, useDeleteAppointment, type Appoi
 import { useToast } from "@/hooks/use-toast";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
 import { UnifiedCalendar } from '@/components/UnifiedCalendar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import React from "react";
 
 const statusStyles = {
@@ -53,6 +54,10 @@ export default function Appointments() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [displayMode, setDisplayMode] = useState<'cards' | 'table'>(currentView);
+  
+  // Delete confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
   
   // Inline editing state
   const [editingField, setEditingField] = useState<{ id: string; field: 'date' | 'time' | 'status' | 'reason'; } | null>(null);
@@ -188,21 +193,28 @@ export default function Appointments() {
   };
 
   const handleDelete = async (appointment: Appointment) => {
-    const animalName = getAnimalName(appointment);
-    if (confirm(`Êtes-vous sûr de vouloir supprimer le rendez-vous pour ${animalName} ?`)) {
-      try {
-        await deleteAppointmentMutation.mutateAsync(appointment.id);
-        toast({
-          title: "Rendez-vous supprimé",
-          description: `Le rendez-vous pour ${animalName} a été supprimé.`,
-        });
-      } catch (error) {
-        toast({
-          title: "Erreur",
-          description: "Impossible de supprimer le rendez-vous",
-          variant: "destructive",
-        });
-      }
+    setAppointmentToDelete(appointment);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteAppointment = async () => {
+    if (!appointmentToDelete) return;
+
+    const animalName = getAnimalName(appointmentToDelete);
+    try {
+      await deleteAppointmentMutation.mutateAsync(appointmentToDelete.id);
+      toast({
+        title: "Rendez-vous supprimé",
+        description: `Le rendez-vous pour ${animalName} a été supprimé.`,
+      });
+      setShowDeleteConfirm(false);
+      setAppointmentToDelete(null);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le rendez-vous",
+        variant: "destructive",
+      });
     }
   };
 
@@ -794,6 +806,33 @@ export default function Appointments() {
         open={showNewAppointment}
         onOpenChange={setShowNewAppointment}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          {appointmentToDelete && (
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Êtes-vous sûr de vouloir supprimer le rendez-vous pour <strong>{getAnimalName(appointmentToDelete)}</strong> ?
+              </p>
+              <p className="text-sm text-red-600">
+                Cette action est irréversible.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                  Annuler
+                </Button>
+                <Button variant="destructive" onClick={confirmDeleteAppointment}>
+                  Supprimer
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
