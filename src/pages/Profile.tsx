@@ -192,159 +192,159 @@ export default function Profile() {
     <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Mon Profil</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold">Mon Profil</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">
         Gérez vos informations personnelles et préférences
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {isEditing ? (
+        </p>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-2">
+        {isEditing ? (
         <>
-          <Button variant="outline" onClick={() => setIsEditing(false)}>
-            Annuler
+          <Button variant="outline" onClick={() => setIsEditing(false)} className="w-full sm:w-auto">
+          Annuler
           </Button>
           <Button 
-            onClick={handleSaveProfile} 
-            className="gap-2" 
-            disabled={updateProfileMutation.isPending}
+          onClick={handleSaveProfile} 
+          className="gap-2 w-full sm:w-auto" 
+          disabled={updateProfileMutation.isPending}
           >
-            {updateProfileMutation.isPending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-          <Save className="h-4 w-4" />
-            )}
-            {updateProfileMutation.isPending ? 'Sauvegarde...' : 'Sauvegarder'}
+          {updateProfileMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {updateProfileMutation.isPending ? 'Sauvegarde...' : 'Sauvegarder'}
           </Button>
         </>
-          ) : (
-        <Button onClick={() => setIsEditing(true)} className="gap-2">
+        ) : (
+        <Button onClick={() => setIsEditing(true)} className="gap-2 w-full sm:w-auto">
           <Edit className="h-4 w-4" />
           Modifier
         </Button>
-          )}
-        </div>
+        )}
+      </div>
       </div>
 
       {/* Informations Personnelles */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
         <User className="h-5 w-5" />
         Informations Personnelles
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Avatar et Informations de base */}
-          <div className="flex items-center gap-4">
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Avatar et Informations de base */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
         <div className="relative">
-          <Avatar className="h-20 w-20">
-            <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-          {getInitials(user.profile.full_name)}
-            </AvatarFallback>
+          <Avatar className="h-16 w-16 sm:h-20 sm:w-20">
+          <AvatarFallback className="bg-primary text-primary-foreground text-lg sm:text-xl">
+            {getInitials(user.profile.full_name)}
+          </AvatarFallback>
           </Avatar>
           {isEditing && (
-            <Button
-          size="sm"
-          className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
-          variant="secondary"
-            >
-          <Camera className="h-4 w-4" />
-            </Button>
+          <Button
+            size="sm"
+            className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
+            variant="secondary"
+          >
+            <Camera className="h-4 w-4" />
+          </Button>
           )}
         </div>
-        <div className="flex-1">
-          <h3 className="text-xl font-semibold">{user.profile.full_name || user.profile.username}</h3>
-          <div className="flex items-center gap-2 mt-1">
-            <Mail className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">{user.email}</span>
+        <div className="flex-1 text-center sm:text-left">
+          <h3 className="text-lg sm:text-xl font-semibold">{user.profile.full_name || user.profile.username}</h3>
+          <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
+          <Mail className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">{user.email}</span>
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <Shield className="h-4 w-4 text-muted-foreground" />
-            <Badge className={getRoleColor(user.profile.role)}>
-          {getRoleLabel(user.profile.role)}
-            </Badge>
+          <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          <Badge className={getRoleColor(user.profile.role)}>
+            {getRoleLabel(user.profile.role)}
+          </Badge>
           </div>
         </div>
-          </div>
+        </div>
 
-          <Separator />
+        <Separator />
 
-          {/* Formulaire d'édition */}
-          <div className="grid gap-4 md:grid-cols-2">
+        {/* Formulaire d'édition */}
+        <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="full_name">Nom complet</Label>
           <Input
-            id="full_name"
-            value={profileData.full_name}
-            onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
-            disabled={!isEditing}
+          id="full_name"
+          value={profileData.full_name}
+          onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
+          disabled={!isEditing}
           />
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="username">Nom d'utilisateur</Label>
           <Input
-            id="username"
-            value={profileData.username}
-            onChange={(e) => setProfileData(prev => ({ ...prev, username: e.target.value }))}
-            disabled={!isEditing}
+          id="username"
+          value={profileData.username}
+          onChange={(e) => setProfileData(prev => ({ ...prev, username: e.target.value }))}
+          disabled={!isEditing}
           />
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
-            id="email"
-            type="email"
-            value={profileData.email}
-            disabled={true}
-            className="bg-muted"
+          id="email"
+          type="email"
+          value={profileData.email}
+          disabled={true}
+          className="bg-muted"
           />
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="phone">Téléphone</Label>
           <Input
-            id="phone"
-            value={profileData.phone}
-            onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-            disabled={!isEditing}
+          id="phone"
+          value={profileData.phone}
+          onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+          disabled={!isEditing}
           />
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="address">Adresse</Label>
           <Input
-            id="address"
-            value={profileData.address}
-            onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
-            disabled={!isEditing}
+          id="address"
+          value={profileData.address}
+          onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
+          disabled={!isEditing}
           />
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="specialty">Spécialité</Label>
           <Input
-            id="specialty"
-            value={profileData.specialty}
-            onChange={(e) => setProfileData(prev => ({ ...prev, specialty: e.target.value }))}
-            disabled={!isEditing}
+          id="specialty"
+          value={profileData.specialty}
+          onChange={(e) => setProfileData(prev => ({ ...prev, specialty: e.target.value }))}
+          disabled={!isEditing}
           />
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="experience">Expérience</Label>
           <Input
-            id="experience"
-            value={profileData.experience}
-            onChange={(e) => setProfileData(prev => ({ ...prev, experience: e.target.value }))}
-            disabled={!isEditing}
+          id="experience"
+          value={profileData.experience}
+          onChange={(e) => setProfileData(prev => ({ ...prev, experience: e.target.value }))}
+          disabled={!isEditing}
           />
         </div>
-          </div>
-          
-          <div className="space-y-2">
+        </div>
+        
+        <div className="space-y-2">
         <Label htmlFor="bio">Biographie</Label>
         <textarea
           id="bio"
@@ -353,10 +353,10 @@ export default function Profile() {
           onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
           disabled={!isEditing}
         />
-          </div>
-        </CardContent>
+        </div>
+      </CardContent>
       </Card>
-      </div>
+    </div>
   );
 }
 

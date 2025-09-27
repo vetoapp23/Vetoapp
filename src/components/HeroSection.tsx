@@ -48,39 +48,39 @@ export function HeroSection() {
   
   return (
     <>
-      <div className="relative overflow-hidden gradient-hero rounded-2xl p-8 mb-8">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
-            {/* Logo */}
-            {settings.logo && <img src={settings.logo} alt="Logo clinique" className="h-20 w-20 object-contain rounded" />}
-            {/* Texte de bienvenue */}
-            <div className="flex-1 space-y-6">
-              <div className="flex items-center gap-2">
-                <Heart className="h-8 w-8 text-primary" />
-                <span className="text-sm font-medium text-primary">Gestion Vétérinaire Complète</span>
-              </div>
-              <h1 className="text-4xl font-bold leading-tight max-w-3xl">{greeting}, <span className="gradient-primary bg-clip-text text-transparent block">Dashboard VetPro</span></h1>
-              <p className="text-lg text-muted-foreground max-w-3xl">Gérez efficacement vos clients, leurs animaux, les rendez-vous et consultations. Votre pratique vétérinaire optimisée en un seul endroit.</p>
-              {/* Boutons d'actions */}
-              <div className="flex flex-wrap gap-4 pt-4">
-                <Button size="lg" className="gap-2 medical-glow" onClick={() => setShowClientModal(true)}><Users className="h-5 w-5" />Nouveau Client<ArrowRight className="h-4 w-4" /></Button>
-                <Button variant="outline" size="lg" className="gap-2" onClick={() => setShowPetModal(true)}><Heart className="h-5 w-5" />Nouvel Animal</Button>
-                <Button variant="outline" size="lg" className="gap-2" onClick={() => setShowAppointmentModal(true)}><Calendar className="h-5 w-5" />Planifier RDV</Button>
-                <Button variant="outline" size="lg" className="gap-2" onClick={() => setShowConsultationModal(true)}><Stethoscope className="h-5 w-5" />Nouvelle Consultation</Button>
-              </div>
-              {/* Statistiques */}
-              <div className="flex gap-6 pt-8 flex-wrap">
-                <div className="text-center"><div className="text-2xl font-bold text-primary">{totalClients}</div><div className="text-sm text-muted-foreground">Clients actifs</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-secondary">{totalPets}</div><div className="text-sm text-muted-foreground">Animaux suivis</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-accent">{consultationsToday}</div><div className="text-sm text-muted-foreground">Consultations aujourd'hui</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-blue-600">{totalVaccinations}</div><div className="text-sm text-muted-foreground">Vaccinations</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-purple-600">{totalAntiparasitics}</div><div className="text-sm text-muted-foreground">Antiparasitaires</div></div>
-                <AdminOnly>
-                  <div className="text-center"><div className="text-2xl font-bold text-emerald-600">{accountingSummary.totalRevenue.toFixed(2)} {settings.currency || '€'}</div><div className="text-sm text-muted-foreground">Revenus ce mois</div></div>
-                </AdminOnly>
-              </div>
-            </div>
-            {/* Illustration */}
-            <div className="hidden lg:block"><img src={heroImage} alt="Vétérinaire professionnel examinant un chien" className="w-96 h-64 object-cover rounded-xl shadow-medical" /></div>
+      <div className="relative overflow-hidden gradient-hero rounded-2xl p-4 md:p-8 mb-8">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6 md:gap-8">
+        {/* Logo */}
+        {settings.logo && <img src={settings.logo} alt="Logo clinique" className="h-16 w-16 md:h-20 md:w-20 object-contain rounded" />}
+        {/* Texte de bienvenue */}
+        <div className="flex-1 space-y-4 md:space-y-6">
+          <div className="flex items-center gap-2">
+            <Heart className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+            <span className="text-xs md:text-sm font-medium text-primary">Gestion Vétérinaire Complète</span>
+          </div>
+          <h1 className="text-2xl md:text-4xl font-bold leading-tight max-w-3xl">{greeting}, <span className="gradient-primary bg-clip-text text-transparent block">Dashboard VetPro</span></h1>
+          <p className="text-base md:text-lg text-muted-foreground max-w-3xl">Gérez efficacement vos clients, leurs animaux, les rendez-vous et consultations. Votre pratique vétérinaire optimisée en un seul endroit.</p>
+          {/* Boutons d'actions */}
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-4">
+            <Button size="lg" className="gap-2 medical-glow w-full sm:w-auto" onClick={() => setShowClientModal(true)}><Users className="h-5 w-5" />Nouveau Client<ArrowRight className="h-4 w-4" /></Button>
+            <Button variant="outline" size="lg" className="gap-2 w-full sm:w-auto" onClick={() => setShowPetModal(true)}><Heart className="h-5 w-5" />Nouvel Animal</Button>
+            <Button variant="outline" size="lg" className="gap-2 w-full sm:w-auto" onClick={() => setShowAppointmentModal(true)}><Calendar className="h-5 w-5" />Planifier RDV</Button>
+            <Button variant="outline" size="lg" className="gap-2 w-full sm:w-auto" onClick={() => setShowConsultationModal(true)}><Stethoscope className="h-5 w-5" />Nouvelle Consultation</Button>
+          </div>
+          {/* Statistiques */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6 pt-6 md:pt-8">
+            <div className="text-center"><div className="text-xl md:text-2xl font-bold text-primary">{totalClients}</div><div className="text-xs md:text-sm text-muted-foreground">Clients actifs</div></div>
+            <div className="text-center"><div className="text-xl md:text-2xl font-bold text-secondary">{totalPets}</div><div className="text-xs md:text-sm text-muted-foreground">Animaux suivis</div></div>
+            <div className="text-center"><div className="text-xl md:text-2xl font-bold text-accent">{consultationsToday}</div><div className="text-xs md:text-sm text-muted-foreground">Consultations aujourd'hui</div></div>
+            <div className="text-center"><div className="text-xl md:text-2xl font-bold text-blue-600">{totalVaccinations}</div><div className="text-xs md:text-sm text-muted-foreground">Vaccinations</div></div>
+            <div className="text-center"><div className="text-xl md:text-2xl font-bold text-purple-600">{totalAntiparasitics}</div><div className="text-xs md:text-sm text-muted-foreground">Antiparasitaires</div></div>
+            <AdminOnly>
+          <div className="text-center"><div className="text-xl md:text-2xl font-bold text-emerald-600">{accountingSummary.totalRevenue.toFixed(2)} {settings.currency || '€'}</div><div className="text-xs md:text-sm text-muted-foreground">Revenus ce mois</div></div>
+            </AdminOnly>
+          </div>
+        </div>
+        {/* Illustration */}
+        <div className="hidden lg:block"><img src={heroImage} alt="Vétérinaire professionnel examinant un chien" className="w-96 h-64 object-cover rounded-xl shadow-medical" /></div>
           </div>
       </div>
       

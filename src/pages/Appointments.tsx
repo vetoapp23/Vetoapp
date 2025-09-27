@@ -279,559 +279,559 @@ export default function Appointments() {
     <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Gestion des Rendez-vous</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Planifiez et gérez tous vos rendez-vous vétérinaires
-          </p>
-        </div>
-        <Button onClick={() => setShowNewAppointment(true)} className="gap-2 w-full sm:w-auto">
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Nouveau Rendez-vous</span>
-          <span className="sm:hidden">Nouveau RDV</span>
-        </Button>
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold">Gestion des Rendez-vous</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">
+        Planifiez et gérez tous vos rendez-vous vétérinaires
+        </p>
+      </div>
+      <Button onClick={() => setShowNewAppointment(true)} className="gap-2 w-full sm:w-auto">
+        <Plus className="h-4 w-4" />
+        <span className="hidden sm:inline">Nouveau Rendez-vous</span>
+        <span className="sm:hidden">Nouveau RDV</span>
+      </Button>
       </div>
 
       {/* Toggle List / Calendrier */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+      <div className="flex gap-2">
+        <Button variant={viewMode==='list'?'default':'outline'} onClick={()=>setViewMode('list')} size="sm" className="flex-1 sm:flex-none">Liste</Button>
+        <Button variant={viewMode==='calendar'?'default':'outline'} onClick={()=>setViewMode('calendar')} size="sm" className="flex-1 sm:flex-none">Calendrier</Button>
+      </div>
+      
+      {viewMode === 'list' && (
         <div className="flex gap-2">
-          <Button variant={viewMode==='list'?'default':'outline'} onClick={()=>setViewMode('list')} size="sm" className="flex-1 sm:flex-none">Liste</Button>
-          <Button variant={viewMode==='calendar'?'default':'outline'} onClick={()=>setViewMode('calendar')} size="sm" className="flex-1 sm:flex-none">Calendrier</Button>
+        <Button 
+          size="sm" 
+          variant={displayMode === 'cards' ? 'default' : 'outline'} 
+          onClick={() => setDisplayMode('cards')}
+          className="gap-1 sm:gap-2 flex-1 sm:flex-none"
+        >
+          <Grid className="h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">Cartes</span>
+        </Button>
+        <Button 
+          size="sm" 
+          variant={displayMode === 'table' ? 'default' : 'outline'} 
+          onClick={() => setDisplayMode('table')}
+          className="gap-1 sm:gap-2 flex-1 sm:flex-none"
+        >
+          <List className="h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">Tableau</span>
+        </Button>
         </div>
-        
-        {viewMode === 'list' && (
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant={displayMode === 'cards' ? 'default' : 'outline'} 
-              onClick={() => setDisplayMode('cards')}
-              className="gap-1 sm:gap-2 flex-1 sm:flex-none"
-            >
-              <Grid className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Cartes</span>
-            </Button>
-            <Button 
-              size="sm" 
-              variant={displayMode === 'table' ? 'default' : 'outline'} 
-              onClick={() => setDisplayMode('table')}
-              className="gap-1 sm:gap-2 flex-1 sm:flex-none"
-            >
-              <List className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Tableau</span>
-            </Button>
-          </div>
-        )}
+      )}
       </div>
       {viewMode==='calendar' ? (
-        <UnifiedCalendar
-          events={appointments.map(appointment => ({
-            id: parseInt(appointment.id),
-            type: 'appointment' as const,
-            title: `${getClientName(appointment)} - ${getAnimalName(appointment)}`,
-            time: getAppointmentTime(appointment),
-            date: getAppointmentDate(appointment),
-            status: appointment.status,
-            clientName: getClientName(appointment),
-            petName: getAnimalName(appointment),
-          }))}
-          onEventClick={(event) => {
-            // Gérer le clic sur un rendez-vous
-            // Appointment clicked
-          }}
-          onDateClick={(date) => {
-            setSelectedDate(date);
-          }}
-          onTimeSlotClick={(date, time) => {
-            // Ouvrir le modal de création de rendez-vous avec la date et l'heure pré-remplies
-            setShowNewAppointment(true);
-            // Vous pouvez ajouter une logique pour pré-remplir le formulaire
-          }}
-          showTimeSlots={true}
-          title="Calendrier des Rendez-vous"
-          icon={<Calendar className="h-5 w-5" />}
-        />
+      <UnifiedCalendar
+        events={appointments.map(appointment => ({
+        id: parseInt(appointment.id),
+        type: 'appointment' as const,
+        title: `${getClientName(appointment)} - ${getAnimalName(appointment)}`,
+        time: getAppointmentTime(appointment),
+        date: getAppointmentDate(appointment),
+        status: appointment.status,
+        clientName: getClientName(appointment),
+        petName: getAnimalName(appointment),
+        }))}
+        onEventClick={(event) => {
+        // Gérer le clic sur un rendez-vous
+        // Appointment clicked
+        }}
+        onDateClick={(date) => {
+        setSelectedDate(date);
+        }}
+        onTimeSlotClick={(date, time) => {
+        // Ouvrir le modal de création de rendez-vous avec la date et l'heure pré-remplies
+        setShowNewAppointment(true);
+        // Vous pouvez ajouter une logique pour pré-remplir le formulaire
+        }}
+        showTimeSlots={true}
+        title="Calendrier des Rendez-vous"
+        icon={<Calendar className="h-5 w-5" />}
+      />
       ) : (
-        <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Aujourd'hui</p>
-                  <p className="text-lg sm:text-2xl font-bold">{todayAppointments.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">À venir</p>
-                  <p className="text-lg sm:text-2xl font-bold">{upcomingAppointments.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">En retard</p>
-                  <p className="text-lg sm:text-2xl font-bold">{overdueAppointments.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total</p>
-                  <p className="text-lg sm:text-2xl font-bold">{appointments.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+        <Card>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+          <div>
+            <p className="text-xs sm:text-sm text-muted-foreground">Aujourd'hui</p>
+            <p className="text-lg sm:text-2xl font-bold">{todayAppointments.length}</p>
+          </div>
+          </div>
+        </CardContent>
+        </Card>
+        
+        <Card>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+          <div>
+            <p className="text-xs sm:text-sm text-muted-foreground">À venir</p>
+            <p className="text-lg sm:text-2xl font-bold">{upcomingAppointments.length}</p>
+          </div>
+          </div>
+        </CardContent>
+        </Card>
+        
+        <Card>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
+          <div>
+            <p className="text-xs sm:text-sm text-muted-foreground">En retard</p>
+            <p className="text-lg sm:text-2xl font-bold">{overdueAppointments.length}</p>
+          </div>
+          </div>
+        </CardContent>
+        </Card>
+        
+        <Card>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-2">
+          <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
+          <div>
+            <p className="text-xs sm:text-sm text-muted-foreground">Total</p>
+            <p className="text-lg sm:text-2xl font-bold">{appointments.length}</p>
+          </div>
+          </div>
+        </CardContent>
+        </Card>
+      </div>
       )}
 
       {/* Filtres */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
-            Filtres et Recherche
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 sm:space-y-4">
-          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <div className="space-y-2">
-              <Label>Recherche</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Client, animal, motif..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Statut</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="scheduled">Planifié</SelectItem>
-                  <SelectItem value="confirmed">Confirmé</SelectItem>
-                  <SelectItem value="completed">Terminé</SelectItem>
-                  <SelectItem value="cancelled">Annulé</SelectItem>
-                  <SelectItem value="no-show">Absent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les types</SelectItem>
-                  <SelectItem value="consultation">Consultation</SelectItem>
-                  <SelectItem value="vaccination">Vaccination</SelectItem>
-                  <SelectItem value="chirurgie">Chirurgie</SelectItem>
-                  <SelectItem value="urgence">Urgence</SelectItem>
-                  <SelectItem value="controle">Contrôle</SelectItem>
-                  <SelectItem value="sterilisation">Stérilisation</SelectItem>
-                  <SelectItem value="dentaire">Dentaire</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Période</Label>
-              <Select value={filterDate} onValueChange={setFilterDate}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes les dates</SelectItem>
-                  <SelectItem value="today">Ce jour</SelectItem>
-                  <SelectItem value="week">Cette semaine</SelectItem>
-                  <SelectItem value="month">Ce mois</SelectItem>
-                  <SelectItem value="specific">Date spécifique</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {filterDate === "specific" && (
-              <div className="space-y-2">
-                <Label>Date</Label>
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                />
-              </div>
-            )}
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+        <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
+        Filtres et Recherche
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 sm:space-y-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="space-y-2">
+          <Label>Recherche</Label>
+          <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Client, animal, motif..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
           </div>
-        </CardContent>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Statut</Label>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les statuts</SelectItem>
+            <SelectItem value="scheduled">Planifié</SelectItem>
+            <SelectItem value="confirmed">Confirmé</SelectItem>
+            <SelectItem value="completed">Terminé</SelectItem>
+            <SelectItem value="cancelled">Annulé</SelectItem>
+            <SelectItem value="no-show">Absent</SelectItem>
+          </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Type</Label>
+          <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les types</SelectItem>
+            <SelectItem value="consultation">Consultation</SelectItem>
+            <SelectItem value="vaccination">Vaccination</SelectItem>
+            <SelectItem value="chirurgie">Chirurgie</SelectItem>
+            <SelectItem value="urgence">Urgence</SelectItem>
+            <SelectItem value="controle">Contrôle</SelectItem>
+            <SelectItem value="sterilisation">Stérilisation</SelectItem>
+            <SelectItem value="dentaire">Dentaire</SelectItem>
+          </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Période</Label>
+          <Select value={filterDate} onValueChange={setFilterDate}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes les dates</SelectItem>
+            <SelectItem value="today">Ce jour</SelectItem>
+            <SelectItem value="week">Cette semaine</SelectItem>
+            <SelectItem value="month">Ce mois</SelectItem>
+            <SelectItem value="specific">Date spécifique</SelectItem>
+          </SelectContent>
+          </Select>
+        </div>
+        
+        {filterDate === "specific" && (
+          <div className="space-y-2">
+          <Label>Date</Label>
+          <Input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
+          </div>
+        )}
+        </div>
+      </CardContent>
       </Card>
 
       {/* Liste des rendez-vous */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">
-            Rendez-vous ({filteredAppointments.length})
-          </h2>
-        </div>
-        
-        {filteredAppointments.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-              <p>Aucun rendez-vous trouvé</p>
-              <p className="text-sm">Commencez par créer votre premier rendez-vous</p>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">
+        Rendez-vous ({filteredAppointments.length})
+        </h2>
+      </div>
+      
+      {filteredAppointments.length === 0 ? (
+        <Card>
+        <CardContent className="p-8 text-center text-muted-foreground">
+          <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+          <p>Aucun rendez-vous trouvé</p>
+          <p className="text-sm">Commencez par créer votre premier rendez-vous</p>
+        </CardContent>
+        </Card>
+      ) : displayMode === 'cards' ? (
+        <div className="space-y-4">
+        {filteredAppointments
+          .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
+          .map((appointment) => (
+          <Card key={appointment.id} className="card-hover">
+            <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="space-y-4 flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{getClientName(appointment)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                <Heart className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{getAnimalName(appointment)}</span>
+                </div>
+                <Badge className={statusStyles[appointment.status]}>
+                {statusLabels[appointment.status]}
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span>{formatDate(appointment.appointment_date)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span>{formatTime(appointment.appointment_date)}</span>
+                </div>
+                <div>
+                <span className="text-muted-foreground">Type:</span>
+                <span className="ml-1">{typeLabels[appointment.appointment_type as keyof typeof typeLabels] || appointment.appointment_type}</span>
+                </div>
+                <div>
+                <span className="text-muted-foreground">Durée:</span>
+                <span className="ml-1">{appointment.duration_minutes || 30} min</span>
+                </div>
+              </div>
+              
+              {appointment.notes && (
+                <div>
+                <span className="text-sm text-muted-foreground">Motif:</span>
+                <p className="text-sm mt-1">{appointment.notes}</p>
+                </div>
+              )}
+              
+              {appointment.notes && (
+                <div>
+                <span className="text-sm text-muted-foreground">Notes:</span>
+                <p className="text-sm mt-1 text-muted-foreground">{appointment.notes}</p>
+                </div>
+              )}
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-2 sm:ml-4">
+              {appointment.status === 'scheduled' && (
+                <>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleStatusChange(appointment.id, 'confirmed')}
+                  className="gap-1 w-full sm:w-auto"
+                >
+                  <CheckCircle className="h-3 w-3" />
+                  Confirmer
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleStatusChange(appointment.id, 'cancelled')}
+                  className="gap-1 text-red-600 w-full sm:w-auto"
+                >
+                  <XCircle className="h-3 w-3" />
+                  Annuler
+                </Button>
+                </>
+              )}
+              
+              {appointment.status === 'confirmed' && (
+                <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => handleStatusChange(appointment.id, 'completed')}
+                className="gap-1 w-full sm:w-auto"
+                >
+                <CheckCircle className="h-3 w-3" />
+                Terminer
+                </Button>
+              )}
+              
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => handleDelete(appointment)}
+                className="gap-1 text-red-600 w-full sm:w-auto"
+              >
+                <Trash2 className="h-3 w-3" />
+                Supprimer
+              </Button>
+              </div>
+            </div>
             </CardContent>
           </Card>
-        ) : displayMode === 'cards' ? (
-          <div className="space-y-4">
+          ))}
+        </div>
+      ) : (
+        <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="border-b">
+            <tr className="text-left">
+              <th className="p-2 sm:p-4 font-medium">Client / Animal</th>
+              <th className="p-2 sm:p-4 font-medium">Date & Heure</th>
+              <th className="p-2 sm:p-4 font-medium">Type</th>
+              <th className="p-2 sm:p-4 font-medium">Statut</th>
+              <th className="p-2 sm:p-4 font-medium">Motif</th>
+              <th className="p-2 sm:p-4 font-medium">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
             {filteredAppointments
               .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
               .map((appointment) => (
-                <Card key={appointment.id} className="card-hover">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-4 flex-1">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{getClientName(appointment)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Heart className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{getAnimalName(appointment)}</span>
-                          </div>
-                          <Badge className={statusStyles[appointment.status]}>
-                            {statusLabels[appointment.status]}
-                          </Badge>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>{formatDate(appointment.appointment_date)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{formatTime(appointment.appointment_date)}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Type:</span>
-                            <span className="ml-1">{typeLabels[appointment.appointment_type as keyof typeof typeLabels] || appointment.appointment_type}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Durée:</span>
-                            <span className="ml-1">{appointment.duration_minutes || 30} min</span>
-                          </div>
-                        </div>
-                        
-                        {appointment.notes && (
-                          <div>
-                            <span className="text-sm text-muted-foreground">Motif:</span>
-                            <p className="text-sm mt-1">{appointment.notes}</p>
-                          </div>
-                        )}
-                        
-                        {appointment.notes && (
-                          <div>
-                            <span className="text-sm text-muted-foreground">Notes:</span>
-                            <p className="text-sm mt-1 text-muted-foreground">{appointment.notes}</p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex gap-2 ml-4">
-                        {appointment.status === 'scheduled' && (
-                          <>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleStatusChange(appointment.id, 'confirmed')}
-                              className="gap-1"
-                            >
-                              <CheckCircle className="h-3 w-3" />
-                              Confirmer
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleStatusChange(appointment.id, 'cancelled')}
-                              className="gap-1 text-red-600"
-                            >
-                              <XCircle className="h-3 w-3" />
-                              Annuler
-                            </Button>
-                          </>
-                        )}
-                        
-                        {appointment.status === 'confirmed' && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleStatusChange(appointment.id, 'completed')}
-                            className="gap-1"
-                          >
-                            <CheckCircle className="h-3 w-3" />
-                            Terminer
-                          </Button>
-                        )}
-                        
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleDelete(appointment)}
-                          className="gap-1 text-red-600"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          Supprimer
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              <tr key={appointment.id} className="border-b hover:bg-muted/50">
+                <td className="p-2 sm:p-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{getClientName(appointment)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">{getAnimalName(appointment)}</span>
+                  </div>
+                </div>
+                </td>
+                <td className="p-2 sm:p-4">
+                <div className="space-y-1">
+                  <div 
+                  className="flex items-center gap-2 cursor-pointer"
+                  onClick={() => { setEditingField({ id: appointment.id, field: 'date' }); setFieldValue(getAppointmentDate(appointment)); }}
+                  >
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  {editingField?.id === appointment.id && editingField.field === 'date' ? (
+                    <Input
+                    type="date"
+                    value={fieldValue}
+                    onChange={e => setFieldValue(e.target.value)}
+                    onBlur={handleFieldSave}
+                    autoFocus
+                    className="w-32"
+                    />
+                  ) : (
+                    <span>{formatDate(appointment.appointment_date)}</span>
+                  )}
+                  </div>
+                  <div 
+                  className="flex items-center gap-2 cursor-pointer"
+                  onClick={() => { setEditingField({ id: appointment.id, field: 'time' }); setFieldValue(getAppointmentTime(appointment)); }}
+                  >
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  {editingField?.id === appointment.id && editingField.field === 'time' ? (
+                    <Input
+                    type="time"
+                    value={fieldValue}
+                    onChange={e => setFieldValue(e.target.value)}
+                    onBlur={handleFieldSave}
+                    autoFocus
+                    className="w-24"
+                    />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">{formatTime(appointment.appointment_date)}</span>
+                  )}
+                  </div>
+                </div>
+                </td>
+                <td className="p-2 sm:p-4">
+                <div>
+                  <div className="font-medium">{typeLabels[appointment.appointment_type as keyof typeof typeLabels] || appointment.appointment_type}</div>
+                  <div className="text-sm text-muted-foreground">{appointment.duration_minutes || 30} min</div>
+                </div>
+                </td>
+                <td className="p-2 sm:p-4">
+                <div 
+                  className="cursor-pointer"
+                  onClick={() => { setEditingField({ id: appointment.id, field: 'status' }); setFieldValue(appointment.status); }}
+                >
+                  {editingField?.id === appointment.id && editingField.field === 'status' ? (
+                  <Select
+                    value={fieldValue}
+                    onValueChange={value => {
+                    setFieldValue(value);
+                    handleStatusChange(appointment.id, value as Appointment['status']);
+                    setEditingField(null);
+                    }}
+                  >
+                    <SelectTrigger className="w-32">
+                    <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="scheduled">Planifié</SelectItem>
+                    <SelectItem value="confirmed">Confirmé</SelectItem>
+                    <SelectItem value="completed">Terminé</SelectItem>
+                    <SelectItem value="cancelled">Annulé</SelectItem>
+                    <SelectItem value="no-show">Absent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  ) : (
+                  <Badge className={statusStyles[appointment.status]}>
+                    {statusLabels[appointment.status]}
+                  </Badge>
+                  )}
+                </div>
+                </td>
+                <td className="p-2 sm:p-4">
+                <div 
+                  className="max-w-xs cursor-pointer"
+                  onClick={() => { setEditingField({ id: appointment.id, field: 'reason' }); setFieldValue(appointment.notes || ''); }}
+                >
+                  {editingField?.id === appointment.id && editingField.field === 'reason' ? (
+                  <Input
+                    value={fieldValue}
+                    onChange={e => setFieldValue(e.target.value)}
+                    onBlur={handleFieldSave}
+                    autoFocus
+                    placeholder="Motif du rendez-vous"
+                  />
+                  ) : (
+                  <>
+                    {appointment.notes && (
+                    <div className="text-sm">{appointment.notes}</div>
+                    )}
+                    {appointment.notes && (
+                    <div className="text-xs text-muted-foreground mt-1">{appointment.notes}</div>
+                    )}
+                  </>
+                  )}
+                </div>
+                </td>
+                <td className="p-2 sm:p-4">
+                <div className="flex gap-1">
+                  {appointment.status === 'scheduled' && (
+                  <>
+                    <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleStatusChange(appointment.id, 'confirmed')}
+                    >
+                    <CheckCircle className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleStatusChange(appointment.id, 'cancelled')}
+                    className="text-red-600"
+                    >
+                    <XCircle className="h-3 w-3" />
+                    </Button>
+                  </>
+                  )}
+                  
+                  {appointment.status === 'confirmed' && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleStatusChange(appointment.id, 'completed')}
+                  >
+                    <CheckCircle className="h-3 w-3" />
+                  </Button>
+                  )}
+                  
+                  <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleDelete(appointment)}
+                  className="text-red-600"
+                  >
+                  <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+                </td>
+              </tr>
               ))}
+            </tbody>
+          </table>
           </div>
-        ) : (
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b">
-                    <tr className="text-left">
-                      <th className="p-4 font-medium">Client / Animal</th>
-                      <th className="p-4 font-medium">Date & Heure</th>
-                      <th className="p-4 font-medium">Type</th>
-                      <th className="p-4 font-medium">Statut</th>
-                      <th className="p-4 font-medium">Motif</th>
-                      <th className="p-4 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAppointments
-                      .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
-                      .map((appointment) => (
-                        <tr key={appointment.id} className="border-b hover:bg-muted/50">
-                          <td className="p-4">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{getClientName(appointment)}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Heart className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">{getAnimalName(appointment)}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div className="space-y-1">
-                              <div 
-                                className="flex items-center gap-2 cursor-pointer"
-                                onClick={() => { setEditingField({ id: appointment.id, field: 'date' }); setFieldValue(getAppointmentDate(appointment)); }}
-                              >
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                {editingField?.id === appointment.id && editingField.field === 'date' ? (
-                                  <Input
-                                    type="date"
-                                    value={fieldValue}
-                                    onChange={e => setFieldValue(e.target.value)}
-                                    onBlur={handleFieldSave}
-                                    autoFocus
-                                    className="w-32"
-                                  />
-                                ) : (
-                                  <span>{formatDate(appointment.appointment_date)}</span>
-                                )}
-                              </div>
-                              <div 
-                                className="flex items-center gap-2 cursor-pointer"
-                                onClick={() => { setEditingField({ id: appointment.id, field: 'time' }); setFieldValue(getAppointmentTime(appointment)); }}
-                              >
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                {editingField?.id === appointment.id && editingField.field === 'time' ? (
-                                  <Input
-                                    type="time"
-                                    value={fieldValue}
-                                    onChange={e => setFieldValue(e.target.value)}
-                                    onBlur={handleFieldSave}
-                                    autoFocus
-                                    className="w-24"
-                                  />
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">{formatTime(appointment.appointment_date)}</span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div>
-                              <div className="font-medium">{typeLabels[appointment.appointment_type as keyof typeof typeLabels] || appointment.appointment_type}</div>
-                              <div className="text-sm text-muted-foreground">{appointment.duration_minutes || 30} min</div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div 
-                              className="cursor-pointer"
-                              onClick={() => { setEditingField({ id: appointment.id, field: 'status' }); setFieldValue(appointment.status); }}
-                            >
-                              {editingField?.id === appointment.id && editingField.field === 'status' ? (
-                                <Select
-                                  value={fieldValue}
-                                  onValueChange={value => {
-                                    setFieldValue(value);
-                                    handleStatusChange(appointment.id, value as Appointment['status']);
-                                    setEditingField(null);
-                                  }}
-                                >
-                                  <SelectTrigger className="w-32">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="scheduled">Planifié</SelectItem>
-                                    <SelectItem value="confirmed">Confirmé</SelectItem>
-                                    <SelectItem value="completed">Terminé</SelectItem>
-                                    <SelectItem value="cancelled">Annulé</SelectItem>
-                                    <SelectItem value="no-show">Absent</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              ) : (
-                                <Badge className={statusStyles[appointment.status]}>
-                                  {statusLabels[appointment.status]}
-                                </Badge>
-                              )}
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div 
-                              className="max-w-xs cursor-pointer"
-                              onClick={() => { setEditingField({ id: appointment.id, field: 'reason' }); setFieldValue(appointment.notes || ''); }}
-                            >
-                              {editingField?.id === appointment.id && editingField.field === 'reason' ? (
-                                <Input
-                                  value={fieldValue}
-                                  onChange={e => setFieldValue(e.target.value)}
-                                  onBlur={handleFieldSave}
-                                  autoFocus
-                                  placeholder="Motif du rendez-vous"
-                                />
-                              ) : (
-                                <>
-                                  {appointment.notes && (
-                                    <div className="text-sm">{appointment.notes}</div>
-                                  )}
-                                  {appointment.notes && (
-                                    <div className="text-xs text-muted-foreground mt-1">{appointment.notes}</div>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex gap-1">
-                              {appointment.status === 'scheduled' && (
-                                <>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    onClick={() => handleStatusChange(appointment.id, 'confirmed')}
-                                  >
-                                    <CheckCircle className="h-3 w-3" />
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    onClick={() => handleStatusChange(appointment.id, 'cancelled')}
-                                    className="text-red-600"
-                                  >
-                                    <XCircle className="h-3 w-3" />
-                                  </Button>
-                                </>
-                              )}
-                              
-                              {appointment.status === 'confirmed' && (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  onClick={() => handleStatusChange(appointment.id, 'completed')}
-                                >
-                                  <CheckCircle className="h-3 w-3" />
-                                </Button>
-                              )}
-                              
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleDelete(appointment)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        </CardContent>
+        </Card>
+      )}
       </div>
 
       <SimpleAppointmentModal
-        open={showNewAppointment}
-        onOpenChange={setShowNewAppointment}
+      open={showNewAppointment}
+      onOpenChange={setShowNewAppointment}
       />
 
       {/* Delete Confirmation Modal */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
-          </DialogHeader>
-          {appointmentToDelete && (
-            <div className="space-y-4">
-              <p className="text-gray-600">
-                Êtes-vous sûr de vouloir supprimer le rendez-vous pour <strong>{getAnimalName(appointmentToDelete)}</strong> ?
-              </p>
-              <p className="text-sm text-red-600">
-                Cette action est irréversible.
-              </p>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
-                  Annuler
-                </Button>
-                <Button variant="destructive" onClick={confirmDeleteAppointment}>
-                  Supprimer
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+        <DialogTitle>Confirmer la suppression</DialogTitle>
+        </DialogHeader>
+        {appointmentToDelete && (
+        <div className="space-y-4">
+          <p className="text-gray-600">
+          Êtes-vous sûr de vouloir supprimer le rendez-vous pour <strong>{getAnimalName(appointmentToDelete)}</strong> ?
+          </p>
+          <p className="text-sm text-red-600">
+          Cette action est irréversible.
+          </p>
+          <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+            Annuler
+          </Button>
+          <Button variant="destructive" onClick={confirmDeleteAppointment}>
+            Supprimer
+          </Button>
+          </div>
+        </div>
+        )}
+      </DialogContent>
       </Dialog>
     </div>
   );

@@ -130,453 +130,453 @@ const Farm = () => {
   const upcomingInterventions = getUpcomingFarmInterventions();
 
   return (
-    <div className="container mx-auto px-6 py-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Gestion des Exploitations</h1>
-          <p className="text-muted-foreground mt-2">
-            Gérez les fermes, élevages et interventions vétérinaires
-          </p>
-        </div>
-        
-        <Button className="gap-2 medical-glow" onClick={() => setShowNewFarmModal(true)}>
-          <Plus className="h-4 w-4" />
-          Nouvelle Exploitation
-        </Button>
+    <div className="container mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold">Gestion des Exploitations</h1>
+        <p className="text-muted-foreground mt-2">
+        Gérez les fermes, élevages et interventions vétérinaires
+        </p>
+      </div>
+      
+      <Button className="gap-2 medical-glow w-full sm:w-auto" onClick={() => setShowNewFarmModal(true)}>
+        <Plus className="h-4 w-4" />
+        Nouvelle Exploitation
+      </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Tractor className="h-12 w-12 text-primary mx-auto mb-4" />
-            <div className="text-2xl font-bold">{farms.length}</div>
-            <div className="text-sm text-muted-foreground">Exploitations</div>
-          </CardContent>
-        </Card>
-        
-
-        
-        <Card>
-          <CardContent className="p-6 text-center">
-            <AlertTriangle className="h-12 w-12 text-accent mx-auto mb-4" />
-            <div className="text-2xl font-bold">{alertFarms}</div>
-            <div className="text-sm text-muted-foreground">Alertes actives</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Calendar className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-            <div className="text-2xl font-bold">{upcomingInterventions.length}</div>
-            <div className="text-sm text-muted-foreground">Interventions à venir</div>
-          </CardContent>
-        </Card>
-      </div>
-
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Rechercher et filtrer
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-4">
-            <Input 
-              placeholder="Rechercher par nom, propriétaire ou type..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
-            
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Type d'élevage" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous types</SelectItem>
-                <SelectItem value="Bovin laitier">Élevage bovin laitier</SelectItem>
-                <SelectItem value="Bovin viande">Élevage bovin viande</SelectItem>
-                <SelectItem value="Porcin">Élevage porcin</SelectItem>
-                <SelectItem value="Avicole">Élevage avicole</SelectItem>
-                <SelectItem value="Ovin">Élevage ovin</SelectItem>
-                <SelectItem value="Caprin">Élevage caprin</SelectItem>
-                <SelectItem value="Équin">Élevage équin</SelectItem>
-                <SelectItem value="Apiculture">Apiculture</SelectItem>
-                <SelectItem value="Aquaculture">Aquaculture</SelectItem>
-                <SelectItem value="Cuniculture">Cuniculture</SelectItem>
-                <SelectItem value="Mixte">Élevage mixte</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <CardContent className="p-6 text-center">
+        <Tractor className="h-12 w-12 text-primary mx-auto mb-4" />
+        <div className="text-2xl font-bold">{farms.length}</div>
+        <div className="text-sm text-muted-foreground">Exploitations</div>
+        </CardContent>
+      </Card>
+      
+
+      
+      <Card>
+        <CardContent className="p-6 text-center">
+        <AlertTriangle className="h-12 w-12 text-accent mx-auto mb-4" />
+        <div className="text-2xl font-bold">{alertFarms}</div>
+        <div className="text-sm text-muted-foreground">Alertes actives</div>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="farms" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="farms" className="gap-2">
-            <Tractor className="h-4 w-4" />
-            Exploitations
-          </TabsTrigger>
-          <TabsTrigger value="interventions" className="gap-2">
-            <Calendar className="h-4 w-4" />
-            Interventions
-          </TabsTrigger>
-        </TabsList>
+      <Card>
+        <CardContent className="p-6 text-center">
+        <Calendar className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+        <div className="text-2xl font-bold">{upcomingInterventions.length}</div>
+        <div className="text-sm text-muted-foreground">Interventions à venir</div>
+        </CardContent>
+      </Card>
+      </div>
 
-        <TabsContent value="farms" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">
-              Exploitations ({filteredFarms.length})
-            </h3>
-            <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                variant={viewMode === 'cards' ? 'default' : 'outline'} 
-                onClick={() => setViewMode('cards')}
-                className="gap-2"
+      <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+        <Search className="h-5 w-5" />
+        Rechercher et filtrer
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+        <Input 
+          placeholder="Rechercher par nom, propriétaire ou type..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full sm:max-w-md"
+        />
+        
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-full sm:w-48">
+          <SelectValue placeholder="Type d'élevage" />
+          </SelectTrigger>
+          <SelectContent>
+          <SelectItem value="all">Tous types</SelectItem>
+          <SelectItem value="Bovin laitier">Élevage bovin laitier</SelectItem>
+          <SelectItem value="Bovin viande">Élevage bovin viande</SelectItem>
+          <SelectItem value="Porcin">Élevage porcin</SelectItem>
+          <SelectItem value="Avicole">Élevage avicole</SelectItem>
+          <SelectItem value="Ovin">Élevage ovin</SelectItem>
+          <SelectItem value="Caprin">Élevage caprin</SelectItem>
+          <SelectItem value="Équin">Élevage équin</SelectItem>
+          <SelectItem value="Apiculture">Apiculture</SelectItem>
+          <SelectItem value="Aquaculture">Aquaculture</SelectItem>
+          <SelectItem value="Cuniculture">Cuniculture</SelectItem>
+          <SelectItem value="Mixte">Élevage mixte</SelectItem>
+          </SelectContent>
+        </Select>
+        </div>
+      </CardContent>
+      </Card>
+
+      <Tabs defaultValue="farms" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="farms" className="gap-2">
+        <Tractor className="h-4 w-4" />
+        Exploitations
+        </TabsTrigger>
+        <TabsTrigger value="interventions" className="gap-2">
+        <Calendar className="h-4 w-4" />
+        Interventions
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="farms" className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h3 className="text-lg font-semibold">
+          Exploitations ({filteredFarms.length})
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          <Button 
+          size="sm" 
+          variant={viewMode === 'cards' ? 'default' : 'outline'} 
+          onClick={() => setViewMode('cards')}
+          className="gap-2 flex-1 sm:flex-none"
+          >
+          <Grid className="h-4 w-4" />
+          Cartes
+          </Button>
+          <Button 
+          size="sm" 
+          variant={viewMode === 'table' ? 'default' : 'outline'} 
+          onClick={() => setViewMode('table')}
+          className="gap-2 flex-1 sm:flex-none"
+          >
+          <List className="h-4 w-4" />
+          Tableau
+          </Button>
+          <Button onClick={() => setShowNewInterventionModal(true)} className="gap-2 flex-1 sm:flex-none">
+          <Stethoscope className="h-4 w-4" />
+          Nouvelle Intervention
+          </Button>
+        </div>
+        </div>
+        
+        {filteredFarms.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+          Aucune exploitation trouvée
+          </CardContent>
+        </Card>
+        ) : viewMode === 'cards' ? (
+        filteredFarms.map((farm) => (
+          <Card key={farm.id} className="card-hover">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+            <div className="space-y-3 flex-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+              <h4 className="text-xl font-semibold">{farm.name}</h4>
+              <Badge 
+                variant="outline"
+                className={statusStyles[farm.status]}
               >
-                <Grid className="h-4 w-4" />
-                Cartes
+                {farm.status === 'active' ? 'Actif' : 
+                 farm.status === 'attention' ? 'Attention' : 'Urgent'}
+              </Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2">
+                <p><strong>Propriétaire:</strong> {farm.owner}</p>
+                <p className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {farm.address}
+                </p>
+                <p className="flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                {farm.phone}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <p><strong>Types:</strong> 
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {farm.types?.map((type) => (
+                  <Badge key={type} variant="secondary" className="text-xs">
+                    {typeLabels[type] || type}
+                  </Badge>
+                  ))}
+                </div>
+                </p>
+                <p><strong>Animaux:</strong> {farm.totalAnimals}</p>
+                <p><strong>Vétérinaire:</strong> {farm.veterinarian}</p>
+              </div>
+              </div>
+              
+              <p className="text-sm text-muted-foreground">
+              Dernière visite: {formatDate(farm.lastVisit)}
+              </p>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => handleViewFarm(farm)}
+              >
+              <Eye className="h-4 w-4" />
               </Button>
               <Button 
-                size="sm" 
-                variant={viewMode === 'table' ? 'default' : 'outline'} 
-                onClick={() => setViewMode('table')}
-                className="gap-2"
+              size="sm" 
+              variant="outline"
+              onClick={() => handleEditFarm(farm)}
               >
-                <List className="h-4 w-4" />
-                Tableau
+              <Edit className="h-4 w-4" />
               </Button>
-              <Button onClick={() => setShowNewInterventionModal(true)} className="gap-2">
-                <Stethoscope className="h-4 w-4" />
-                Nouvelle Intervention
+              <Button 
+              size="sm"
+              onClick={() => handleNewIntervention(farm)}
+              >
+              <Stethoscope className="h-4 w-4" />
+              </Button>
+              <Button 
+              size="sm" 
+              variant="destructive"
+              onClick={() => handleDeleteFarm(farm.id)}
+              >
+              <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-          </div>
-          
-          {filteredFarms.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center text-muted-foreground">
-                Aucune exploitation trouvée
-              </CardContent>
-            </Card>
-          ) : viewMode === 'cards' ? (
-            filteredFarms.map((farm) => (
-              <Card key={farm.id} className="card-hover">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-3 flex-1">
-                      <div className="flex items-center gap-4">
-                        <h4 className="text-xl font-semibold">{farm.name}</h4>
-                        <Badge 
-                          variant="outline"
-                          className={statusStyles[farm.status]}
-                        >
-                          {farm.status === 'active' ? 'Actif' : 
-                           farm.status === 'attention' ? 'Attention' : 'Urgent'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="space-y-2">
-                          <p><strong>Propriétaire:</strong> {farm.owner}</p>
-                          <p className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {farm.address}
-                          </p>
-                          <p className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {farm.phone}
-                          </p>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <p><strong>Types:</strong> 
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {farm.types?.map((type) => (
-                                <Badge key={type} variant="secondary" className="text-xs">
-                                  {typeLabels[type] || type}
-                                </Badge>
-                              ))}
-                            </div>
-                          </p>
-                          <p><strong>Animaux:</strong> {farm.totalAnimals}</p>
-                          <p><strong>Vétérinaire:</strong> {farm.veterinarian}</p>
-                        </div>
-                      </div>
-                      
-                      <p className="text-sm text-muted-foreground">
-                        Dernière visite: {formatDate(farm.lastVisit)}
-                      </p>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleViewFarm(farm)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleEditFarm(farm)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm"
-                        onClick={() => handleNewIntervention(farm)}
-                      >
-                        <Stethoscope className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive"
-                        onClick={() => handleDeleteFarm(farm.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="border-b">
-                      <tr className="text-left">
-                        <th className="p-4 font-medium">Exploitation</th>
-                        <th className="p-4 font-medium">Propriétaire</th>
-                        <th className="p-4 font-medium">Type</th>
-                        <th className="p-4 font-medium">Statut</th>
-                        <th className="p-4 font-medium">Animaux</th>
-                        <th className="p-4 font-medium">Contact</th>
-                        <th className="p-4 font-medium">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredFarms.map((farm) => (
-                        <tr key={farm.id} className="border-b hover:bg-muted/50">
-                          <td className="p-4">
-                            <div>
-                              <div className="font-medium">{farm.name}</div>
-                              <div className="text-sm text-muted-foreground">{farm.address}</div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div>
-                              <div className="font-medium">{farm.owner}</div>
-                              <div className="text-sm text-muted-foreground">Vét: {farm.veterinarian}</div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex flex-wrap gap-1">
-                              {farm.types?.map((type) => (
-                                <Badge key={type} variant="secondary" className="text-xs">
-                                  {typeLabels[type] || type}
-                                </Badge>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <Badge 
-                              variant="outline"
-                              className={statusStyles[farm.status]}
-                            >
-                              {farm.status === 'active' ? 'Actif' : 
-                               farm.status === 'attention' ? 'Attention' : 'Urgent'}
-                            </Badge>
-                          </td>
-                          <td className="p-4">{farm.totalAnimals}</td>
-                          <td className="p-4">
-                            <div className="text-sm">
-                              <div className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {farm.phone}
-                              </div>
-                              <div className="text-muted-foreground">
-                                Dernière visite: {formatDate(farm.lastVisit)}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex gap-1">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleViewFarm(farm)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleEditFarm(farm)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                size="sm"
-                                onClick={() => handleNewIntervention(farm)}
-                              >
-                                <Stethoscope className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => handleDeleteFarm(farm.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            </div>
+          </CardContent>
+          </Card>
+        ))
+        ) : (
+        <Card>
+          <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[600px]">
+            <thead className="border-b">
+              <tr className="text-left">
+              <th className="p-4 font-medium">Exploitation</th>
+              <th className="p-4 font-medium">Propriétaire</th>
+              <th className="p-4 font-medium">Type</th>
+              <th className="p-4 font-medium">Statut</th>
+              <th className="p-4 font-medium">Animaux</th>
+              <th className="p-4 font-medium">Contact</th>
+              <th className="p-4 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredFarms.map((farm) => (
+              <tr key={farm.id} className="border-b hover:bg-muted/50">
+                <td className="p-4">
+                <div>
+                  <div className="font-medium">{farm.name}</div>
+                  <div className="text-sm text-muted-foreground">{farm.address}</div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-
-
-        <TabsContent value="interventions" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">
-              Interventions récentes ({farmInterventions.length})
-            </h3>
-            <Button onClick={() => setShowNewInterventionModal(true)} className="gap-2">
-              <Stethoscope className="h-4 w-4" />
-              Nouvelle Intervention
-            </Button>
-          </div>
-          
-          {farmInterventions.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center text-muted-foreground">
-                Aucune intervention enregistrée
-              </CardContent>
-            </Card>
-          ) : (
-            farmInterventions.map((intervention) => (
-              <Card key={intervention.id} className="card-hover">
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-4">
-                          <h4 className="text-lg font-semibold">
-                            {interventionTypeLabels[intervention.type]}
-                          </h4>
-                          <Badge 
-                            variant="outline"
-                            className={intervention.status === 'completed' ? 
-                              'bg-green-100 text-green-800' : 
-                              intervention.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
-                              'bg-gray-100 text-gray-800'}
-                          >
-                            {intervention.status === 'completed' ? 'Terminé' : 
-                             intervention.status === 'ongoing' ? 'En cours' :
-                             intervention.status === 'scheduled' ? 'Programmé' : 'Annulé'}
-                          </Badge>
-                        </div>
-                        
-                        <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {formatDate(intervention.date)}
-                          </span>
-                          <span>{intervention.farmName}</span>
-                          <span>{intervention.veterinarian}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium">Animaux concernés:</span> {intervention.animals}
-                      </div>
-                      <div>
-                        <span className="font-medium">Suivi:</span> {intervention.followUp || 'Aucun'}
-                      </div>
-                    </div>
-                    
-                    <p className="text-sm">{intervention.description}</p>
-                    
-                    <div className="flex gap-2 pt-2 border-t">
-                      <Button size="sm" variant="outline">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleEditIntervention(intervention)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      {intervention.status === 'ongoing' && (
-                        <Button size="sm">
-                          <Stethoscope className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button 
-                        size="sm" 
-                        variant="destructive"
-                        onClick={() => handleDeleteIntervention(intervention.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                </td>
+                <td className="p-4">
+                <div>
+                  <div className="font-medium">{farm.owner}</div>
+                  <div className="text-sm text-muted-foreground">Vét: {farm.veterinarian}</div>
+                </div>
+                </td>
+                <td className="p-4">
+                <div className="flex flex-wrap gap-1">
+                  {farm.types?.map((type) => (
+                  <Badge key={type} variant="secondary" className="text-xs">
+                    {typeLabels[type] || type}
+                  </Badge>
+                  ))}
+                </div>
+                </td>
+                <td className="p-4">
+                <Badge 
+                  variant="outline"
+                  className={statusStyles[farm.status]}
+                >
+                  {farm.status === 'active' ? 'Actif' : 
+                   farm.status === 'attention' ? 'Attention' : 'Urgent'}
+                </Badge>
+                </td>
+                <td className="p-4">{farm.totalAnimals}</td>
+                <td className="p-4">
+                <div className="text-sm">
+                  <div className="flex items-center gap-1">
+                  <Phone className="h-3 w-3" />
+                  {farm.phone}
                   </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </TabsContent>
+                  <div className="text-muted-foreground">
+                  Dernière visite: {formatDate(farm.lastVisit)}
+                  </div>
+                </div>
+                </td>
+                <td className="p-4">
+                <div className="flex flex-wrap gap-1">
+                  <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleViewFarm(farm)}
+                  >
+                  <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleEditFarm(farm)}
+                  >
+                  <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                  size="sm"
+                  onClick={() => handleNewIntervention(farm)}
+                  >
+                  <Stethoscope className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                  size="sm" 
+                  variant="destructive"
+                  onClick={() => handleDeleteFarm(farm.id)}
+                  >
+                  <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                </td>
+              </tr>
+              ))}
+            </tbody>
+            </table>
+          </div>
+          </CardContent>
+        </Card>
+        )}
+      </TabsContent>
+
+
+
+      <TabsContent value="interventions" className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h3 className="text-lg font-semibold">
+          Interventions récentes ({farmInterventions.length})
+        </h3>
+        <Button onClick={() => setShowNewInterventionModal(true)} className="gap-2 w-full sm:w-auto">
+          <Stethoscope className="h-4 w-4" />
+          Nouvelle Intervention
+        </Button>
+        </div>
+        
+        {farmInterventions.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+          Aucune intervention enregistrée
+          </CardContent>
+        </Card>
+        ) : (
+        farmInterventions.map((intervention) => (
+          <Card key={intervention.id} className="card-hover">
+          <CardContent className="p-4 sm:p-6">
+            <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+              <div className="space-y-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+                <h4 className="text-lg font-semibold">
+                {interventionTypeLabels[intervention.type]}
+                </h4>
+                <Badge 
+                variant="outline"
+                className={intervention.status === 'completed' ? 
+                  'bg-green-100 text-green-800' : 
+                  intervention.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
+                  'bg-gray-100 text-gray-800'}
+                >
+                {intervention.status === 'completed' ? 'Terminé' : 
+                 intervention.status === 'ongoing' ? 'En cours' :
+                 intervention.status === 'scheduled' ? 'Programmé' : 'Annulé'}
+                </Badge>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {formatDate(intervention.date)}
+                </span>
+                <span>{intervention.farmName}</span>
+                <span>{intervention.veterinarian}</span>
+              </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+              <span className="font-medium">Animaux concernés:</span> {intervention.animals}
+              </div>
+              <div>
+              <span className="font-medium">Suivi:</span> {intervention.followUp || 'Aucun'}
+              </div>
+            </div>
+            
+            <p className="text-sm">{intervention.description}</p>
+            
+            <div className="flex flex-wrap gap-2 pt-2 border-t">
+              <Button size="sm" variant="outline">
+              <Eye className="h-4 w-4" />
+              </Button>
+              <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => handleEditIntervention(intervention)}
+              >
+              <Edit className="h-4 w-4" />
+              </Button>
+              {intervention.status === 'ongoing' && (
+              <Button size="sm">
+                <Stethoscope className="h-4 w-4" />
+              </Button>
+              )}
+              <Button 
+              size="sm" 
+              variant="destructive"
+              onClick={() => handleDeleteIntervention(intervention.id)}
+              >
+              <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            </div>
+          </CardContent>
+          </Card>
+        ))
+        )}
+      </TabsContent>
       </Tabs>
 
       {/* Modales */}
       <NewFarmModal 
-        open={showNewFarmModal} 
-        onOpenChange={setShowNewFarmModal} 
+      open={showNewFarmModal} 
+      onOpenChange={setShowNewFarmModal} 
       />
       
       <NewFarmInterventionModal 
-        open={showNewInterventionModal} 
-        onOpenChange={setShowNewInterventionModal}
-        farmId={selectedFarm?.id}
-        farmName={selectedFarm?.name}
+      open={showNewInterventionModal} 
+      onOpenChange={setShowNewInterventionModal}
+      farmId={selectedFarm?.id}
+      farmName={selectedFarm?.name}
       />
       
       <FarmViewModal 
-        farm={selectedFarm}
-        open={showViewModal}
-        onOpenChange={setShowViewModal}
-        onEdit={() => handleEditFarm(selectedFarm!)}
-        onNewIntervention={() => {
-          setShowViewModal(false);
-          setShowNewInterventionModal(true);
-        }}
+      farm={selectedFarm}
+      open={showViewModal}
+      onOpenChange={setShowViewModal}
+      onEdit={() => handleEditFarm(selectedFarm!)}
+      onNewIntervention={() => {
+        setShowViewModal(false);
+        setShowNewInterventionModal(true);
+      }}
       />
 
       <FarmEditModal
-        farm={selectedFarm}
-        open={showEditFarmModal}
-        onOpenChange={setShowEditFarmModal}
+      farm={selectedFarm}
+      open={showEditFarmModal}
+      onOpenChange={setShowEditFarmModal}
       />
 
       <FarmInterventionEditModal
-        intervention={selectedIntervention}
-        open={showEditInterventionModal}
-        onOpenChange={setShowEditInterventionModal}
+      intervention={selectedIntervention}
+      open={showEditInterventionModal}
+      onOpenChange={setShowEditInterventionModal}
       />
     </div>
   );

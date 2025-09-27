@@ -156,475 +156,478 @@ const Consultations = () => {
   };
 
   return (
-    <div className="container mx-auto px-6 py-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Consultations</h1>
-          <p className="text-muted-foreground mt-2">
-            Gérez et consultez tous les dossiers médicaux
-          </p>
+    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold">Consultations</h1>
+        <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
+        Gérez et consultez tous les dossiers médicaux
+        </p>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        <div className="flex border rounded-lg p-1">
+        <Button
+          variant={viewMode === 'cards' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('cards')}
+          className="px-3"
+        >
+          <Grid className="h-4 w-4" />
+        </Button>
+        <Button
+          variant={viewMode === 'table' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('table')}
+          className="px-3"
+        >
+          <List className="h-4 w-4" />
+        </Button>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="flex border rounded-lg p-1">
-            <Button
-              variant={viewMode === 'cards' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('cards')}
-              className="px-3"
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('table')}
-              className="px-3"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-          <Button 
-            className="gap-2 medical-glow"
-            onClick={() => setShowNewConsultation(true)}
-          >
-            <Plus className="h-4 w-4" />
-            Nouvelle Consultation
-          </Button>
-        </div>
+        <Button 
+        className="gap-2 medical-glow text-sm sm:text-base"
+        onClick={() => setShowNewConsultation(true)}
+        >
+        <Plus className="h-4 w-4" />
+        Nouvelle Consultation
+        </Button>
+      </div>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Rechercher et filtrer
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-4">
-            <Input 
-              placeholder="Rechercher par client, animal, symptômes ou diagnostic..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
-            
-            <Select value={filterPeriod} onValueChange={setFilterPeriod}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Période" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les périodes</SelectItem>
-                <SelectItem value="week">Cette semaine</SelectItem>
-                <SelectItem value="month">Ce mois</SelectItem>
-                <SelectItem value="quarter">Ce trimestre</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+        <Search className="h-4 sm:h-5 w-4 sm:w-5" />
+        Rechercher et filtrer
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+        <Input 
+          placeholder="Rechercher par client, animal, symptômes ou diagnostic..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-full sm:max-w-md"
+        />
+        
+        <Select value={filterPeriod} onValueChange={setFilterPeriod}>
+          <SelectTrigger className="w-full sm:w-48">
+          <SelectValue placeholder="Période" />
+          </SelectTrigger>
+          <SelectContent>
+          <SelectItem value="all">Toutes les périodes</SelectItem>
+          <SelectItem value="week">Cette semaine</SelectItem>
+          <SelectItem value="month">Ce mois</SelectItem>
+          <SelectItem value="quarter">Ce trimestre</SelectItem>
+          </SelectContent>
+        </Select>
+        </div>
+      </CardContent>
       </Card>
 
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">
-          Consultations récentes ({filteredConsultations.length})
-        </h3>
-        
-        {filteredConsultations.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-              <p>Aucune consultation trouvée</p>
-              <p className="text-sm">Commencez par créer votre première consultation</p>
-            </CardContent>
-          </Card>
-        ) : viewMode === 'cards' ? (
-          filteredConsultations.map((consultation) => (
-            <Card key={consultation.id} className="card-hover">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-4">
-                        <h4 className="text-lg font-semibold">{consultation.animal?.name || 'Animal inconnu'}</h4>
-                        <Badge variant="secondary">Consultation</Badge>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(consultation.consultation_date).toLocaleDateString('fr-FR')}
-                        </span>
+      <h3 className="text-base sm:text-lg font-semibold">
+        Consultations récentes ({filteredConsultations.length})
+      </h3>
+      
+      {filteredConsultations.length === 0 ? (
+        <Card>
+        <CardContent className="p-6 sm:p-8 text-center text-muted-foreground">
+          <FileText className="h-10 sm:h-12 w-10 sm:w-12 mx-auto mb-4 text-muted-foreground/50" />
+          <p className="text-sm sm:text-base">Aucune consultation trouvée</p>
+          <p className="text-xs sm:text-sm">Commencez par créer votre première consultation</p>
+        </CardContent>
+        </Card>
+      ) : viewMode === 'cards' ? (
+        filteredConsultations.map((consultation) => (
+        <Card key={consultation.id} className="card-hover">
+          <CardContent className="p-4 sm:p-6">
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+            <div className="space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <h4 className="text-base sm:text-lg font-semibold">{consultation.animal?.name || 'Animal inconnu'}</h4>
+              <Badge variant="secondary" className="w-fit">Consultation</Badge>
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                {new Date(consultation.consultation_date).toLocaleDateString('fr-FR')}
+              </span>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <User className="h-3 sm:h-4 w-3 sm:w-4" />
+                {consultation.client?.first_name} {consultation.client?.last_name}
+              </div>
+              <div className="flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                Consultation #{consultation.id}
+              </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+              {consultation.temperature && (
+              <div className="flex items-center gap-1">
+                <Thermometer className="h-3 sm:h-4 w-3 sm:w-4 text-primary" />
+                {consultation.temperature}°C
+              </div>
+              )}
+              {consultation.weight && (
+              <span>{consultation.weight} kg</span>
+              )}
+            </div>
+            </div>
+            
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+            <div className="space-y-2">
+              {consultation.symptoms && (
+              <>
+                <h5 className="font-medium text-sm sm:text-base">Symptômes:</h5>
+                <p className="text-xs sm:text-sm">{consultation.symptoms}</p>
+              </>
+              )}
+              
+              {consultation.diagnosis && (
+              <>
+                <h5 className="font-medium text-sm sm:text-base">Diagnostic:</h5>
+                <p className="text-xs sm:text-sm">{consultation.diagnosis}</p>
+              </>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              {consultation.treatment && (
+              <>
+                <h5 className="font-medium text-sm sm:text-base">Traitement:</h5>
+                <p className="text-xs sm:text-sm">{consultation.treatment}</p>
+              </>
+              )}
+              
+              {(() => {
+              const consultationPrescriptions = getPrescriptionsForConsultation(consultation.id);
+              return consultationPrescriptions.length > 0 && (
+                <>
+                <h5 className="font-medium flex items-center gap-1 text-sm sm:text-base">
+                  <Pill className="h-3 sm:h-4 w-3 sm:w-4" />
+                  Prescriptions ({consultationPrescriptions.length}):
+                </h5>
+                <div className="space-y-1">
+                  {consultationPrescriptions.map((prescription: any) => (
+                  <div key={prescription.id} className="text-xs sm:text-sm bg-blue-50 p-2 rounded border-l-2 border-blue-200">
+                    <div className="font-medium text-blue-800">
+                    Prescription #{prescription.id.slice(-8)}
+                    </div>
+                    <div className="text-blue-600 text-xs">
+                    {new Date(prescription.prescription_date).toLocaleDateString('fr-FR')} - 
+                    Status: {prescription.status}
+                    </div>
+                    {prescription.medications && prescription.medications.length > 0 && (
+                    <div className="mt-1">
+                      <div className="text-xs font-medium text-blue-700">Médicaments:</div>
+                      {prescription.medications.map((med: any, idx: number) => (
+                      <div key={idx} className="text-xs text-blue-600 ml-2">
+                        • {med.medication_name} {med.dosage && `- ${med.dosage}`} {med.quantity && `(${med.quantity})`}
                       </div>
-                      
-                      <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <User className="h-4 w-4" />
-                          {consultation.client?.first_name} {consultation.client?.last_name}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <FileText className="h-3 w-3" />
-                          Consultation #{consultation.id}
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                    
-                    <div className="flex items-center gap-4 text-sm">
-                      {consultation.temperature && (
-                        <div className="flex items-center gap-1">
-                          <Thermometer className="h-4 w-4 text-primary" />
-                          {consultation.temperature}°C
-                        </div>
-                      )}
-                      {consultation.weight && (
-                        <span>{consultation.weight} kg</span>
-                      )}
-                    </div>
+                    )}
                   </div>
-                  
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      {consultation.symptoms && (
-                        <>
-                          <h5 className="font-medium">Symptômes:</h5>
-                          <p className="text-sm">{consultation.symptoms}</p>
-                        </>
-                      )}
-                      
-                      {consultation.diagnosis && (
-                        <>
-                          <h5 className="font-medium">Diagnostic:</h5>
-                          <p className="text-sm">{consultation.diagnosis}</p>
-                        </>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {consultation.treatment && (
-                        <>
-                          <h5 className="font-medium">Traitement:</h5>
-                          <p className="text-sm">{consultation.treatment}</p>
-                        </>
-                      )}
-                      
-                      {(() => {
-                        const consultationPrescriptions = getPrescriptionsForConsultation(consultation.id);
-                        return consultationPrescriptions.length > 0 && (
-                          <>
-                            <h5 className="font-medium flex items-center gap-1">
-                              <Pill className="h-4 w-4" />
-                              Prescriptions ({consultationPrescriptions.length}):
-                            </h5>
-                            <div className="space-y-1">
-                              {consultationPrescriptions.map((prescription: any) => (
-                                <div key={prescription.id} className="text-sm bg-blue-50 p-2 rounded border-l-2 border-blue-200">
-                                  <div className="font-medium text-blue-800">
-                                    Prescription #{prescription.id.slice(-8)}
-                                  </div>
-                                  <div className="text-blue-600 text-xs">
-                                    {new Date(prescription.prescription_date).toLocaleDateString('fr-FR')} - 
-                                    Status: {prescription.status}
-                                  </div>
-                                  {prescription.medications && prescription.medications.length > 0 && (
-                                    <div className="mt-1">
-                                      <div className="text-xs font-medium text-blue-700">Médicaments:</div>
-                                      {prescription.medications.map((med: any, idx: number) => (
-                                        <div key={idx} className="text-xs text-blue-600 ml-2">
-                                          • {med.medication_name} {med.dosage && `- ${med.dosage}`} {med.quantity && `(${med.quantity})`}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                  
-                  {consultation.notes && (
-                    <div className="space-y-2">
-                      <h5 className="font-medium">Notes:</h5>
-                      <p className="text-sm bg-muted p-3 rounded">{consultation.notes}</p>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <span className="text-sm text-muted-foreground">
-                      <Calendar className="h-3 w-3 inline mr-1" />
-                      {consultation.followUp ? `Suivi: ${consultation.followUp}` : 'Aucun suivi prévu'}
-                    </span>
-                    
-                    <div className="flex gap-2">
-                      <ConsultationPrintNew consultation={consultation as Consultation} />
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleEditConsultation(consultation as Consultation)}
-                        className="gap-1"
-                      >
-                        <Edit className="h-3 w-3" />
-                        Modifier
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="default"
-                        onClick={() => handleNewPrescription(consultation as Consultation)}
-                        className="gap-1"
-                      >
-                        <Pill className="h-3 w-3" />
-                        Prescription
-                      </Button>
-                      {/* <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleDeleteConsultation(consultation)}
-                        className="gap-1 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Supprimer
-                      </Button> */}
-                      <Button 
-                        size="sm"
-                        onClick={() => handleNewFollowUp(consultation as Consultation)}
-                      >
-                        Nouveau suivi
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Animal / Client</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Symptômes</TableHead>
-                    <TableHead>Diagnostic</TableHead>
-                    <TableHead>Température</TableHead>
-                    <TableHead>Prescriptions</TableHead>
-                    <TableHead>Coût</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredConsultations.map((consultation) => (
-                    <TableRow key={consultation.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{consultation.animal?.name}</div>
-                          <div className="text-sm text-muted-foreground">{consultation.client?.first_name} {consultation.client?.last_name}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(consultation.consultation_date).toLocaleDateString('fr-FR')}
-                      </TableCell>
-                      <TableCell>
-                        <div className="max-w-xs truncate">
-                          {consultation.symptoms || '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="max-w-xs truncate">
-                          {consultation.diagnosis || '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {consultation.temperature ? `${consultation.temperature}°C` : '-'}
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const consultationPrescriptions = getPrescriptionsForConsultation(consultation.id);
-                          return consultationPrescriptions.length > 0 ? (
-                            <div className="space-y-1">
-                              <div 
-                                className="flex items-center gap-2 cursor-pointer p-1 rounded transition-colors w-fit"
-                                onClick={() => handleViewPrescriptions(consultation)}
-                                title="Cliquer pour voir les détails des prescriptions"
-                              >
-                                <Badge variant="outline" className="text-xs">
-                                  {consultationPrescriptions.length} prescription{consultationPrescriptions.length > 1 ? 's' : ''}
-                                </Badge>
-                                <Eye className="h-3 w-3 text-blue-600 hover:text-blue-800" />
-                              </div>
-                            
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">Aucune</span>
-                          );
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        {consultation.cost ? `${consultation.cost} ${settings.currency}` : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 flex-wrap">
-                          <ConsultationPrintNew consultation={consultation as Consultation} />
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleEditConsultation(consultation as Consultation)}
-                            title="Modifier"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="default"
-                            onClick={() => handleNewPrescription(consultation as Consultation)}
-                            title="Nouvelle Prescription"
-                          >
-                            <Pill className="h-3 w-3" />
-                          </Button>
-                          
-                          {/* <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleDeleteConsultation(consultation as Consultation)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button> */}
-                        </div>
-                      </TableCell>
-                    </TableRow>
                   ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
+                </div>
+                </>
+              );
+              })()}
+            </div>
+            </div>
+            
+            {consultation.notes && (
+            <div className="space-y-2">
+              <h5 className="font-medium text-sm sm:text-base">Notes:</h5>
+              <p className="text-xs sm:text-sm bg-muted p-2 sm:p-3 rounded">{consultation.notes}</p>
+            </div>
+            )}
+            
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t gap-2">
+            <span className="text-xs sm:text-sm text-muted-foreground">
+              <Calendar className="h-3 w-3 inline mr-1" />
+              {consultation.followUp ? `Suivi: ${consultation.followUp}` : 'Aucun suivi prévu'}
+            </span>
+            
+            <div className="flex flex-wrap gap-2">
+              <ConsultationPrintNew consultation={consultation as Consultation} />
+              <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => handleEditConsultation(consultation as Consultation)}
+              className="gap-1 text-xs sm:text-sm"
+              >
+              <Edit className="h-3 w-3" />
+              Modifier
+              </Button>
+              <Button 
+              size="sm" 
+              variant="default"
+              onClick={() => handleNewPrescription(consultation as Consultation)}
+              className="gap-1 text-xs sm:text-sm"
+              >
+              <Pill className="h-3 w-3" />
+              Prescription
+              </Button>
+              {/* <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => handleDeleteConsultation(consultation)}
+              className="gap-1 text-red-600 hover:text-red-700"
+              >
+              <Trash2 className="h-3 w-3" />
+              Supprimer
+              </Button> */}
+              <Button 
+              size="sm"
+              onClick={() => handleNewFollowUp(consultation as Consultation)}
+              className="text-xs sm:text-sm"
+              >
+              Nouveau suivi
+              </Button>
+            </div>
+            </div>
+          </div>
+          </CardContent>
+        </Card>
+        ))
+      ) : (
+        <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs sm:text-sm">Animal / Client</TableHead>
+              <TableHead className="text-xs sm:text-sm">Date</TableHead>
+              <TableHead className="text-xs sm:text-sm">Symptômes</TableHead>
+              <TableHead className="text-xs sm:text-sm">Diagnostic</TableHead>
+              <TableHead className="text-xs sm:text-sm">Température</TableHead>
+              <TableHead className="text-xs sm:text-sm">Prescriptions</TableHead>
+              <TableHead className="text-xs sm:text-sm">Coût</TableHead>
+              <TableHead className="text-xs sm:text-sm">Actions</TableHead>
+            </TableRow>
+            </TableHeader>
+            <TableBody>
+            {filteredConsultations.map((consultation) => (
+              <TableRow key={consultation.id}>
+              <TableCell className="text-xs sm:text-sm">
+                <div>
+                <div className="font-medium">{consultation.animal?.name}</div>
+                <div className="text-xs text-muted-foreground">{consultation.client?.first_name} {consultation.client?.last_name}</div>
+                </div>
+              </TableCell>
+              <TableCell className="text-xs sm:text-sm">
+                {new Date(consultation.consultation_date).toLocaleDateString('fr-FR')}
+              </TableCell>
+              <TableCell className="text-xs sm:text-sm">
+                <div className="max-w-xs truncate">
+                {consultation.symptoms || '-'}
+                </div>
+              </TableCell>
+              <TableCell className="text-xs sm:text-sm">
+                <div className="max-w-xs truncate">
+                {consultation.diagnosis || '-'}
+                </div>
+              </TableCell>
+              <TableCell className="text-xs sm:text-sm">
+                {consultation.temperature ? `${consultation.temperature}°C` : '-'}
+              </TableCell>
+              <TableCell className="text-xs sm:text-sm">
+                {(() => {
+                const consultationPrescriptions = getPrescriptionsForConsultation(consultation.id);
+                return consultationPrescriptions.length > 0 ? (
+                  <div className="space-y-1">
+                  <div 
+                    className="flex items-center gap-2 cursor-pointer p-1 rounded transition-colors w-fit"
+                    onClick={() => handleViewPrescriptions(consultation)}
+                    title="Cliquer pour voir les détails des prescriptions"
+                  >
+                    <Badge variant="outline" className="text-xs">
+                    {consultationPrescriptions.length} prescription{consultationPrescriptions.length > 1 ? 's' : ''}
+                    </Badge>
+                    <Eye className="h-3 w-3 text-blue-600 hover:text-blue-800" />
+                  </div>
+                  
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-xs">Aucune</span>
+                );
+                })()}
+              </TableCell>
+              <TableCell className="text-xs sm:text-sm">
+                {consultation.cost ? `${consultation.cost} ${settings.currency}` : '-'}
+              </TableCell>
+              <TableCell className="text-xs sm:text-sm">
+                <div className="flex gap-1 flex-wrap">
+                <ConsultationPrintNew consultation={consultation as Consultation} />
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleEditConsultation(consultation as Consultation)}
+                  title="Modifier"
+                >
+                  <Edit className="h-3 w-3" />
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="default"
+                  onClick={() => handleNewPrescription(consultation as Consultation)}
+                  title="Nouvelle Prescription"
+                >
+                  <Pill className="h-3 w-3" />
+                </Button>
+                
+                {/* <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleDeleteConsultation(consultation as Consultation)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button> */}
+                </div>
+              </TableCell>
+              </TableRow>
+            ))}
+            </TableBody>
+          </Table>
+          </div>
+        </CardContent>
+        </Card>
+      )}
       </div>
       
       <NewConsultationModal 
-        open={showNewConsultation} 
-        onOpenChange={(open) => {
-          setShowNewConsultation(open);
-          if (!open) {
-            setConsultationPrefillData(null);
-          }
-        }}
-        prefillData={consultationPrefillData || undefined}
+      open={showNewConsultation} 
+      onOpenChange={(open) => {
+        setShowNewConsultation(open);
+        if (!open) {
+        setConsultationPrefillData(null);
+        }
+      }}
+      prefillData={consultationPrefillData || undefined}
       />
       
       <ConsultationEditModalNew
-        open={showEditConsultation}
-        onOpenChange={setShowEditConsultation}
-        consultation={selectedConsultation}
+      open={showEditConsultation}
+      onOpenChange={setShowEditConsultation}
+      consultation={selectedConsultation}
       />
       
       {prescriptionPetId && prescriptionConsultationId && (
-        <NewPrescriptionModal
-          open={showNewPrescription}
-          onOpenChange={setShowNewPrescription}
-          petId={prescriptionPetId}
-          consultationId={prescriptionConsultationId}
-        />
+      <NewPrescriptionModal
+        open={showNewPrescription}
+        onOpenChange={setShowNewPrescription}
+        petId={prescriptionPetId}
+        consultationId={prescriptionConsultationId}
+      />
       )}
 
       {/* Prescription Details Modal */}
       <Dialog open={showPrescriptionDetails} onOpenChange={setShowPrescriptionDetails}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <Pill className="h-5 w-5" />
-          Prescriptions pour {selectedAnimalName}
-        </DialogTitle>
-        <DialogDescription>
-          Détails des {selectedConsultationPrescriptions.length} prescription{selectedConsultationPrescriptions.length > 1 ? 's' : ''} associée{selectedConsultationPrescriptions.length > 1 ? 's' : ''} à cette consultation
-        </DialogDescription>
-          </DialogHeader>
+      <DialogContent className="max-w-full sm:max-w-4xl max-h-[80vh] overflow-y-auto mx-4">
+        <DialogHeader>
+      <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+        <Pill className="h-4 sm:h-5 w-4 sm:w-5" />
+        Prescriptions pour {selectedAnimalName}
+      </DialogTitle>
+      <DialogDescription className="text-sm">
+        Détails des {selectedConsultationPrescriptions.length} prescription{selectedConsultationPrescriptions.length > 1 ? 's' : ''} associée{selectedConsultationPrescriptions.length > 1 ? 's' : ''} à cette consultation
+      </DialogDescription>
+        </DialogHeader>
 
-          <div className="space-y-6">
-        {selectedConsultationPrescriptions.map((prescription: any, index: number) => (
-          <Card key={prescription.id} className="border-l-4 border-l-primary">
-            <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">
-              Prescription #{prescription.id.slice(-8)}
-            </CardTitle>
-            <Badge
-              variant={prescription.status === 'active' ? 'default' : prescription.status === 'completed' ? 'secondary' : 'destructive'}
-              className="text-xs"
-            >
-              {prescription.status}
-            </Badge>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            Date: {new Date(prescription.prescription_date).toLocaleDateString('fr-FR')} à {new Date(prescription.prescription_date).toLocaleTimeString('fr-FR')}
-            {prescription.valid_until && (
-              <span className="ml-4">Valide jusqu'au: {new Date(prescription.valid_until).toLocaleDateString('fr-FR')}</span>
-            )}
-          </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-          {/* Diagnosis */}
-          {prescription.diagnosis && (
-            <div>
-              <h4 className="font-medium text-sm mb-1">Diagnostic:</h4>
-              <p className="text-sm bg-muted p-2 rounded">{prescription.diagnosis}</p>
-            </div>
-          )}
-
-          {/* Medications */}
-          {prescription.medications && prescription.medications.length > 0 && (
-            <div>
-              <h4 className="font-medium text-sm mb-2">Médicaments ({prescription.medications.length}):</h4>
-              <div className="grid gap-3 md:grid-cols-2">
-            {prescription.medications.map((med: any, medIndex: number) => (
-              <div key={medIndex} className="bg-muted p-3 rounded-lg">
-                <div className="font-medium">{med.medication_name}</div>
-                <div className="text-xs space-y-1 mt-1">
-              {med.dosage && <div>Dosage: {med.dosage}</div>}
-              {med.frequency && <div>Fréquence: {med.frequency}</div>}
-              {med.duration && <div>Durée: {med.duration}</div>}
-              {med.quantity && <div>Quantité: {med.quantity}</div>}
-              {med.route && <div>Voie: {med.route}</div>}
-                </div>
-                {med.instructions && (
-              <div className="mt-2 text-xs bg-background p-2 rounded border">
-                <span className="font-medium">Instructions: </span>
-                {med.instructions}
-              </div>
-                )}
-              </div>
-            ))}
-              </div>
-            </div>
-          )}
-
-          {/* Notes */}
-          {prescription.notes && (
-            <div>
-              <h4 className="font-medium text-sm mb-1">Notes:</h4>
-              <p className="text-sm bg-muted p-2 rounded">{prescription.notes}</p>
-            </div>
-          )}
-
-          {/* Additional Info */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
-            <span>Renouvellements: {prescription.refill_count || 0}</span>
-            <span>Créée le: {new Date(prescription.created_at).toLocaleDateString('fr-FR')}</span>
-            {prescription.updated_at !== prescription.created_at && (
-              <span>Modifiée le: {new Date(prescription.updated_at).toLocaleDateString('fr-FR')}</span>
-            )}
-          </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {selectedConsultationPrescriptions.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Pill className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-            <p>Aucune prescription trouvée pour cette consultation</p>
-          </div>
+        <div className="space-y-4 sm:space-y-6">
+      {selectedConsultationPrescriptions.map((prescription: any, index: number) => (
+        <Card key={prescription.id} className="border-l-4 border-l-primary">
+        <CardHeader className="pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <CardTitle className="text-base sm:text-lg">
+          Prescription #{prescription.id.slice(-8)}
+        </CardTitle>
+        <Badge
+          variant={prescription.status === 'active' ? 'default' : prescription.status === 'completed' ? 'secondary' : 'destructive'}
+          className="text-xs w-fit"
+        >
+          {prescription.status}
+        </Badge>
+        </div>
+        <div className="text-xs sm:text-sm text-muted-foreground">
+        Date: {new Date(prescription.prescription_date).toLocaleDateString('fr-FR')} à {new Date(prescription.prescription_date).toLocaleTimeString('fr-FR')}
+        {prescription.valid_until && (
+          <span className="ml-0 sm:ml-4 block sm:inline">Valide jusqu'au: {new Date(prescription.valid_until).toLocaleDateString('fr-FR')}</span>
         )}
+        </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+        {/* Diagnosis */}
+        {prescription.diagnosis && (
+        <div>
+          <h4 className="font-medium text-sm mb-1">Diagnostic:</h4>
+          <p className="text-sm bg-muted p-2 rounded">{prescription.diagnosis}</p>
+        </div>
+        )}
+
+        {/* Medications */}
+        {prescription.medications && prescription.medications.length > 0 && (
+        <div>
+          <h4 className="font-medium text-sm mb-2">Médicaments ({prescription.medications.length}):</h4>
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+        {prescription.medications.map((med: any, medIndex: number) => (
+          <div key={medIndex} className="bg-muted p-3 rounded-lg">
+          <div className="font-medium text-sm">{med.medication_name}</div>
+          <div className="text-xs space-y-1 mt-1">
+          {med.dosage && <div>Dosage: {med.dosage}</div>}
+          {med.frequency && <div>Fréquence: {med.frequency}</div>}
+          {med.duration && <div>Durée: {med.duration}</div>}
+          {med.quantity && <div>Quantité: {med.quantity}</div>}
+          {med.route && <div>Voie: {med.route}</div>}
           </div>
-        </DialogContent>
+          {med.instructions && (
+          <div className="mt-2 text-xs bg-background p-2 rounded border">
+          <span className="font-medium">Instructions: </span>
+          {med.instructions}
+          </div>
+          )}
+          </div>
+        ))}
+          </div>
+        </div>
+        )}
+
+        {/* Notes */}
+        {prescription.notes && (
+        <div>
+          <h4 className="font-medium text-sm mb-1">Notes:</h4>
+          <p className="text-sm bg-muted p-2 rounded">{prescription.notes}</p>
+        </div>
+        )}
+
+        {/* Additional Info */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground pt-2 border-t">
+        <span>Renouvellements: {prescription.refill_count || 0}</span>
+        <span>Créée le: {new Date(prescription.created_at).toLocaleDateString('fr-FR')}</span>
+        {prescription.updated_at !== prescription.created_at && (
+          <span>Modifiée le: {new Date(prescription.updated_at).toLocaleDateString('fr-FR')}</span>
+        )}
+        </div>
+        </CardContent>
+        </Card>
+      ))}
+
+      {selectedConsultationPrescriptions.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+        <Pill className="h-10 sm:h-12 w-10 sm:w-12 mx-auto mb-4 text-muted-foreground/50" />
+        <p className="text-sm">Aucune prescription trouvée pour cette consultation</p>
+        </div>
+      )}
+        </div>
+      </DialogContent>
       </Dialog>
     </div>
   );

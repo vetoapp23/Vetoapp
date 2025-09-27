@@ -215,556 +215,558 @@ export default function Antiparasites() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Bug className="h-8 w-8" />
-            Traitements Antiparasitaires
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Gestion des traitements antiparasitaires et protocoles
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={() => setShowProtocolModal(true)}
-            variant="outline"
-            className="gap-2"
-          >
-            <Shield className="h-4 w-4" />
-            Protocoles
-          </Button>
-          <Button 
-            onClick={() => setShowNewAntiparasitic(true)}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Nouveau traitement
-          </Button>
-        </div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
+        <Bug className="h-6 w-6 sm:h-8 sm:w-8" />
+        Traitements Antiparasitaires
+        </h1>
+        <p className="text-gray-600 mt-1 text-sm sm:text-base">
+        Gestion des traitements antiparasitaires et protocoles
+        </p>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <Button 
+        onClick={() => setShowProtocolModal(true)}
+        variant="outline"
+        className="gap-2 w-full sm:w-auto"
+        >
+        <Shield className="h-4 w-4" />
+        Protocoles
+        </Button>
+        <Button 
+        onClick={() => setShowNewAntiparasitic(true)}
+        className="gap-2 w-full sm:w-auto"
+        >
+        <Plus className="h-4 w-4" />
+        Nouveau traitement
+        </Button>
+      </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-              <Package className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">En retard</p>
-                <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">À venir</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.upcoming}</p>
-              </div>
-              <Calendar className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Terminés</p>
-                <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <Card>
+        <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+          <p className="text-sm text-gray-600">Total</p>
+          <p className="text-2xl font-bold">{stats.total}</p>
+          </div>
+          <Package className="h-8 w-8 text-blue-500" />
+        </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+          <p className="text-sm text-gray-600">En retard</p>
+          <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
+          </div>
+          <AlertTriangle className="h-8 w-8 text-red-500" />
+        </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+          <p className="text-sm text-gray-600">À venir</p>
+          <p className="text-2xl font-bold text-orange-600">{stats.upcoming}</p>
+          </div>
+          <Calendar className="h-8 w-8 text-orange-500" />
+        </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+          <p className="text-sm text-gray-600">Terminés</p>
+          <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+          </div>
+          <CheckCircle className="h-8 w-8 text-green-500" />
+        </div>
+        </CardContent>
+      </Card>
       </div>
 
       {/* Filters and Search */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Rechercher par animal, client ou produit..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filtrer par statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="overdue">En retard</SelectItem>
-                <SelectItem value="upcoming">À venir</SelectItem>
-                <SelectItem value="scheduled">Programmés</SelectItem>
-                <SelectItem value="completed">Terminés</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select value={parasiteFilter} onValueChange={setParasiteFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filtrer par parasite" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les parasites</SelectItem>
-                {availableParasiteTypes.map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <CardContent className="p-4">
+        <div className="flex flex-col gap-4">
+        <div className="flex-1">
+          <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Rechercher par animal, client ou produit..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
           </div>
-        </CardContent>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Filtrer par statut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les statuts</SelectItem>
+            <SelectItem value="overdue">En retard</SelectItem>
+            <SelectItem value="upcoming">À venir</SelectItem>
+            <SelectItem value="scheduled">Programmés</SelectItem>
+            <SelectItem value="completed">Terminés</SelectItem>
+          </SelectContent>
+          </Select>
+          
+          <Select value={parasiteFilter} onValueChange={setParasiteFilter}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Filtrer par parasite" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les parasites</SelectItem>
+            {availableParasiteTypes.map(type => (
+            <SelectItem key={type} value={type}>{type}</SelectItem>
+            ))}
+          </SelectContent>
+          </Select>
+        </div>
+        </div>
+      </CardContent>
       </Card>
 
       {/* Main Content */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <List className="h-4 w-4" />
-            Vue d'ensemble
-          </TabsTrigger>
-          <TabsTrigger value="protocols" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Protocoles
-          </TabsTrigger>
-          <TabsTrigger value="statistics" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Statistiques
-          </TabsTrigger>
-        </TabsList>
+      <TabsList className="flex flex-wrap">
+        <TabsTrigger value="overview" className="flex items-center gap-2 flex-1 sm:flex-none">
+        <List className="h-4 w-4" />
+        Vue d'ensemble
+        </TabsTrigger>
+        <TabsTrigger value="protocols" className="flex items-center gap-2 flex-1 sm:flex-none">
+        <Shield className="h-4 w-4" />
+        Protocoles
+        </TabsTrigger>
+        <TabsTrigger value="statistics" className="flex items-center gap-2 flex-1 sm:flex-none">
+        <TrendingUp className="h-4 w-4" />
+        Statistiques
+        </TabsTrigger>
+      </TabsList>
 
-        <TabsContent value="overview">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Traitements antiparasitaires ({filteredAntiparasitics.length})</span>
+      <TabsContent value="overview">
+        <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <span>Traitements antiparasitaires ({filteredAntiparasitics.length})</span>
+          <div className="flex items-center gap-2">
+            <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {}}
+            >
+            <Download className="h-4 w-4 mr-1" />
+            Export
+            </Button>
+          </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {currentView === 'table' ? (
+          <div className="overflow-x-auto">
+            <Table>
+            <TableHeader>
+              <TableRow>
+              <TableHead>Animal</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead>Produit</TableHead>
+              <TableHead>Parasite</TableHead>
+              <TableHead>Date traitement</TableHead>
+              <TableHead>Prochain traitement</TableHead>
+              <TableHead>Statut</TableHead>
+              <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAntiparasitics.map(antiparasitic => (
+              <TableRow key={antiparasitic.id}>
+                <TableCell>
                 <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                  <AvatarFallback>
+                    <PawPrint className="h-4 w-4" />
+                  </AvatarFallback>
+                  </Avatar>
+                  <div>
+                  <div className="font-medium">{antiparasitic.petName}</div>
+                  <div className="text-sm text-gray-500">{antiparasitic.petSpecies}</div>
+                  </div>
+                </div>
+                </TableCell>
+                <TableCell>{antiparasitic.clientName}</TableCell>
+                <TableCell>
+                <div>
+                  <div className="font-medium">{antiparasitic.product_name}</div>
+                  {antiparasitic.active_ingredient && (
+                  <div className="text-sm text-gray-500">{antiparasitic.active_ingredient}</div>
+                  )}
+                </div>
+                </TableCell>
+                <TableCell>
+                {antiparasitic.parasite_type && (
+                  <Badge variant="outline">
+                  {antiparasitic.parasite_type}
+                  </Badge>
+                )}
+                </TableCell>
+                <TableCell>
+                {format(new Date(antiparasitic.treatment_date), 'dd/MM/yyyy', { locale: fr })}
+                </TableCell>
+                <TableCell>
+                {antiparasitic.next_treatment_date ? 
+                  format(new Date(antiparasitic.next_treatment_date), 'dd/MM/yyyy', { locale: fr }) : 
+                  'N/A'
+                }
+                </TableCell>
+                <TableCell>
+                <Badge className={getStatusColor(antiparasitic.status)}>
+                  <div className="flex items-center gap-1">
+                  {getStatusIcon(antiparasitic.status)}
+                  {getStatusLabel(antiparasitic.status)}
+                  </div>
+                </Badge>
+                </TableCell>
+                <TableCell>
+                <div className="flex items-center gap-1">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {}}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedAntiparasitic(antiparasitic);
+                    setShowAntiparasiticDetails(true);
+                  }}
                   >
-                    <Download className="h-4 w-4 mr-1" />
-                    Export
+                  <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteAntiparasitic(antiparasitic)}
+                  >
+                  <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {currentView === 'table' ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Animal</TableHead>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Produit</TableHead>
-                        <TableHead>Parasite</TableHead>
-                        <TableHead>Date traitement</TableHead>
-                        <TableHead>Prochain traitement</TableHead>
-                        <TableHead>Statut</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAntiparasitics.map(antiparasitic => (
-                        <TableRow key={antiparasitic.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback>
-                                  <PawPrint className="h-4 w-4" />
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-medium">{antiparasitic.petName}</div>
-                                <div className="text-sm text-gray-500">{antiparasitic.petSpecies}</div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{antiparasitic.clientName}</TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{antiparasitic.product_name}</div>
-                              {antiparasitic.active_ingredient && (
-                                <div className="text-sm text-gray-500">{antiparasitic.active_ingredient}</div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {antiparasitic.parasite_type && (
-                              <Badge variant="outline">
-                                {antiparasitic.parasite_type}
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(antiparasitic.treatment_date), 'dd/MM/yyyy', { locale: fr })}
-                          </TableCell>
-                          <TableCell>
-                            {antiparasitic.next_treatment_date ? 
-                              format(new Date(antiparasitic.next_treatment_date), 'dd/MM/yyyy', { locale: fr }) : 
-                              'N/A'
-                            }
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getStatusColor(antiparasitic.status)}>
-                              <div className="flex items-center gap-1">
-                                {getStatusIcon(antiparasitic.status)}
-                                {getStatusLabel(antiparasitic.status)}
-                              </div>
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedAntiparasitic(antiparasitic);
-                                  setShowAntiparasiticDetails(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteAntiparasitic(antiparasitic)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                </TableCell>
+              </TableRow>
+              ))}
+            </TableBody>
+            </Table>
+          </div>
+          ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredAntiparasitics.map(antiparasitic => (
+            <Card key={antiparasitic.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>
+                  <PawPrint className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h4 className="font-medium text-sm">{antiparasitic.petName}</h4>
+                  <p className="text-xs text-gray-600">{antiparasitic.clientName}</p>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredAntiparasitics.map(antiparasitic => (
-                    <Card key={antiparasitic.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback>
-                                <PawPrint className="h-4 w-4" />
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h4 className="font-medium text-sm">{antiparasitic.petName}</h4>
-                              <p className="text-xs text-gray-600">{antiparasitic.clientName}</p>
-                            </div>
-                          </div>
-                          <Badge className={getStatusColor(antiparasitic.status)}>
-                            <div className="flex items-center gap-1">
-                              {getStatusIcon(antiparasitic.status)}
-                              {getStatusLabel(antiparasitic.status)}
-                            </div>
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-2 text-sm">
-                          <div><span className="font-medium">Produit:</span> {antiparasitic.product_name}</div>
-                          {antiparasitic.parasite_type && (
-                            <div><span className="font-medium">Parasite:</span> {antiparasitic.parasite_type}</div>
-                          )}
-                          <div><span className="font-medium">Date:</span> {format(new Date(antiparasitic.treatment_date), 'dd/MM/yyyy')}</div>
-                          {antiparasitic.next_treatment_date && (
-                            <div><span className="font-medium">Prochain:</span> {format(new Date(antiparasitic.next_treatment_date), 'dd/MM/yyyy')}</div>
-                          )}
-                        </div>
-                        
-                        <div className="flex justify-between mt-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedAntiparasitic(antiparasitic);
-                              setShowAntiparasiticDetails(true);
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Détails
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteAntiparasitic(antiparasitic)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
                 </div>
-              )}
-              
-              {filteredAntiparasitics.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Bug className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Aucun traitement antiparasitaire trouvé</p>
+                <Badge className={getStatusColor(antiparasitic.status)}>
+                <div className="flex items-center gap-1">
+                  {getStatusIcon(antiparasitic.status)}
+                  {getStatusLabel(antiparasitic.status)}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="protocols">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Protocoles antiparasitaires ({protocols.length})</span>
-                <Button 
-                  onClick={() => {
-                    setEditingProtocol(null);
-                    setShowProtocolModal(true);
-                  }}
-                  className="gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nouveau protocole
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {protocols.map(protocol => (
-                  <Card key={protocol.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <Badge variant="outline">{protocol.species}</Badge>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditingProtocol(protocol);
-                              setShowProtocolModal(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <h4 className="font-medium mb-2">{protocol.product_name}</h4>
-                      <div className="space-y-1 text-sm text-gray-600">
-                        <div><span className="font-medium">Parasite:</span> {protocol.parasite_type}</div>
-                        {protocol.active_ingredient && (
-                          <div><span className="font-medium">Principe actif:</span> {protocol.active_ingredient}</div>
-                        )}
-                        {protocol.frequency && (
-                          <div><span className="font-medium">Fréquence:</span> {protocol.frequency}</div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                </Badge>
               </div>
               
-              {protocols.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Aucun protocole configuré</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="statistics">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Répartition par type de parasite
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(stats.parasiteTypes).map(([type, count]) => (
-                    <div key={type} className="flex items-center justify-between">
-                      <span className="text-sm">{type}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="bg-gray-200 rounded-full h-2 w-20">
-                          <div 
-                            className="bg-blue-500 h-2 rounded-full" 
-                            style={{ width: `${(count / stats.total) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium">{count}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="space-y-2 text-sm">
+                <div><span className="font-medium">Produit:</span> {antiparasitic.product_name}</div>
+                {antiparasitic.parasite_type && (
+                <div><span className="font-medium">Parasite:</span> {antiparasitic.parasite_type}</div>
+                )}
+                <div><span className="font-medium">Date:</span> {format(new Date(antiparasitic.treatment_date), 'dd/MM/yyyy')}</div>
+                {antiparasitic.next_treatment_date && (
+                <div><span className="font-medium">Prochain:</span> {format(new Date(antiparasitic.next_treatment_date), 'dd/MM/yyyy')}</div>
+                )}
+              </div>
+              
+              <div className="flex justify-between mt-4">
+                <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedAntiparasitic(antiparasitic);
+                  setShowAntiparasiticDetails(true);
+                }}
+                >
+                <Eye className="h-4 w-4 mr-1" />
+                Détails
+                </Button>
+                <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteAntiparasitic(antiparasitic)}
+                >
+                <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
               </CardContent>
             </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Résumé des traitements</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span>Total des traitements</span>
-                    <span className="font-bold">{stats.total}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>En retard</span>
-                    <span className="font-bold text-red-600">{stats.overdue}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>À venir (7 jours)</span>
-                    <span className="font-bold text-orange-600">{stats.upcoming}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Terminés</span>
-                    <span className="font-bold text-green-600">{stats.completed}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            ))}
           </div>
-        </TabsContent>
+          )}
+          
+          {filteredAntiparasitics.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <Bug className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p>Aucun traitement antiparasitaire trouvé</p>
+          </div>
+          )}
+        </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="protocols">
+        <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <span>Protocoles antiparasitaires ({protocols.length})</span>
+          <Button 
+            onClick={() => {
+            setEditingProtocol(null);
+            setShowProtocolModal(true);
+            }}
+            className="gap-2 w-full sm:w-auto"
+          >
+            <Plus className="h-4 w-4" />
+            Nouveau protocole
+          </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {protocols.map(protocol => (
+            <Card key={protocol.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+              <Badge variant="outline">{protocol.species}</Badge>
+              <div className="flex gap-1">
+                <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setEditingProtocol(protocol);
+                  setShowProtocolModal(true);
+                }}
+                >
+                <Edit className="h-4 w-4" />
+                </Button>
+              </div>
+              </div>
+              
+              <h4 className="font-medium mb-2">{protocol.product_name}</h4>
+              <div className="space-y-1 text-sm text-gray-600">
+              <div><span className="font-medium">Parasite:</span> {protocol.parasite_type}</div>
+              {protocol.active_ingredient && (
+                <div><span className="font-medium">Principe actif:</span> {protocol.active_ingredient}</div>
+              )}
+              {protocol.frequency && (
+                <div><span className="font-medium">Fréquence:</span> {protocol.frequency}</div>
+              )}
+              </div>
+            </CardContent>
+            </Card>
+          ))}
+          </div>
+          
+          {protocols.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p>Aucun protocole configuré</p>
+          </div>
+          )}
+        </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="statistics">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Répartition par type de parasite
+          </CardTitle>
+          </CardHeader>
+          <CardContent>
+          <div className="space-y-3">
+            {Object.entries(stats.parasiteTypes).map(([type, count]) => (
+            <div key={type} className="flex items-center justify-between">
+              <span className="text-sm">{type}</span>
+              <div className="flex items-center gap-2">
+              <div className="bg-gray-200 rounded-full h-2 w-20">
+                <div 
+                className="bg-blue-500 h-2 rounded-full" 
+                style={{ width: `${(count / stats.total) * 100}%` }}
+                />
+              </div>
+              <span className="text-sm font-medium">{count}</span>
+              </div>
+            </div>
+            ))}
+          </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+          <CardTitle>Résumé des traitements</CardTitle>
+          </CardHeader>
+          <CardContent>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+            <span>Total des traitements</span>
+            <span className="font-bold">{stats.total}</span>
+            </div>
+            <div className="flex justify-between items-center">
+            <span>En retard</span>
+            <span className="font-bold text-red-600">{stats.overdue}</span>
+            </div>
+            <div className="flex justify-between items-center">
+            <span>À venir (7 jours)</span>
+            <span className="font-bold text-orange-600">{stats.upcoming}</span>
+            </div>
+            <div className="flex justify-between items-center">
+            <span>Terminés</span>
+            <span className="font-bold text-green-600">{stats.completed}</span>
+            </div>
+          </div>
+          </CardContent>
+        </Card>
+        </div>
+      </TabsContent>
       </Tabs>
 
       {/* Modals */}
       <NewAntiparasiticModal 
-        open={showNewAntiparasitic} 
-        onOpenChange={setShowNewAntiparasitic}
+      open={showNewAntiparasitic} 
+      onOpenChange={setShowNewAntiparasitic}
       />
 
       <AntiparasiticProtocolModal 
-        open={showProtocolModal} 
-        onOpenChange={setShowProtocolModal}
-        editingProtocol={editingProtocol}
+      open={showProtocolModal} 
+      onOpenChange={setShowProtocolModal}
+      editingProtocol={editingProtocol}
       />
 
       {/* Antiparasitic Details Modal */}
       <Dialog open={showAntiparasiticDetails} onOpenChange={setShowAntiparasiticDetails}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Détails du traitement</DialogTitle>
-          </DialogHeader>
-          {selectedAntiparasitic && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="font-medium">Animal:</p>
-                  <p>{selectedAntiparasitic.petName}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Client:</p>
-                  <p>{selectedAntiparasitic.clientName}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Produit:</p>
-                  <p>{selectedAntiparasitic.product_name}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Principe actif:</p>
-                  <p>{selectedAntiparasitic.active_ingredient || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Type de parasite:</p>
-                  <p>{selectedAntiparasitic.parasite_type || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Voie d'administration:</p>
-                  <p>{selectedAntiparasitic.administration_route || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Dosage:</p>
-                  <p>{selectedAntiparasitic.dosage || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Date du traitement:</p>
-                  <p>{format(new Date(selectedAntiparasitic.treatment_date), 'dd/MM/yyyy', { locale: fr })}</p>
-                </div>
-                {selectedAntiparasitic.next_treatment_date && (
-                  <div>
-                    <p className="font-medium">Prochain traitement:</p>
-                    <p>{format(new Date(selectedAntiparasitic.next_treatment_date), 'dd/MM/yyyy', { locale: fr })}</p>
-                  </div>
-                )}
-                {/* {selectedAntiparasitic.administered_by && (
-                  <div>
-                    <p className="font-medium">Administré par:</p>
-                    <p>{selectedAntiparasitic.administered_by}</p>
-                  </div>
-                )} */}
-                {selectedAntiparasitic.effectiveness_rating && (
-                  <div>
-                    <p className="font-medium">Efficacité:</p>
-                    <p>{selectedAntiparasitic.effectiveness_rating}/10</p>
-                  </div>
-                )}
-              </div>
-              {selectedAntiparasitic.notes && (
-                <div>
-                  <p className="font-medium">Notes:</p>
-                  <p className="text-gray-600">{selectedAntiparasitic.notes}</p>
-                </div>
-              )}
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+        <DialogTitle>Détails du traitement</DialogTitle>
+        </DialogHeader>
+        {selectedAntiparasitic && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <p className="font-medium">Animal:</p>
+            <p>{selectedAntiparasitic.petName}</p>
+          </div>
+          <div>
+            <p className="font-medium">Client:</p>
+            <p>{selectedAntiparasitic.clientName}</p>
+          </div>
+          <div>
+            <p className="font-medium">Produit:</p>
+            <p>{selectedAntiparasitic.product_name}</p>
+          </div>
+          <div>
+            <p className="font-medium">Principe actif:</p>
+            <p>{selectedAntiparasitic.active_ingredient || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="font-medium">Type de parasite:</p>
+            <p>{selectedAntiparasitic.parasite_type || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="font-medium">Voie d'administration:</p>
+            <p>{selectedAntiparasitic.administration_route || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="font-medium">Dosage:</p>
+            <p>{selectedAntiparasitic.dosage || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="font-medium">Date du traitement:</p>
+            <p>{format(new Date(selectedAntiparasitic.treatment_date), 'dd/MM/yyyy', { locale: fr })}</p>
+          </div>
+          {selectedAntiparasitic.next_treatment_date && (
+            <div>
+            <p className="font-medium">Prochain traitement:</p>
+            <p>{format(new Date(selectedAntiparasitic.next_treatment_date), 'dd/MM/yyyy', { locale: fr })}</p>
             </div>
           )}
-        </DialogContent>
+          {/* {selectedAntiparasitic.administered_by && (
+            <div>
+            <p className="font-medium">Administré par:</p>
+            <p>{selectedAntiparasitic.administered_by}</p>
+            </div>
+          )} */}
+          {selectedAntiparasitic.effectiveness_rating && (
+            <div>
+            <p className="font-medium">Efficacité:</p>
+            <p>{selectedAntiparasitic.effectiveness_rating}/10</p>
+            </div>
+          )}
+          </div>
+          {selectedAntiparasitic.notes && (
+          <div>
+            <p className="font-medium">Notes:</p>
+            <p className="text-gray-600">{selectedAntiparasitic.notes}</p>
+          </div>
+          )}
+        </div>
+        )}
+      </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Modal */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
-          </DialogHeader>
-          {antiparasiticToDelete && (
-            <div className="space-y-4">
-              <p className="text-gray-600">
-                Êtes-vous sûr de vouloir supprimer le traitement <strong>{antiparasiticToDelete.product_name}</strong> pour <strong>{antiparasiticToDelete.petName}</strong> ?
-              </p>
-              <p className="text-sm text-red-600">
-                Cette action est irréversible.
-              </p>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
-                  Annuler
-                </Button>
-                <Button variant="destructive" onClick={confirmDeleteAntiparasitic}>
-                  Supprimer
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+        <DialogTitle>Confirmer la suppression</DialogTitle>
+        </DialogHeader>
+        {antiparasiticToDelete && (
+        <div className="space-y-4">
+          <p className="text-gray-600">
+          Êtes-vous sûr de vouloir supprimer le traitement <strong>{antiparasiticToDelete.product_name}</strong> pour <strong>{antiparasiticToDelete.petName}</strong> ?
+          </p>
+          <p className="text-sm text-red-600">
+          Cette action est irréversible.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-end gap-2">
+          <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} className="w-full sm:w-auto">
+            Annuler
+          </Button>
+          <Button variant="destructive" onClick={confirmDeleteAntiparasitic} className="w-full sm:w-auto">
+            Supprimer
+          </Button>
+          </div>
+        </div>
+        )}
+      </DialogContent>
       </Dialog>
     </div>
   );
