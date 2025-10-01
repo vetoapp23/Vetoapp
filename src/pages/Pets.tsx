@@ -8,14 +8,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Heart, User, Calendar, Stethoscope, Eye, Edit, Activity, Grid, List, Loader2, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Search, Heart, User, Calendar, Stethoscope, Eye, Edit, Activity, Grid, List, Loader2, AlertTriangle, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NewPetModal } from "@/components/forms/NewPetModal";
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
 import { PetViewModal } from "@/components/modals/PetViewModal";
 import { SimplePetDossierModal } from "@/components/modals/SimplePetDossierModal";
 import { MedicalStats } from "@/components/MedicalStats";
-import { useAnimals, useClients, useUpdateAnimal, useClientStats, useConsultations, useVaccinations } from "@/hooks/useDatabase";
+import { useAnimals, useClients, useUpdateAnimal, useDeleteAnimal, useClientStats, useConsultations, useVaccinations } from "@/hooks/useDatabase";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Animal, Client, CreateAnimalData } from "@/lib/database";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
@@ -81,6 +91,7 @@ const PetsContent = () => {
   const { data: clients = [], isLoading: clientsLoading } = useClients();
   const { data: stats } = useClientStats();
   const updateAnimalMutation = useUpdateAnimal();
+  const deleteAnimalMutation = useDeleteAnimal();
   
   // Convert animals to pets format for compatibility
   const pets = animals.map(animal => convertAnimalToPet(animal, clients));
@@ -150,6 +161,8 @@ const PetsContent = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDossierModal, setShowDossierModal] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [petToDelete, setPetToDelete] = useState<PetUI | null>(null);
   const { toast } = useToast();
   
   // Edit form state
@@ -235,6 +248,33 @@ const PetsContent = () => {
     }
     setShowViewModal(false);
     setShowEditModal(true);
+  };
+
+  const handleDelete = (pet: PetUI) => {
+    setPetToDelete(pet);
+    setShowDeleteAlert(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!petToDelete) return;
+
+    try {
+      await deleteAnimalMutation.mutateAsync(petToDelete.dbId);
+      
+      toast({
+        title: "Animal supprimé",
+        description: `${petToDelete.name} a été supprimé avec succès`,
+      });
+      
+      setShowDeleteAlert(false);
+      setPetToDelete(null);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Erreur lors de la suppression de l'animal",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleShowDossier = (pet: PetUI) => {
@@ -514,6 +554,15 @@ const PetsContent = () => {
               <Edit className="h-4 w-4" />
               Modifier
             </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="gap-2 flex-1 text-destructive hover:text-destructive-foreground hover:bg-destructive" 
+              onClick={() => handleDelete(pet)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Supprimer
+            </Button>
             </div>
             
             <div className="flex gap-2">
@@ -595,6 +644,14 @@ const PetsContent = () => {
                 <Button size="sm" variant="outline" onClick={() => handleEdit(pet)}>
                 <Edit className="h-4 w-4" />
                 </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                  onClick={() => handleDelete(pet)}
+                >
+                <Trash2 className="h-4 w-4" />
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => handleShowDossier(pet)}>
                 Dossier
                 </Button>
@@ -643,6 +700,7 @@ const PetsContent = () => {
       pet={selectedPet}
       onEdit={handleEditFromView}
       onShowDossier={handleShowDossierFromView}
+      onDelete={selectedPet ? () => handleDelete(selectedPet) : undefined}
       />
       
       {/* Custom Dynamic Pet Edit Modal */}
@@ -796,6 +854,37 @@ const PetsContent = () => {
       onOpenChange={setShowDossierModal}
       pet={selectedPet}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer l'animal <strong>{petToDelete?.name}</strong> ?
+              Cette action est irréversible et supprimera définitivement toutes les données associées à cet animal, 
+              y compris ses consultations, vaccinations et historique médical.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteAnimalMutation.isPending}
+            >
+              {deleteAnimalMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Suppression...
+                </>
+              ) : (
+                'Supprimer'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

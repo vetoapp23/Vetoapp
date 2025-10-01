@@ -7,9 +7,19 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Phone, Mail, MapPin, Eye, Edit, Heart, Grid, List, Loader2 } from "lucide-react";
+import { Plus, Search, Phone, Mail, MapPin, Eye, Edit, Heart, Grid, List, Loader2, Trash2 } from "lucide-react";
 import { NewClientModal } from "@/components/forms/NewClientModal";
-import { useClients, useAnimals, useUpdateClient } from "@/hooks/useDatabase";
+import { useClients, useAnimals, useUpdateClient, useDeleteClient } from "@/hooks/useDatabase";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
 import { useToast } from "@/hooks/use-toast";
 import type { Client as DBClient, Animal, CreateClientData } from "@/lib/database";
@@ -79,6 +89,7 @@ const ClientsContent = () => {
   const { data: dbClients = [], isLoading: clientsLoading } = useClients();
   const { data: animals = [], isLoading: animalsLoading } = useAnimals();
   const updateClientMutation = useUpdateClient();
+  const deleteClientMutation = useDeleteClient();
   const { toast } = useToast();
   
   // Convert to old format for compatibility
@@ -91,6 +102,8 @@ const ClientsContent = () => {
   const [selectedClient, setSelectedClient] = useState<ClientUI | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<ClientUI | null>(null);
   
   // Edit form state
   const [editForm, setEditForm] = useState<CreateClientData>({
@@ -135,6 +148,33 @@ const ClientsContent = () => {
       client_type: 'particulier'
     });
     setShowEditModal(true);
+  };
+
+  const handleDelete = (client: ClientUI) => {
+    setClientToDelete(client);
+    setShowDeleteAlert(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!clientToDelete) return;
+
+    try {
+      await deleteClientMutation.mutateAsync(clientToDelete.dbId);
+      
+      toast({
+        title: "Client supprimé",
+        description: `${clientToDelete.name} a été supprimé avec succès`,
+      });
+      
+      setShowDeleteAlert(false);
+      setClientToDelete(null);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Erreur lors de la suppression du client",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEditFromView = () => {
@@ -327,6 +367,15 @@ const ClientsContent = () => {
               <Edit className="h-4 w-4" />
               Modifier
             </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="gap-2 text-destructive hover:text-destructive-foreground hover:bg-destructive" 
+              onClick={() => handleDelete(client)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Supprimer
+            </Button>
             </div>
           </div>
           </CardContent>
@@ -397,6 +446,14 @@ const ClientsContent = () => {
                 <Button size="sm" variant="outline" onClick={() => handleEdit(client)}>
                 <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                  onClick={() => handleDelete(client)}
+                >
+                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Button>
               </div>
               </td>
             </tr>
@@ -460,6 +517,18 @@ const ClientsContent = () => {
           </div>
           <div className="flex flex-col sm:flex-row gap-2 pt-4">
           <Button onClick={() => handleEditFromView()} className="w-full sm:w-auto">Modifier</Button>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setShowViewModal(false);
+              if (selectedClient) {
+                handleDelete(selectedClient);
+              }
+            }} 
+            className="w-full sm:w-auto text-destructive hover:text-destructive-foreground hover:bg-destructive"
+          >
+            Supprimer
+          </Button>
           <Button variant="outline" onClick={() => setShowViewModal(false)} className="w-full sm:w-auto">Fermer</Button>
           </div>
         </CardContent>
@@ -628,6 +697,36 @@ const ClientsContent = () => {
         </Card>
       </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer le client <strong>{clientToDelete?.name}</strong> ?
+              Cette action est irréversible et supprimera définitivement toutes les données associées à ce client.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteClientMutation.isPending}
+            >
+              {deleteClientMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Suppression...
+                </>
+              ) : (
+                'Supprimer'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );
