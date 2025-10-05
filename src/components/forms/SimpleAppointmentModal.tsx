@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Clock, User, Heart, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useClients, useAnimals, useCreateAppointment, type Client, type Animal } from "@/hooks/useDatabase";
+import { useAppointmentTypes } from '@/hooks/useAppSettings';
 
 interface SimpleAppointmentModalProps {
   open: boolean;
@@ -22,6 +23,9 @@ export function SimpleAppointmentModal({
   const { data: animals = [] } = useAnimals();
   const createAppointment = useCreateAppointment();
   const { toast } = useToast();
+  
+  // Dynamic settings
+  const { data: appointmentTypes = [], isLoading: typesLoading } = useAppointmentTypes();
   
   const [formData, setFormData] = useState({
     clientId: "",
@@ -190,10 +194,11 @@ export function SimpleAppointmentModal({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="consultation">Consultation</SelectItem>
-                <SelectItem value="vaccination">Vaccination</SelectItem>
-                <SelectItem value="surgery">Chirurgie</SelectItem>
-                <SelectItem value="follow-up">Contrôle/Suivi</SelectItem>
+                {appointmentTypes.map((type) => (
+                  <SelectItem key={type} value={type.toLowerCase().replace(/\s+/g, '-')}>
+                    {type}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Switch } from '@/components/ui/switch';
 import { useCreateAntiparasiticProtocol, useUpdateAntiparasiticProtocol } from '@/hooks/useDatabase';
 import { useToast } from '@/hooks/use-toast';
+import { useAnimalSpecies, useParasiteTypes } from '@/hooks/useAppSettings';
 import { Shield, Loader2 } from 'lucide-react';
 import type { AntiparasiticProtocol } from '@/lib/database';
 
@@ -25,6 +26,10 @@ export default function AntiparasiticProtocolModalDynamic({
   const createProtocol = useCreateAntiparasiticProtocol();
   const updateProtocol = useUpdateAntiparasiticProtocol();
   const { toast } = useToast();
+
+  // Dynamic settings
+  const { data: animalSpecies = [], isLoading: speciesLoading } = useAnimalSpecies();
+  const { data: parasiteTypes = [], isLoading: typesLoading } = useParasiteTypes();
 
   const [formData, setFormData] = useState({
     species: '',
@@ -163,12 +168,11 @@ export default function AntiparasiticProtocolModalDynamic({
                   <SelectValue placeholder="Sélectionner une espèce" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Chien">Chien</SelectItem>
-                  <SelectItem value="Chat">Chat</SelectItem>
-                  <SelectItem value="Oiseau">Oiseau</SelectItem>
-                  <SelectItem value="Lapin">Lapin</SelectItem>
-                  <SelectItem value="Furet">Furet</SelectItem>
-                  <SelectItem value="Autre">Autre</SelectItem>
+                  {animalSpecies.map((species) => (
+                    <SelectItem key={species} value={species}>
+                      {species}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -181,13 +185,11 @@ export default function AntiparasiticProtocolModalDynamic({
                   <SelectValue placeholder="Sélectionner le type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="puces">Puces</SelectItem>
-                  <SelectItem value="tiques">Tiques</SelectItem>
-                  <SelectItem value="vers_intestinaux">Vers intestinaux</SelectItem>
-                  <SelectItem value="vers_cardiaques">Vers cardiaques</SelectItem>
-                  <SelectItem value="acariens">Acariens</SelectItem>
-                  <SelectItem value="poux">Poux</SelectItem>
-                  <SelectItem value="multi_parasites">Multi-parasites</SelectItem>
+                  {parasiteTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

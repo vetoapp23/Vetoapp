@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Heart, User, Calendar, Stethoscope, Eye, Edit, Activity, Grid, List, Loader2, AlertTriangle, CheckCircle, XCircle, Trash2 } from "lucide-react";
+import { Plus, Search, Heart, User, Calendar, Stethoscope, Eye, Edit, Activity, Grid, List, Loader2, AlertTriangle, CheckCircle, XCircle, Trash2, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NewPetModal } from "@/components/forms/NewPetModal";
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
@@ -30,6 +30,12 @@ import type { Animal, Client, CreateAnimalData } from "@/lib/database";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
 import { calculateAge } from "@/lib/utils";
+import { 
+  useAnimalSpecies, 
+  useAnimalBreeds, 
+  useAnimalColors,
+  DEFAULT_SETTINGS
+} from "@/hooks/useAppSettings";
 
 // Import the original Pet interface from ClientContext for compatibility
 import { Pet } from "@/contexts/ClientContext";
@@ -93,6 +99,11 @@ const PetsContent = () => {
   const updateAnimalMutation = useUpdateAnimal();
   const deleteAnimalMutation = useDeleteAnimal();
   
+  // Settings hooks for dynamic animal data
+  const { data: animalSpecies = DEFAULT_SETTINGS.animal_species } = useAnimalSpecies();
+  const { data: animalBreeds = DEFAULT_SETTINGS.animal_breeds } = useAnimalBreeds();
+  const { data: animalColors = DEFAULT_SETTINGS.animal_colors } = useAnimalColors();
+  
   // Convert animals to pets format for compatibility
   const pets = animals.map(animal => convertAnimalToPet(animal, clients));
   // Import consultation and vaccination hooks
@@ -154,7 +165,9 @@ const PetsContent = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [viewMode, setViewMode] = useState<'cards' | 'table'>(currentView);
   const { settings } = useSettings();
-  const speciesList = settings.species.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  
+  // Use dynamic species list from settings instead of hardcoded values
+  const speciesList = animalSpecies;
   const [showPetModal, setShowPetModal] = useState(false);
   const [showConsultationModal, setShowConsultationModal] = useState(false);
   const [selectedPet, setSelectedPet] = useState<PetUI | null>(null);
@@ -262,16 +275,36 @@ const PetsContent = () => {
       await deleteAnimalMutation.mutateAsync(petToDelete.dbId);
       
       toast({
-        title: "Animal supprimé",
-        description: `${petToDelete.name} a été supprimé avec succès`,
+        title: "Suppression réussie",
+        description: `${petToDelete.name} a été supprimé avec succès de la base de données`,
       });
       
       setShowDeleteAlert(false);
       setPetToDelete(null);
     } catch (error) {
+      console.error('Error deleting animal:', error);
+      
+      let errorMessage = "Erreur lors de la suppression de l'animal";
+      
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('foreign key') || errorMsg.includes('constraint')) {
+          errorMessage = "Impossible de supprimer cet animal car il a des données associées (consultations, vaccinations, etc.). Supprimez d'abord ces données.";
+        } else if (errorMsg.includes('permission') || errorMsg.includes('access')) {
+          errorMessage = "Vous n'avez pas les permissions nécessaires pour supprimer cet animal.";
+        } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
+          errorMessage = "Problème de connexion. Vérifiez votre connexion internet.";
+        } else if (errorMsg.includes('authentication')) {
+          errorMessage = "Votre session a expiré. Veuillez vous reconnecter.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur lors de la suppression de l'animal",
+        title: "Erreur de suppression",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -290,6 +323,25 @@ const PetsContent = () => {
   const handleSaveEdit = async () => {
     if (!selectedPet) return;
     
+    // Basic validation
+    if (!editForm.name?.trim()) {
+      toast({
+        title: "Erreur de validation",
+        description: "Le nom de l'animal est obligatoire.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!editForm.client_id) {
+      toast({
+        title: "Erreur de validation",
+        description: "Le propriétaire est obligatoire.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Check for existing microchip number if one is provided
     if (editForm.microchip_number && editForm.microchip_number.trim()) {
       const existingAnimal = animals.find(animal => 
@@ -297,7 +349,7 @@ const PetsContent = () => {
       );
       if (existingAnimal) {
         toast({
-          title: "Erreur",
+          title: "Erreur de validation",
           description: "Un animal avec ce numéro de puce existe déjà.",
           variant: "destructive",
         });
@@ -312,15 +364,40 @@ const PetsContent = () => {
       });
       
       toast({
-        title: "Animal modifié",
+        title: "Modification réussie",
         description: `${editForm.name} a été modifié avec succès.`,
       });
       
       setShowEditModal(false);
     } catch (error) {
+      console.error('Error updating animal:', error);
+      
+      // Enhanced error handling
+      let errorMessage = "Une erreur inattendue s'est produite";
+      
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('microchip') || errorMsg.includes('unique')) {
+          errorMessage = "Ce numéro de puce électronique est déjà utilisé par un autre animal";
+        } else if (errorMsg.includes('client') || errorMsg.includes('foreign key')) {
+          errorMessage = "Le propriétaire sélectionné n'est plus valide";
+        } else if (errorMsg.includes('name') || errorMsg.includes('not null')) {
+          errorMessage = "Tous les champs obligatoires doivent être remplis";
+        } else if (errorMsg.includes('authentication') || errorMsg.includes('not authenticated')) {
+          errorMessage = "Votre session a expiré. Veuillez vous reconnecter.";
+        } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
+          errorMessage = "Problème de connexion. Vérifiez votre connexion internet.";
+        } else if (errorMsg.includes('permission') || errorMsg.includes('access')) {
+          errorMessage = "Vous n'avez pas les permissions nécessaires.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Erreur",
-        description: "Une erreur s'est produite lors de la modification de l'animal.",
+        title: "Erreur lors de la modification",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -418,6 +495,28 @@ const PetsContent = () => {
         </CardContent>
       </Card>
       </div>
+
+      {/* Settings Indicator */}
+      <Card className="border-dashed">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Configuration dynamique activée</p>
+                <p className="text-xs text-muted-foreground">
+                  Les types d'animaux sont configurables dans les paramètres
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4 text-xs text-muted-foreground">
+              <span>{animalSpecies.length} espèces</span>
+              <span>{Object.keys(animalBreeds).length} groupes de races</span>
+              <span>{animalColors.length} couleurs</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
       <CardHeader>

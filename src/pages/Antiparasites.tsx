@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useDisplayPreference } from '@/hooks/use-display-preference';
+import { useAnimalSpecies } from '@/hooks/useAppSettings';
 import { 
   useAntiparasitics,
   useAntiparasiticProtocols,
@@ -116,10 +117,14 @@ export default function Antiparasites() {
   const deleteAntiparasitic = useDeleteAntiparasitic();
   const { toast } = useToast();
 
+  // Dynamic settings
+  const { data: animalSpecies = [], isLoading: speciesLoading } = useAnimalSpecies();
+
   // State management
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [parasiteFilter, setParasiteFilter] = useState('all');
+  const [speciesFilter, setSpeciesFilter] = useState('all');
   const [showNewAntiparasitic, setShowNewAntiparasitic] = useState(false);
   const [showProtocolModal, setShowProtocolModal] = useState(false);
   const [showAntiparasiticDetails, setShowAntiparasiticDetails] = useState(false);
@@ -146,9 +151,11 @@ export default function Antiparasites() {
       
       const matchesParasite = parasiteFilter === 'all' || antiparasitic.parasite_type === parasiteFilter;
       
-      return matchesSearch && matchesStatus && matchesParasite;
+      const matchesSpecies = speciesFilter === 'all' || antiparasitic.petSpecies === speciesFilter;
+      
+      return matchesSearch && matchesStatus && matchesParasite && matchesSpecies;
     });
-  }, [enrichedAntiparasitics, searchTerm, statusFilter, parasiteFilter]);
+  }, [enrichedAntiparasitics, searchTerm, statusFilter, parasiteFilter, speciesFilter]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -333,6 +340,20 @@ export default function Antiparasites() {
             <SelectItem value="all">Tous les parasites</SelectItem>
             {availableParasiteTypes.map(type => (
             <SelectItem key={type} value={type}>{type}</SelectItem>
+            ))}
+          </SelectContent>
+          </Select>
+          
+          <Select value={speciesFilter} onValueChange={setSpeciesFilter}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Filtrer par espèce" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes espèces</SelectItem>
+            {animalSpecies.map((species) => (
+              <SelectItem key={species} value={species}>
+                {species}
+              </SelectItem>
             ))}
           </SelectContent>
           </Select>

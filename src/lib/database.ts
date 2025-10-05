@@ -17,7 +17,7 @@ export interface Client {
   postal_code?: string
   country: string
   notes?: string
-  client_type: 'particulier' | 'eleveur' | 'ferme'
+  client_type: string // Now accepts any string value from app settings
   status: 'actif' | 'inactif' | 'suspendu'
   created_at: string
   updated_at: string
@@ -28,7 +28,7 @@ export interface Animal {
   client_id: string
   user_id: string
   name: string
-  species: 'Chien' | 'Chat' | 'Oiseau' | 'Lapin' | 'Furet' | 'Autre'
+  species: string // Now accepts any string value from app settings
   breed?: string
   color?: string
   sex?: 'Mâle' | 'Femelle' | 'Inconnu'
@@ -78,7 +78,6 @@ export interface Consultation {
   updated_at: string
   
   // UI compatibility fields
-  cost?: number
   followUp?: string | null
   
   // Relations
@@ -243,6 +242,7 @@ export interface VaccinationProtocol {
 
 export interface AntiparasiticProtocol {
   id: string
+  user_id: string
   species: string
   parasite_type: string
   product_name: string
@@ -260,6 +260,58 @@ export interface AntiparasiticProtocol {
 // =============================================
 // SUMMARY & STATS TYPES
 // =============================================
+
+export interface AppSetting {
+  id: string
+  user_id: string
+  setting_category: string
+  setting_key: string
+  setting_value: any // JSON value
+  description?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ClinicSettings {
+  clinicName: string
+  address: string
+  phone: string
+  email: string
+  website?: string
+  logo?: string
+  currency: string
+  footer_text?: string
+}
+
+export interface VeterinarianSetting {
+  id: string
+  name: string
+  title: string
+  specialty?: string
+  phone?: string
+  email?: string
+  is_active: boolean
+}
+
+export interface FarmManagementSettings {
+  farm_types: string[]
+  animal_categories: string[]
+  breeds_by_category: Record<string, string[]>
+  certification_types: string[]
+  equipment_types: string[]
+  default_surface_unit: string
+  default_coordinate_format: string
+}
+
+export interface ScheduleSettings {
+  opening_time: string
+  closing_time: string
+  slot_duration: number
+  lunch_break_start: string
+  lunch_break_end: string
+  working_days: string[]
+}
 
 export interface AnimalMedicalSummary {
   animal_id: string
@@ -301,13 +353,13 @@ export interface CreateClientData {
   postal_code?: string
   country?: string
   notes?: string
-  client_type?: 'particulier' | 'eleveur' | 'ferme'
+  client_type?: string // Now accepts any string value from app settings
 }
 
 export interface CreateAnimalData {
   client_id: string
   name: string
-  species: 'Chien' | 'Chat' | 'Oiseau' | 'Lapin' | 'Furet' | 'Autre'
+  species: string
   breed?: string
   color?: string
   sex?: 'Mâle' | 'Femelle' | 'Inconnu'
@@ -422,9 +474,16 @@ export interface UpdateAppointmentData {
 // =============================================
 
 export const getClients = async (): Promise<Client[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch clients')
+  }
+
   const { data, error } = await supabase
     .from('clients')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -508,12 +567,19 @@ export const deleteClient = async (id: string): Promise<void> => {
 // =============================================
 
 export const getAnimals = async (): Promise<Animal[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch animals')
+  }
+
   const { data, error } = await supabase
     .from('animals')
     .select(`
       *,
       client:clients(*)
     `)
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -541,6 +607,12 @@ export const getAnimalsByClient = async (clientId: string): Promise<Animal[]> =>
 }
 
 export const getAnimalById = async (id: string): Promise<Animal | null> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch animal')
+  }
+
   const { data, error } = await supabase
     .from('animals')
     .select(`
@@ -548,6 +620,7 @@ export const getAnimalById = async (id: string): Promise<Animal | null> => {
       client:clients(*)
     `)
     .eq('id', id)
+    .eq('user_id', user.id)
     .single()
 
   if (error) {
@@ -670,9 +743,16 @@ export const deleteAnimal = async (id: string): Promise<void> => {
 // =============================================
 
 export const searchClients = async (query: string): Promise<Client[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to search clients')
+  }
+
   const { data, error } = await supabase
     .from('clients')
     .select('*')
+    .eq('user_id', user.id)
     .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
     .order('created_at', { ascending: false })
 
@@ -684,12 +764,19 @@ export const searchClients = async (query: string): Promise<Client[]> => {
 }
 
 export const searchAnimals = async (query: string): Promise<Animal[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to search animals')
+  }
+
   const { data, error } = await supabase
     .from('animals')
     .select(`
       *,
       client:clients(*)
     `)
+    .eq('user_id', user.id)
     .or(`name.ilike.%${query}%,species.ilike.%${query}%,breed.ilike.%${query}%,microchip_number.ilike.%${query}%`)
     .order('created_at', { ascending: false })
 
@@ -701,13 +788,21 @@ export const searchAnimals = async (query: string): Promise<Animal[]> => {
 }
 
 export const getClientStats = async () => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch client stats')
+  }
+
   const { data: clientsData, error: clientsError } = await supabase
     .from('clients')
     .select('status')
+    .eq('user_id', user.id)
 
   const { data: animalsData, error: animalsError } = await supabase
     .from('animals')
     .select('species, status')
+    .eq('user_id', user.id)
 
   if (clientsError || animalsError) {
     throw new Error('Error fetching stats')
@@ -742,6 +837,28 @@ export const getClientStats = async () => {
 // =============================================
 
 export const getConsultations = async (): Promise<Consultation[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch consultations')
+  }
+
+  // First get user's animals to filter consultations
+  const { data: userAnimals, error: animalsError } = await supabase
+    .from('animals')
+    .select('id')
+    .eq('user_id', user.id)
+
+  if (animalsError) {
+    throw new Error(`Error fetching user animals: ${animalsError.message}`)
+  }
+
+  const animalIds = userAnimals?.map(animal => animal.id) || []
+
+  if (animalIds.length === 0) {
+    return [] // No animals, no consultations
+  }
+
   const { data, error } = await supabase
     .from('consultations')
     .select(`
@@ -749,6 +866,7 @@ export const getConsultations = async (): Promise<Consultation[]> => {
       animal:animals(*),
       client:clients(*)
     `)
+    .in('animal_id', animalIds)
     .order('consultation_date', { ascending: false })
 
   if (error) {
@@ -827,12 +945,35 @@ export const updateConsultation = async (id: string, updates: Partial<CreateCons
 // =============================================
 
 export const getVaccinations = async (): Promise<Vaccination[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch vaccinations')
+  }
+
+  // First get user's animals to filter vaccinations
+  const { data: userAnimals, error: animalsError } = await supabase
+    .from('animals')
+    .select('id')
+    .eq('user_id', user.id)
+
+  if (animalsError) {
+    throw new Error(`Error fetching user animals: ${animalsError.message}`)
+  }
+
+  const animalIds = userAnimals?.map(animal => animal.id) || []
+
+  if (animalIds.length === 0) {
+    return [] // No animals, no vaccinations
+  }
+
   const { data, error } = await supabase
     .from('vaccinations')
     .select(`
       *,
       animal:animals(*)
     `)
+    .in('animal_id', animalIds)
     .order('vaccination_date', { ascending: false })
 
   if (error) {
@@ -1044,23 +1185,37 @@ export const createAntiparasitic = async (antiparasiticData: CreateAntiparasitic
     throw new Error('User must be authenticated to create antiparasitic')
   }
 
+  // Clean the data and ensure effectiveness_rating is properly handled
+  const cleanedData = { ...antiparasiticData };
+  
+  // Remove effectiveness_rating if it's not a valid number between 1-5
+  if (cleanedData.effectiveness_rating !== undefined) {
+    const rating = cleanedData.effectiveness_rating;
+    if (typeof rating !== 'number' || rating < 1 || rating > 5 || isNaN(rating)) {
+      console.warn('Invalid effectiveness_rating detected, removing from data:', rating);
+      delete cleanedData.effectiveness_rating;
+    }
+  }
+
+  console.log('Final antiparasitic data being sent to database:', cleanedData);
+
   // Validate administered_by field if provided
-  if (antiparasiticData.administered_by) {
+  if (cleanedData.administered_by) {
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('id')
-      .eq('id', antiparasiticData.administered_by)
+      .eq('id', cleanedData.administered_by)
       .single()
     
     if (!profile) {
-      console.warn('administered_by user not found, setting to null')
-      antiparasiticData.administered_by = null
+      console.warn('administered_by user not found, removing field')
+      delete cleanedData.administered_by
     }
   }
 
   const { data, error } = await supabase
     .from('antiparasitics')
-    .insert([antiparasiticData])
+    .insert([cleanedData])
     .select(`
       *,
       animal:animals(*)
@@ -1068,7 +1223,14 @@ export const createAntiparasitic = async (antiparasiticData: CreateAntiparasitic
     .single()
 
   if (error) {
-    throw new Error(`Error creating antiparasitic: ${error.message}`)
+    console.error('Database error details:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      data: cleanedData
+    })
+    throw new Error(`Error creating antiparasitic: ${error.message} (Code: ${error.code})`)
   }
 
   return data
@@ -1119,9 +1281,16 @@ export const deleteAntiparasitic = async (id: string): Promise<void> => {
 
 // Antiparasitic Protocol Operations
 export const getAntiparasiticProtocols = async (): Promise<AntiparasiticProtocol[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch antiparasitic protocols')
+  }
+
   const { data, error } = await supabase
     .from('antiparasitic_protocols')
     .select('*')
+    .eq('user_id', user.id)
     .order('species', { ascending: true })
 
   if (error) {
@@ -1132,9 +1301,16 @@ export const getAntiparasiticProtocols = async (): Promise<AntiparasiticProtocol
 }
 
 export const getAntiparasiticProtocolsBySpecies = async (species: string): Promise<AntiparasiticProtocol[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch antiparasitic protocols')
+  }
+
   const { data, error } = await supabase
     .from('antiparasitic_protocols')
     .select('*')
+    .eq('user_id', user.id)
     .eq('species', species)
     .eq('active', true)
     .order('parasite_type', { ascending: true })
@@ -1146,10 +1322,22 @@ export const getAntiparasiticProtocolsBySpecies = async (species: string): Promi
   return data || []
 }
 
-export const createAntiparasiticProtocol = async (protocolData: Omit<AntiparasiticProtocol, 'id' | 'created_at' | 'updated_at'>): Promise<AntiparasiticProtocol> => {
+export const createAntiparasiticProtocol = async (protocolData: Omit<AntiparasiticProtocol, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<AntiparasiticProtocol> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to create antiparasitic protocol')
+  }
+
+  // Add user_id to the protocol data
+  const protocolWithUserId = {
+    ...protocolData,
+    user_id: user.id
+  }
+
   const { data, error } = await supabase
     .from('antiparasitic_protocols')
-    .insert([protocolData])
+    .insert([protocolWithUserId])
     .select('*')
     .single()
 
@@ -1160,7 +1348,12 @@ export const createAntiparasiticProtocol = async (protocolData: Omit<Antiparasit
   return data
 }
 
-export const updateAntiparasiticProtocol = async (id: string, updates: Partial<Omit<AntiparasiticProtocol, 'id' | 'created_at' | 'updated_at'>>): Promise<AntiparasiticProtocol> => {
+export const updateAntiparasiticProtocol = async (id: string, updates: Partial<Omit<AntiparasiticProtocol, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<AntiparasiticProtocol> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to update antiparasitic protocol')
+  }
   const { data, error } = await supabase
     .from('antiparasitic_protocols')
     .update(updates)
@@ -1176,6 +1369,11 @@ export const updateAntiparasiticProtocol = async (id: string, updates: Partial<O
 }
 
 export const deleteAntiparasiticProtocol = async (id: string): Promise<void> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to delete antiparasitic protocol')
+  }
   const { error } = await supabase
     .from('antiparasitic_protocols')
     .delete()
@@ -1191,6 +1389,28 @@ export const deleteAntiparasiticProtocol = async (id: string): Promise<void> => 
 // =============================================
 
 export const getPrescriptions = async (): Promise<Prescription[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch prescriptions')
+  }
+
+  // First get user's animals to filter prescriptions
+  const { data: userAnimals, error: animalsError } = await supabase
+    .from('animals')
+    .select('id')
+    .eq('user_id', user.id)
+
+  if (animalsError) {
+    throw new Error(`Error fetching user animals: ${animalsError.message}`)
+  }
+
+  const animalIds = userAnimals?.map(animal => animal.id) || []
+
+  if (animalIds.length === 0) {
+    return [] // No animals, no prescriptions
+  }
+
   const { data, error } = await supabase
     .from('prescriptions')
     .select(`
@@ -1199,6 +1419,7 @@ export const getPrescriptions = async (): Promise<Prescription[]> => {
       client:clients(*),
       medications:prescription_medications(*)
     `)
+    .in('animal_id', animalIds)
     .order('prescription_date', { ascending: false })
 
   if (error) {
@@ -1291,6 +1512,28 @@ export const createPrescription = async (prescriptionData: CreatePrescriptionDat
 // =============================================
 
 export const getAppointments = async (): Promise<Appointment[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch appointments')
+  }
+
+  // First get user's clients to filter appointments
+  const { data: userClients, error: clientsError } = await supabase
+    .from('clients')
+    .select('id')
+    .eq('user_id', user.id)
+
+  if (clientsError) {
+    throw new Error(`Error fetching user clients: ${clientsError.message}`)
+  }
+
+  const clientIds = userClients?.map(client => client.id) || []
+
+  if (clientIds.length === 0) {
+    return [] // No clients, no appointments
+  }
+
   const { data, error } = await supabase
     .from('appointments')
     .select(`
@@ -1298,6 +1541,7 @@ export const getAppointments = async (): Promise<Appointment[]> => {
       client:clients(*),
       animal:animals(*)
     `)
+    .in('client_id', clientIds)
     .order('appointment_date', { ascending: true })
 
   if (error) {
@@ -1554,4 +1798,276 @@ export const getDetailedStats = async () => {
     vaccinationsByType,
     appointmentsByStatus
   }
+}
+
+// =============================================
+// APP SETTINGS OPERATIONS
+// =============================================
+
+export const getAppSettings = async (): Promise<AppSetting[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch app settings')
+  }
+
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .order('setting_category', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching app settings: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const getAppSettingsByCategory = async (category: string): Promise<AppSetting[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch app settings')
+  }
+
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('setting_category', category)
+    .eq('is_active', true)
+    .order('setting_key', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching app settings for category: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const getAppSetting = async (category: string, key: string): Promise<AppSetting | null> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch app setting')
+  }
+
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('setting_category', category)
+    .eq('setting_key', key)
+    .eq('is_active', true)
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null // No rows returned
+    }
+    throw new Error(`Error fetching app setting: ${error.message}`)
+  }
+
+  return data
+}
+
+export const createOrUpdateAppSetting = async (
+  category: string, 
+  key: string, 
+  value: any, 
+  description?: string
+): Promise<AppSetting> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to create/update app setting')
+  }
+
+  // Try to update existing setting first
+  const { data: existingData, error: existingError } = await supabase
+    .from('app_settings')
+    .update({ 
+      setting_value: value, 
+      description: description,
+      updated_at: new Date().toISOString()
+    })
+    .eq('user_id', user.id)
+    .eq('setting_category', category)
+    .eq('setting_key', key)
+    .select()
+    .single()
+
+  if (!existingError && existingData) {
+    return existingData
+  }
+
+  // If update failed, create new setting
+  const { data, error } = await supabase
+    .from('app_settings')
+    .insert([{
+      user_id: user.id,
+      setting_category: category,
+      setting_key: key,
+      setting_value: value,
+      description: description,
+      is_active: true
+    }])
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Error creating app setting: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteAppSetting = async (category: string, key: string): Promise<void> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to delete app setting')
+  }
+
+  const { error } = await supabase
+    .from('app_settings')
+    .update({ is_active: false })
+    .eq('user_id', user.id)
+    .eq('setting_category', category)
+    .eq('setting_key', key)
+
+  if (error) {
+    throw new Error(`Error deleting app setting: ${error.message}`)
+  }
+}
+
+// =============================================
+// SETTINGS HELPER FUNCTIONS
+// =============================================
+
+export const getClinicSettings = async (): Promise<ClinicSettings | null> => {
+  const settings = await getAppSettingsByCategory('clinic')
+  if (settings.length === 0) return null
+
+  const clinicSettings: Partial<ClinicSettings> = {}
+  settings.forEach(setting => {
+    clinicSettings[setting.setting_key as keyof ClinicSettings] = setting.setting_value
+  })
+
+  return clinicSettings as ClinicSettings
+}
+
+export const updateClinicSettings = async (clinicSettings: Partial<ClinicSettings>): Promise<void> => {
+  const promises = Object.entries(clinicSettings).map(([key, value]) =>
+    createOrUpdateAppSetting('clinic', key, value, `Clinic ${key} setting`)
+  )
+
+  await Promise.all(promises)
+}
+
+export const getVeterinarianSettings = async (): Promise<VeterinarianSetting[]> => {
+  const setting = await getAppSetting('clinic', 'veterinarians')
+  return setting?.setting_value || []
+}
+
+export const updateVeterinarianSettings = async (veterinarians: VeterinarianSetting[]): Promise<void> => {
+  await createOrUpdateAppSetting('clinic', 'veterinarians', veterinarians, 'List of veterinarians')
+}
+
+export const getFarmManagementSettings = async (): Promise<FarmManagementSettings | null> => {
+  const setting = await getAppSetting('farm', 'management_settings')
+  return setting?.setting_value || null
+}
+
+export const updateFarmManagementSettings = async (farmSettings: FarmManagementSettings): Promise<void> => {
+  await createOrUpdateAppSetting('farm', 'management_settings', farmSettings, 'Farm management configuration')
+}
+
+export const getScheduleSettings = async (): Promise<ScheduleSettings | null> => {
+  const setting = await getAppSetting('clinic', 'schedule_settings')
+  return setting?.setting_value || null
+}
+
+export const updateScheduleSettings = async (scheduleSettings: ScheduleSettings): Promise<void> => {
+  await createOrUpdateAppSetting('clinic', 'schedule_settings', scheduleSettings, 'Clinic schedule configuration')
+}
+
+// =============================================
+// HELPER FUNCTIONS FOR INITIALIZING DEFAULT SETTINGS
+// =============================================
+
+export const initializeDefaultSettings = async (): Promise<void> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to initialize default settings')
+  }
+
+  // Check if user already has settings
+  const existingSettings = await getAppSettings()
+  if (existingSettings.length > 0) {
+    console.log('User already has settings configured')
+    return
+  }
+
+  // Create default clinic settings
+  const defaultClinicSettings: ClinicSettings = {
+    clinicName: 'Ma Clinique Vétérinaire',
+    address: 'Rabat, Maroc',
+    phone: '+212 5 37 XX XX XX',
+    email: 'contact@clinique.ma',
+    website: 'www.clinique.ma',
+    currency: 'MAD',
+    footer_text: 'Merci de votre confiance'
+  }
+
+  // Create default veterinarians
+  const defaultVeterinarians: VeterinarianSetting[] = [
+    {
+      id: crypto.randomUUID(),
+      name: 'Dr. Mohamed Alami',
+      title: 'Vétérinaire Principal',
+      specialty: 'Médecine générale',
+      phone: '+212 6 XX XX XX XX',
+      email: 'm.alami@clinique.ma',
+      is_active: true
+    }
+  ]
+
+  // Create default farm management settings
+  const defaultFarmSettings: FarmManagementSettings = {
+    enabled: true,
+    default_herd_size: 50,
+    visit_frequency_days: 30,
+    report_format: 'standard',
+    certification_tracking: true
+  }
+
+  // Create default schedule settings
+  const defaultScheduleSettings: ScheduleSettings = {
+    working_hours: {
+      monday: { start: '08:00', end: '18:00', enabled: true },
+      tuesday: { start: '08:00', end: '18:00', enabled: true },
+      wednesday: { start: '08:00', end: '18:00', enabled: true },
+      thursday: { start: '08:00', end: '18:00', enabled: true },
+      friday: { start: '08:00', end: '18:00', enabled: true },
+      saturday: { start: '08:00', end: '14:00', enabled: true },
+      sunday: { start: '08:00', end: '14:00', enabled: false }
+    },
+    appointment_duration: 30,
+    buffer_time: 10,
+    max_appointments_per_day: 20
+  }
+
+  // Save all default settings
+  await Promise.all([
+    updateClinicSettings(defaultClinicSettings),
+    updateVeterinarianSettings(defaultVeterinarians),
+    updateFarmManagementSettings(defaultFarmSettings),
+    updateScheduleSettings(defaultScheduleSettings)
+  ])
+
+  console.log('Default settings initialized successfully')
 }

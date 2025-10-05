@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, FileText, Heart, User, Calendar, Pill, Thermometer, Edit, Trash2, Grid, List, Eye } from "lucide-react";
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
@@ -40,6 +41,8 @@ const Consultations = () => {
   const [showPrescriptionDetails, setShowPrescriptionDetails] = useState(false);
   const [selectedConsultationPrescriptions, setSelectedConsultationPrescriptions] = useState<any[]>([]);
   const [selectedAnimalName, setSelectedAnimalName] = useState<string>('');
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [consultationToDelete, setConsultationToDelete] = useState<Consultation | null>(null);
 
   // Helper function to get prescriptions for a consultation
   const getPrescriptionsForConsultation = (consultationId: string) => {
@@ -86,49 +89,61 @@ const Consultations = () => {
     setShowNewPrescription(true);
   };
 
-  const handleDeleteConsultation = async (consultation: Consultation) => {
-    // Simple confirmation dialog
-    if (confirm(`Êtes-vous sûr de vouloir supprimer la consultation pour ${consultation.animal?.name || 'cet animal'} ?`)) {
-      try {
-        // Use both approaches for better chance of success
+  const handleDeleteConsultation = (consultation: Consultation) => {
+    setConsultationToDelete(consultation);
+    setShowDeleteAlert(true);
+  };
+
+  const confirmDeleteConsultation = async () => {
+    if (!consultationToDelete) return;
+    
+    try {
+      // Use both approaches for better chance of success
+      
+      // 1. Try direct deletion first
+      const result = await deleteConsultationDirect(consultationToDelete.id);
+      
+      if (result.success) {
+        toast({
+          title: "Succès",
+          description: `La consultation a été supprimée avec succès.`,
+        });
         
-        // 1. Try direct deletion first
-        const result = await deleteConsultationDirect(consultation.id);
-        
-        if (result.success) {
+        // Manually refetch data after successful delete
+        window.location.reload();
+        setShowDeleteAlert(false);
+        setConsultationToDelete(null);
+        return;
+      }
+      
+      // 2. If direct deletion fails, try mutation
+      deleteConsultationMutation.mutate(consultationToDelete.id, {
+        onSuccess: () => {
           toast({
             title: "Succès",
             description: `La consultation a été supprimée avec succès.`,
           });
-          
-          // Manually refetch data after successful delete
-          window.location.reload();
-          return;
+          setShowDeleteAlert(false);
+          setConsultationToDelete(null);
+        },
+        onError: (error) => {
+          toast({
+            title: "Erreur",
+            description: `Impossible de supprimer la consultation: ${error.message}`,
+            variant: "destructive",
+          });
+          setShowDeleteAlert(false);
+          setConsultationToDelete(null);
         }
-        
-        // 2. If direct deletion fails, try mutation
-        deleteConsultationMutation.mutate(consultation.id, {
-          onSuccess: () => {
-            toast({
-              title: "Succès",
-              description: `La consultation a été supprimée avec succès.`,
-            });
-          },
-          onError: (error) => {
-            toast({
-              title: "Erreur",
-              description: `Impossible de supprimer la consultation: ${error.message}`,
-              variant: "destructive",
-            });
-          }
-        });
-      } catch (error: any) {
-        toast({
-          title: "Erreur",
-          description: `Erreur inattendue: ${error.message || "Erreur inconnue"}`,
-          variant: "destructive",
-        });
-      }
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: `Erreur inattendue: ${error.message || "Erreur inconnue"}`,
+        variant: "destructive",
+      });
+      setShowDeleteAlert(false);
+      setConsultationToDelete(null);
     }
   };
 
@@ -373,15 +388,15 @@ const Consultations = () => {
               <Pill className="h-3 w-3" />
               Prescription
               </Button>
-              {/* <Button 
+              <Button 
               size="sm" 
               variant="outline"
-              onClick={() => handleDeleteConsultation(consultation)}
-              className="gap-1 text-red-600 hover:text-red-700"
+              onClick={() => handleDeleteConsultation(consultation as Consultation)}
+              className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
               >
               <Trash2 className="h-3 w-3" />
               Supprimer
-              </Button> */}
+              </Button>
               <Button 
               size="sm"
               onClick={() => handleNewFollowUp(consultation as Consultation)}
@@ -408,7 +423,6 @@ const Consultations = () => {
               <TableHead className="text-xs sm:text-sm">Diagnostic</TableHead>
               <TableHead className="text-xs sm:text-sm">Température</TableHead>
               <TableHead className="text-xs sm:text-sm">Prescriptions</TableHead>
-              <TableHead className="text-xs sm:text-sm">Coût</TableHead>
               <TableHead className="text-xs sm:text-sm">Actions</TableHead>
             </TableRow>
             </TableHeader>
@@ -460,9 +474,6 @@ const Consultations = () => {
                 })()}
               </TableCell>
               <TableCell className="text-xs sm:text-sm">
-                {consultation.cost ? `${consultation.cost} ${settings.currency}` : '-'}
-              </TableCell>
-              <TableCell className="text-xs sm:text-sm">
                 <div className="flex gap-1 flex-wrap">
                 <ConsultationPrintNew consultation={consultation as Consultation} />
                 <Button 
@@ -481,15 +492,15 @@ const Consultations = () => {
                 >
                   <Pill className="h-3 w-3" />
                 </Button>
-                
-                {/* <Button 
+                <Button 
                   size="sm" 
                   variant="outline"
                   onClick={() => handleDeleteConsultation(consultation as Consultation)}
-                  className="text-red-600 hover:text-red-700"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  title="Supprimer"
                 >
                   <Trash2 className="h-3 w-3" />
-                </Button> */}
+                </Button>
                 </div>
               </TableCell>
               </TableRow>
@@ -629,6 +640,36 @@ const Consultations = () => {
         </div>
       </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette consultation pour{' '}
+              <strong>{consultationToDelete?.animal?.name || 'cet animal'}</strong> ?
+              <br />
+              <span className="text-sm text-muted-foreground mt-2 block">
+                Date: {consultationToDelete && new Date(consultationToDelete.consultation_date).toLocaleDateString('fr-FR')}
+              </span>
+              <br />
+              Cette action est irréversible et supprimera également toutes les prescriptions associées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConsultationToDelete(null)}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteConsultation}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

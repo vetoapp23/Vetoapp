@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAnimalSpecies, useVaccinationTypes } from '@/hooks/useAppSettings';
 import { Plus, Shield } from 'lucide-react';
 import { useCreateVaccinationProtocol, useUpdateVaccinationProtocol } from '@/hooks/useDatabase';
 import type { VaccinationProtocol } from '@/lib/database';
@@ -28,6 +29,10 @@ export default function VaccinationProtocolModal({
   const createProtocolMutation = useCreateVaccinationProtocol();
   const updateProtocolMutation = useUpdateVaccinationProtocol();
   const { toast } = useToast();
+  
+  // Dynamic settings
+  const { data: animalSpecies = [], isLoading: speciesLoading } = useAnimalSpecies();
+  const { data: vaccinationTypes = [], isLoading: typesLoading } = useVaccinationTypes();
   
   const [internalOpen, setInternalOpen] = useState(false);
   const modalOpen = open !== undefined ? open : internalOpen;
@@ -138,12 +143,11 @@ export default function VaccinationProtocolModal({
                   <SelectValue placeholder="Sélectionnez l'espèce" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Chien">Chien</SelectItem>
-                  <SelectItem value="Chat">Chat</SelectItem>
-                  <SelectItem value="Oiseau">Oiseau</SelectItem>
-                  <SelectItem value="Lapin">Lapin</SelectItem>
-                  <SelectItem value="Furet">Furet</SelectItem>
-                  <SelectItem value="Autre">Autre</SelectItem>
+                  {animalSpecies.map((species) => (
+                    <SelectItem key={species} value={species}>
+                      {species}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -168,10 +172,11 @@ export default function VaccinationProtocolModal({
                   <SelectValue placeholder="Sélectionnez le type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="core">Essentiel</SelectItem>
-                  <SelectItem value="non-core">Optionnel</SelectItem>
-                  <SelectItem value="rabies">Rage</SelectItem>
-                  <SelectItem value="custom">Personnalisé</SelectItem>
+                  {vaccinationTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

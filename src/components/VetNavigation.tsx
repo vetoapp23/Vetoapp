@@ -37,7 +37,7 @@ const primaryNavItems = [
 const secondaryNavItems = [
   { icon: Package, label: "Stock", path: "/stock" },
   { icon: Calculator, label: "Comptabilité", path: "/accounting" },
-  // { icon: Cog, label: "Paramètres", path: "/settings" }
+  { icon: Cog, label: "Paramètres", path: "/settings" }
 ];
 
 // Tous les éléments pour la navigation mobile

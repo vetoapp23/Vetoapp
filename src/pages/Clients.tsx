@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
 import { useToast } from "@/hooks/use-toast";
+import { useAnimalSpecies, useClientTypes } from '@/hooks/useAppSettings';
 import type { Client as DBClient, Animal, CreateClientData } from "@/lib/database";
 
 // Interface matching the old UI structure
@@ -92,11 +93,16 @@ const ClientsContent = () => {
   const deleteClientMutation = useDeleteClient();
   const { toast } = useToast();
   
+  // Dynamic settings
+  const { data: animalSpecies = [], isLoading: speciesLoading } = useAnimalSpecies();
+  const { data: clientTypes = [], isLoading: clientTypesLoading } = useClientTypes();
+  
   // Convert to old format for compatibility
   const clients = dbClients.map(dbClient => convertDatabaseClient(dbClient, animals));
   
   const { currentView } = useDisplayPreference('clients');
   const [searchTerm, setSearchTerm] = useState("");
+  const [speciesFilter, setSpeciesFilter] = useState("all");
   const [viewMode, setViewMode] = useState<'cards' | 'table'>(currentView);
   const [showClientModal, setShowClientModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientUI | null>(null);
@@ -120,11 +126,16 @@ const ClientsContent = () => {
     client_type: 'particulier'
   });
 
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (client.city && client.city.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredClients = clients.filter(client => {
+    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (client.city && client.city.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesSpecies = speciesFilter === "all" || 
+      client.pets.some(pet => pet.type === speciesFilter);
+    
+    return matchesSearch && matchesSpecies;
+  });
 
   const handleView = (client: ClientUI) => {
     setSelectedClient(client);
@@ -288,12 +299,27 @@ const ClientsContent = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Input 
-        placeholder="Rechercher par nom, email ou ville..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full"
-        />
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Input 
+            placeholder="Rechercher par nom, email ou ville..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1"
+          />
+          <Select value={speciesFilter} onValueChange={setSpeciesFilter}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Filtrer par espèce" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes espèces</SelectItem>
+              {animalSpecies.map((species) => (
+                <SelectItem key={species} value={species}>
+                  {species}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CardContent>
       </Card>
 
@@ -640,7 +666,7 @@ const ClientsContent = () => {
             <Label htmlFor="edit_client_type">Type de client</Label>
             <Select
               value={editForm.client_type || 'particulier'}
-              onValueChange={(value: 'particulier' | 'eleveur' | 'ferme') => 
+              onValueChange={(value) => 
               setEditForm(prev => ({ ...prev, client_type: value }))
               }
             >
@@ -648,9 +674,11 @@ const ClientsContent = () => {
               <SelectValue placeholder="Type de client" />
               </SelectTrigger>
               <SelectContent>
-              <SelectItem value="particulier">Particulier</SelectItem>
-              <SelectItem value="eleveur">Éleveur</SelectItem>
-              <SelectItem value="ferme">Ferme</SelectItem>
+              {clientTypes.map((type) => (
+                <SelectItem key={type} value={type.toLowerCase()}>
+                  {type}
+                </SelectItem>
+              ))}
               </SelectContent>
             </Select>
             </div>

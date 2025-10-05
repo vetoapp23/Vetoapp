@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useVaccinationTypes } from '@/hooks/useAppSettings';
 import { Plus, Syringe } from 'lucide-react';
 import { format } from 'date-fns';
 import { 
@@ -32,6 +33,9 @@ export default function NewVaccinationModal({
   const { data: clients = [] } = useClients();
   const createVaccinationMutation = useCreateVaccination();
   const { toast } = useToast();
+  
+  // Dynamic settings
+  const { data: vaccinationTypes = [], isLoading: typesLoading } = useVaccinationTypes();
   
   const [internalOpen, setInternalOpen] = useState(false);
   const modalOpen = open !== undefined ? open : internalOpen;
@@ -183,10 +187,11 @@ export default function NewVaccinationModal({
                   <SelectValue placeholder="Sélectionnez le type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="core">Essentiel</SelectItem>
-                  <SelectItem value="non-core">Optionnel</SelectItem>
-                  <SelectItem value="rabies">Rage</SelectItem>
-                  <SelectItem value="custom">Personnalisé</SelectItem>
+                  {vaccinationTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
