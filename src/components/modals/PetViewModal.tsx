@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, User, Calendar, Edit, FileText, Camera } from "lucide-react";
+import { Heart, User, Calendar, Edit, FileText, Camera, Trash2 } from "lucide-react";
 import { Pet } from "@/contexts/ClientContext";
 import { calculateAge, formatDate } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
@@ -14,9 +14,10 @@ interface PetViewModalProps {
   pet: Pet | null;
   onEdit: () => void;
   onShowDossier: () => void;
+  onDelete?: () => void;
 }
 
-export function PetViewModal({ open, onOpenChange, pet, onEdit, onShowDossier }: PetViewModalProps) {
+export function PetViewModal({ open, onOpenChange, pet, onEdit, onShowDossier, onDelete }: PetViewModalProps) {
   const { updatePet } = useClients();
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   // Initialize preview with existing photo on open
@@ -216,6 +217,19 @@ export function PetViewModal({ open, onOpenChange, pet, onEdit, onShowDossier }:
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Fermer
               </Button>
+              {onDelete && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    onOpenChange(false);
+                    onDelete();
+                  }}
+                  className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer
+                </Button>
+              )}
               <Button onClick={onEdit} className="gap-2">
                 <Edit className="h-4 w-4" />
                 Modifier

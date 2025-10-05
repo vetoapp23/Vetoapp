@@ -8,18 +8,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Heart, User, Calendar, Stethoscope, Eye, Edit, Activity, Grid, List, Loader2, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Search, Heart, User, Calendar, Stethoscope, Eye, Edit, Activity, Grid, List, Loader2, AlertTriangle, CheckCircle, XCircle, Trash2, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NewPetModal } from "@/components/forms/NewPetModal";
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
 import { PetViewModal } from "@/components/modals/PetViewModal";
 import { SimplePetDossierModal } from "@/components/modals/SimplePetDossierModal";
 import { MedicalStats } from "@/components/MedicalStats";
-import { useAnimals, useClients, useUpdateAnimal, useClientStats, useConsultations, useVaccinations } from "@/hooks/useDatabase";
+import { useAnimals, useClients, useUpdateAnimal, useDeleteAnimal, useClientStats, useConsultations, useVaccinations } from "@/hooks/useDatabase";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Animal, Client, CreateAnimalData } from "@/lib/database";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
 import { calculateAge } from "@/lib/utils";
+import { 
+  useAnimalSpecies, 
+  useAnimalBreeds, 
+  useAnimalColors,
+  DEFAULT_SETTINGS
+} from "@/hooks/useAppSettings";
 
 // Import the original Pet interface from ClientContext for compatibility
 import { Pet } from "@/contexts/ClientContext";
@@ -81,6 +97,12 @@ const PetsContent = () => {
   const { data: clients = [], isLoading: clientsLoading } = useClients();
   const { data: stats } = useClientStats();
   const updateAnimalMutation = useUpdateAnimal();
+  const deleteAnimalMutation = useDeleteAnimal();
+  
+  // Settings hooks for dynamic animal data
+  const { data: animalSpecies = DEFAULT_SETTINGS.animal_species } = useAnimalSpecies();
+  const { data: animalBreeds = DEFAULT_SETTINGS.animal_breeds } = useAnimalBreeds();
+  const { data: animalColors = DEFAULT_SETTINGS.animal_colors } = useAnimalColors();
   
   // Convert animals to pets format for compatibility
   const pets = animals.map(animal => convertAnimalToPet(animal, clients));
@@ -143,13 +165,17 @@ const PetsContent = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [viewMode, setViewMode] = useState<'cards' | 'table'>(currentView);
   const { settings } = useSettings();
-  const speciesList = settings.species.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  
+  // Use dynamic species list from settings instead of hardcoded values
+  const speciesList = animalSpecies;
   const [showPetModal, setShowPetModal] = useState(false);
   const [showConsultationModal, setShowConsultationModal] = useState(false);
   const [selectedPet, setSelectedPet] = useState<PetUI | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDossierModal, setShowDossierModal] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [petToDelete, setPetToDelete] = useState<PetUI | null>(null);
   const { toast } = useToast();
   
   // Edit form state
@@ -237,6 +263,53 @@ const PetsContent = () => {
     setShowEditModal(true);
   };
 
+  const handleDelete = (pet: PetUI) => {
+    setPetToDelete(pet);
+    setShowDeleteAlert(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!petToDelete) return;
+
+    try {
+      await deleteAnimalMutation.mutateAsync(petToDelete.dbId);
+      
+      toast({
+        title: "Suppression réussie",
+        description: `${petToDelete.name} a été supprimé avec succès de la base de données`,
+      });
+      
+      setShowDeleteAlert(false);
+      setPetToDelete(null);
+    } catch (error) {
+      console.error('Error deleting animal:', error);
+      
+      let errorMessage = "Erreur lors de la suppression de l'animal";
+      
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('foreign key') || errorMsg.includes('constraint')) {
+          errorMessage = "Impossible de supprimer cet animal car il a des données associées (consultations, vaccinations, etc.). Supprimez d'abord ces données.";
+        } else if (errorMsg.includes('permission') || errorMsg.includes('access')) {
+          errorMessage = "Vous n'avez pas les permissions nécessaires pour supprimer cet animal.";
+        } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
+          errorMessage = "Problème de connexion. Vérifiez votre connexion internet.";
+        } else if (errorMsg.includes('authentication')) {
+          errorMessage = "Votre session a expiré. Veuillez vous reconnecter.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast({
+        title: "Erreur de suppression",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleShowDossier = (pet: PetUI) => {
     setSelectedPet(pet);
     setShowDossierModal(true);
@@ -250,6 +323,25 @@ const PetsContent = () => {
   const handleSaveEdit = async () => {
     if (!selectedPet) return;
     
+    // Basic validation
+    if (!editForm.name?.trim()) {
+      toast({
+        title: "Erreur de validation",
+        description: "Le nom de l'animal est obligatoire.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!editForm.client_id) {
+      toast({
+        title: "Erreur de validation",
+        description: "Le propriétaire est obligatoire.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Check for existing microchip number if one is provided
     if (editForm.microchip_number && editForm.microchip_number.trim()) {
       const existingAnimal = animals.find(animal => 
@@ -257,7 +349,7 @@ const PetsContent = () => {
       );
       if (existingAnimal) {
         toast({
-          title: "Erreur",
+          title: "Erreur de validation",
           description: "Un animal avec ce numéro de puce existe déjà.",
           variant: "destructive",
         });
@@ -272,15 +364,40 @@ const PetsContent = () => {
       });
       
       toast({
-        title: "Animal modifié",
+        title: "Modification réussie",
         description: `${editForm.name} a été modifié avec succès.`,
       });
       
       setShowEditModal(false);
     } catch (error) {
+      console.error('Error updating animal:', error);
+      
+      // Enhanced error handling
+      let errorMessage = "Une erreur inattendue s'est produite";
+      
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('microchip') || errorMsg.includes('unique')) {
+          errorMessage = "Ce numéro de puce électronique est déjà utilisé par un autre animal";
+        } else if (errorMsg.includes('client') || errorMsg.includes('foreign key')) {
+          errorMessage = "Le propriétaire sélectionné n'est plus valide";
+        } else if (errorMsg.includes('name') || errorMsg.includes('not null')) {
+          errorMessage = "Tous les champs obligatoires doivent être remplis";
+        } else if (errorMsg.includes('authentication') || errorMsg.includes('not authenticated')) {
+          errorMessage = "Votre session a expiré. Veuillez vous reconnecter.";
+        } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
+          errorMessage = "Problème de connexion. Vérifiez votre connexion internet.";
+        } else if (errorMsg.includes('permission') || errorMsg.includes('access')) {
+          errorMessage = "Vous n'avez pas les permissions nécessaires.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Erreur",
-        description: "Une erreur s'est produite lors de la modification de l'animal.",
+        title: "Erreur lors de la modification",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -378,6 +495,28 @@ const PetsContent = () => {
         </CardContent>
       </Card>
       </div>
+
+      {/* Settings Indicator */}
+      <Card className="border-dashed">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Configuration dynamique activée</p>
+                <p className="text-xs text-muted-foreground">
+                  Les types d'animaux sont configurables dans les paramètres
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4 text-xs text-muted-foreground">
+              <span>{animalSpecies.length} espèces</span>
+              <span>{Object.keys(animalBreeds).length} groupes de races</span>
+              <span>{animalColors.length} couleurs</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
       <CardHeader>
@@ -514,6 +653,15 @@ const PetsContent = () => {
               <Edit className="h-4 w-4" />
               Modifier
             </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="gap-2 flex-1 text-destructive hover:text-destructive-foreground hover:bg-destructive" 
+              onClick={() => handleDelete(pet)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Supprimer
+            </Button>
             </div>
             
             <div className="flex gap-2">
@@ -595,6 +743,14 @@ const PetsContent = () => {
                 <Button size="sm" variant="outline" onClick={() => handleEdit(pet)}>
                 <Edit className="h-4 w-4" />
                 </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                  onClick={() => handleDelete(pet)}
+                >
+                <Trash2 className="h-4 w-4" />
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => handleShowDossier(pet)}>
                 Dossier
                 </Button>
@@ -643,6 +799,7 @@ const PetsContent = () => {
       pet={selectedPet}
       onEdit={handleEditFromView}
       onShowDossier={handleShowDossierFromView}
+      onDelete={selectedPet ? () => handleDelete(selectedPet) : undefined}
       />
       
       {/* Custom Dynamic Pet Edit Modal */}
@@ -796,6 +953,37 @@ const PetsContent = () => {
       onOpenChange={setShowDossierModal}
       pet={selectedPet}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer l'animal <strong>{petToDelete?.name}</strong> ?
+              Cette action est irréversible et supprimera définitivement toutes les données associées à cet animal, 
+              y compris ses consultations, vaccinations et historique médical.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteAnimalMutation.isPending}
+            >
+              {deleteAnimalMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Suppression...
+                </>
+              ) : (
+                'Supprimer'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

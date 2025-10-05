@@ -9,6 +9,7 @@ import { SimpleAppointmentModal } from "../components/forms/SimpleAppointmentMod
 import { useAppointments, useUpdateAppointment, useDeleteAppointment, type Appointment } from "@/hooks/useDatabase";
 import { useToast } from "@/hooks/use-toast";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
+import { useAnimalSpecies, useAppointmentTypes } from '@/hooks/useAppSettings';
 import { UnifiedCalendar } from '@/components/UnifiedCalendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import React from "react";
@@ -46,10 +47,15 @@ export default function Appointments() {
   const { toast } = useToast();
   const { currentView } = useDisplayPreference('appointments');
   
+  // Dynamic settings
+  const { data: animalSpecies = [], isLoading: speciesLoading } = useAnimalSpecies();
+  const { data: appointmentTypes = [], isLoading: typesLoading } = useAppointmentTypes();
+  
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
+  const [filterSpecies, setFilterSpecies] = useState("all");
   const [filterDate, setFilterDate] = useState("all");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
@@ -104,6 +110,10 @@ export default function Appointments() {
     return appointment.animal?.name || 'Unknown Animal';
   };
 
+  const getAnimalSpecies = (appointment: Appointment) => {
+    return appointment.animal?.species || 'Unknown Species';
+  };
+
   // Calculate stats from appointments data
   const getUpcomingAppointments = () => {
     const now = new Date();
@@ -132,6 +142,7 @@ export default function Appointments() {
     
     const matchesStatus = filterStatus === "all" || appointment.status === filterStatus;
     const matchesType = filterType === "all" || appointment.appointment_type === filterType;
+    const matchesSpecies = filterSpecies === "all" || getAnimalSpecies(appointment) === filterSpecies;
     
     let matchesDate = true;
     const appointmentDate = new Date(appointment.appointment_date);
@@ -152,7 +163,7 @@ export default function Appointments() {
       matchesDate = appointmentDateStr === selectedDate;
     }
     
-    return matchesSearch && matchesStatus && matchesType && matchesDate;
+    return matchesSearch && matchesStatus && matchesType && matchesSpecies && matchesDate;
   });
 
   const handleStatusChange = async (appointmentId: string, newStatus: Appointment['status']) => {
@@ -450,13 +461,28 @@ export default function Appointments() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les types</SelectItem>
-            <SelectItem value="consultation">Consultation</SelectItem>
-            <SelectItem value="vaccination">Vaccination</SelectItem>
-            <SelectItem value="chirurgie">Chirurgie</SelectItem>
-            <SelectItem value="urgence">Urgence</SelectItem>
-            <SelectItem value="controle">Contrôle</SelectItem>
-            <SelectItem value="sterilisation">Stérilisation</SelectItem>
-            <SelectItem value="dentaire">Dentaire</SelectItem>
+            {appointmentTypes.map((type) => (
+              <SelectItem key={type} value={type.toLowerCase().replace(/\s+/g, '-')}>
+                {type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Espèce</Label>
+          <Select value={filterSpecies} onValueChange={setFilterSpecies}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes espèces</SelectItem>
+            {animalSpecies.map((species) => (
+              <SelectItem key={species} value={species}>
+                {species}
+              </SelectItem>
+            ))}
           </SelectContent>
           </Select>
         </div>

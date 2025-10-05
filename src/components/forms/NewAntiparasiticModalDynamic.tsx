@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAnimals, useClients, useCreateAntiparasitic, useAntiparasiticProtocolsBySpecies } from '@/hooks/useDatabase';
 import { useToast } from '@/hooks/use-toast';
+import { useParasiteTypes } from '@/hooks/useAppSettings';
 import { format, addDays } from 'date-fns';
 import { Plus, Package, CheckCircle, Search, AlertTriangle, Loader2, X } from 'lucide-react';
 import type { CreateAntiparasiticData } from '@/lib/database';
@@ -32,6 +33,9 @@ export default function NewAntiparasiticModalDynamic({
   const { data: clients } = useClients();
   const createAntiparasitic = useCreateAntiparasitic();
   const { toast } = useToast();
+
+  // Dynamic settings
+  const { data: parasiteTypes = [], isLoading: typesLoading } = useParasiteTypes();
 
   const [formData, setFormData] = useState({
     clientId: selectedClientId || '',
@@ -144,22 +148,72 @@ export default function NewAntiparasiticModalDynamic({
       return;
     }
 
+    // Validate effectiveness rating if provided
+    if (formData.effectivenessRating && formData.effectivenessRating !== 'none') {
+      const rating = parseInt(formData.effectivenessRating);
+      if (isNaN(rating) || rating < 1 || rating > 5) {
+        toast({
+          title: "Erreur",
+          description: "L'évaluation d'efficacité doit être un nombre entre 1 et 5.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     try {
-      const antiparasiticData: CreateAntiparasiticData = {
+      // Build the base data object with only required fields first
+      const antiparasiticData: any = {
         animal_id: formData.animalId,
         product_name: formData.productName,
-        active_ingredient: formData.activeIngredient || undefined,
-        parasite_type: formData.parasiteType || undefined,
-        administration_route: formData.administrationRoute || undefined,
-        dosage: formData.dosage || undefined,
         treatment_date: formData.treatmentDate,
-        next_treatment_date: formData.nextTreatmentDate || undefined,
-        administered_by: formData.administeredBy || undefined,
-        effectiveness_rating: formData.effectivenessRating && formData.effectivenessRating !== 'none' ? parseInt(formData.effectivenessRating) : undefined,
-        notes: formData.notes || undefined,
       };
 
-      await createAntiparasitic.mutateAsync(antiparasiticData);
+      // Add optional fields only if they have valid values
+      if (formData.activeIngredient?.trim()) {
+        antiparasiticData.active_ingredient = formData.activeIngredient.trim();
+      }
+
+      if (formData.parasiteType?.trim()) {
+        antiparasiticData.parasite_type = formData.parasiteType.trim();
+      }
+
+      if (formData.administrationRoute?.trim()) {
+        antiparasiticData.administration_route = formData.administrationRoute.trim();
+      }
+
+      if (formData.dosage?.trim()) {
+        antiparasiticData.dosage = formData.dosage.trim();
+      }
+
+      if (formData.nextTreatmentDate?.trim()) {
+        antiparasiticData.next_treatment_date = formData.nextTreatmentDate.trim();
+      }
+
+      if (formData.administeredBy?.trim()) {
+        antiparasiticData.administered_by = formData.administeredBy.trim();
+      }
+
+      if (formData.notes?.trim()) {
+        antiparasiticData.notes = formData.notes.trim();
+      }
+
+      // Only add effectiveness_rating if it's explicitly set to a valid number (1-5)
+      if (formData.effectivenessRating && 
+          formData.effectivenessRating !== 'none' && 
+          formData.effectivenessRating !== '' && 
+          formData.effectivenessRating !== 'undefined') {
+        const rating = parseInt(formData.effectivenessRating);
+        if (!isNaN(rating) && rating >= 1 && rating <= 5) {
+          antiparasiticData.effectiveness_rating = rating;
+        }
+      }
+
+      console.log('Submitting antiparasitic data:', antiparasiticData);
+      console.log('Effectiveness rating value:', formData.effectivenessRating);
+      console.log('Effectiveness rating type:', typeof formData.effectivenessRating);
+
+      await createAntiparasitic.mutateAsync(antiparasiticData as CreateAntiparasiticData);
       
       toast({
         title: "Succès",
@@ -168,11 +222,23 @@ export default function NewAntiparasiticModalDynamic({
       
       resetForm();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la création du traitement antiparasitaire:', error);
+      
+      let errorMessage = "Une erreur s'est produite lors de l'enregistrement.";
+      
+      // Handle specific error types
+      if (error?.code === '23514') {
+        errorMessage = "Les données saisies ne respectent pas les contraintes de validation. Vérifiez que l'évaluation d'efficacité est entre 1 et 10.";
+      } else if (error?.code === '42501') {
+        errorMessage = "Vous n'avez pas les permissions nécessaires pour effectuer cette action.";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erreur",
-        description: "Une erreur s'est produite lors de l'enregistrement.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -325,13 +391,11 @@ export default function NewAntiparasiticModalDynamic({
                   <SelectValue placeholder="Sélectionner le type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="puces">Puces</SelectItem>
-                  <SelectItem value="tiques">Tiques</SelectItem>
-                  <SelectItem value="vers_intestinaux">Vers intestinaux</SelectItem>
-                  <SelectItem value="vers_cardiaques">Vers cardiaques</SelectItem>
-                  <SelectItem value="acariens">Acariens</SelectItem>
-                  <SelectItem value="poux">Poux</SelectItem>
-                  <SelectItem value="multi_parasites">Multi-parasites</SelectItem>
+                  {parasiteTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -402,19 +466,22 @@ export default function NewAntiparasiticModalDynamic({
 
           {/* Effectiveness Rating */}
           <div className="space-y-2">
-            <Label htmlFor="effectivenessRating">Efficacité (optionnel, 1-10)</Label>
+            <Label htmlFor="effectivenessRating">
+              Efficacité du traitement (optionnel)
+              <span className="text-xs text-muted-foreground block">Évaluez l'efficacité sur une échelle de 1 à 5</span>
+            </Label>
             <Select 
               value={formData.effectivenessRating} 
               onValueChange={(value) => handleInputChange('effectivenessRating', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Évaluer l'efficacité" />
+                <SelectValue placeholder="Sélectionner l'efficacité" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Non évalué</SelectItem>
-                {[...Array(10)].map((_, i) => (
+                {[...Array(5)].map((_, i) => (
                   <SelectItem key={i + 1} value={(i + 1).toString()}>
-                    {i + 1} - {i + 1 <= 3 ? 'Faible' : i + 1 <= 6 ? 'Moyenne' : i + 1 <= 8 ? 'Bonne' : 'Excellente'}
+                    {i + 1} - {i + 1 <= 2 ? 'Faible' : i + 1 <= 3 ? 'Moyenne' : i + 1 <= 4 ? 'Bonne' : 'Excellente'}
                   </SelectItem>
                 ))}
               </SelectContent>

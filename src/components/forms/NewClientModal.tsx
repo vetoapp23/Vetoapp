@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateClient } from "@/hooks/useDatabase";
+import { useClientTypes } from '@/hooks/useAppSettings';
 import { Loader2 } from "lucide-react";
 import type { CreateClientData } from "@/lib/database";
 
@@ -18,6 +19,10 @@ interface NewClientModalProps {
 export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
   const createClientMutation = useCreateClient();
   const { toast } = useToast();
+  
+  // Dynamic settings
+  const { data: clientTypes = [], isLoading: typesLoading } = useClientTypes();
+  
   const [formData, setFormData] = useState<CreateClientData>({
     first_name: "",
     last_name: "",
@@ -70,7 +75,7 @@ export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
         postal_code: "",
         country: "Maroc",
         notes: "",
-        client_type: "particulier"
+        client_type: clientTypes.length > 0 ? clientTypes[0].toLowerCase() : "particulier"
       });
       
       onOpenChange(false);
@@ -176,14 +181,16 @@ export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
 
           <div className="space-y-2">
             <Label htmlFor="client_type">Type de client</Label>
-            <Select value={formData.client_type} onValueChange={(value) => handleSelectChange('client_type', value as 'particulier' | 'eleveur' | 'ferme')}>
+            <Select value={formData.client_type} onValueChange={(value) => handleSelectChange('client_type', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner le type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="particulier">Particulier</SelectItem>
-                <SelectItem value="eleveur">Éleveur</SelectItem>
-                <SelectItem value="ferme">Ferme</SelectItem>
+                {clientTypes.map((type) => (
+                  <SelectItem key={type} value={type.toLowerCase()}>
+                    {type}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

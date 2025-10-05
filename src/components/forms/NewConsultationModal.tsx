@@ -42,7 +42,6 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
     diagnosis: prefillData?.diagnosis || "",
     treatment: prefillData?.treatment || "",
     followUp: prefillData?.follow_up_notes || "",
-    cost: prefillData?.cost?.toString() || settings.defaultConsultationPrice.toString(),
     notes: prefillData?.notes || "",
     photos: prefillData?.photos || [] as string[]
   });
@@ -52,13 +51,6 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
 
   // Get today's date in YYYY-MM-DD format for default date
   const today = new Date().toISOString().split('T')[0];
-
-  // Mettre à jour le prix par défaut quand les paramètres changent
-  useEffect(() => {
-    if (settings.defaultConsultationPrice && !formData.cost) {
-      setFormData(prev => ({ ...prev, cost: settings.defaultConsultationPrice.toString() }));
-    }
-  }, [settings.defaultConsultationPrice, formData.cost]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
@@ -95,10 +87,69 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.clientId || !formData.animalId) {
+    // Comprehensive form validation
+    const validationErrors: string[] = [];
+    
+    if (!formData.clientId) {
+      validationErrors.push("Veuillez sélectionner un client");
+    }
+    
+    if (!formData.animalId) {
+      validationErrors.push("Veuillez sélectionner un animal");
+    }
+    
+    if (!formData.date) {
+      validationErrors.push("Veuillez sélectionner une date de consultation");
+    } else {
+      const consultationDate = new Date(formData.date);
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+      
+      if (consultationDate > oneYearFromNow) {
+        validationErrors.push("La date de consultation ne peut pas être plus d'un an dans le futur");
+      }
+    }
+    
+    // Validate numeric fields
+    if (formData.weight) {
+      const weight = parseFloat(formData.weight);
+      if (isNaN(weight) || weight <= 0 || weight > 999.9) {
+        validationErrors.push("Le poids doit être un nombre valide entre 0.1 et 999.9 kg");
+      }
+    }
+    
+    if (formData.temperature) {
+      const temperature = parseFloat(formData.temperature);
+      if (isNaN(temperature) || temperature < 30 || temperature > 50) {
+        validationErrors.push("La température doit être un nombre valide entre 30°C et 50°C");
+      }
+    }
+    
+    // Validate text field lengths
+    if (formData.symptoms && formData.symptoms.length > 1000) {
+      validationErrors.push("Les symptômes ne peuvent pas dépasser 1000 caractères");
+    }
+    
+    if (formData.diagnosis && formData.diagnosis.length > 1000) {
+      validationErrors.push("Le diagnostic ne peut pas dépasser 1000 caractères");
+    }
+    
+    if (formData.treatment && formData.treatment.length > 1000) {
+      validationErrors.push("Le traitement ne peut pas dépasser 1000 caractères");
+    }
+    
+    if (formData.notes && formData.notes.length > 2000) {
+      validationErrors.push("Les notes ne peuvent pas dépasser 2000 caractères");
+    }
+    
+    if (formData.followUp && formData.followUp.length > 500) {
+      validationErrors.push("Les notes de suivi ne peuvent pas dépasser 500 caractères");
+    }
+    
+    if (validationErrors.length > 0) {
       toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner un client et un animal.",
+        title: "Erreurs de validation",
+        description: validationErrors.join(". "),
         variant: "destructive",
       });
       return;
@@ -113,11 +164,11 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
         consultation_date: formData.date || today,
         weight: formData.weight ? Math.min(parseFloat(formData.weight), 999.9) : undefined,
         temperature: formData.temperature ? Math.min(parseFloat(formData.temperature), 99.9) : undefined,
-        symptoms: formData.symptoms,
-        diagnosis: formData.diagnosis,
-        treatment: formData.treatment,
-        follow_up_notes: formData.followUp,
-        notes: formData.notes
+        symptoms: formData.symptoms.trim() || undefined,
+        diagnosis: formData.diagnosis.trim() || undefined,
+        treatment: formData.treatment.trim() || undefined,
+        follow_up_notes: formData.followUp.trim() || undefined,
+        notes: formData.notes.trim() || undefined
       };
 
       await createConsultationMutation.mutateAsync(consultationData);
@@ -140,17 +191,32 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
         diagnosis: "",
         treatment: "",
         followUp: "",
-        cost: settings.defaultConsultationPrice.toString(),
         notes: "",
         photos: []
       });
       
       onOpenChange(false);
-    } catch (error) {
-      // Error already handled by toast notification
+    } catch (error: any) {
+      console.error('Error creating consultation:', error);
+      
+      let errorMessage = "Impossible d'enregistrer la consultation. Veuillez réessayer.";
+      
+      // Handle specific error types
+      if (error?.message) {
+        if (error.message.includes('foreign key constraint')) {
+          errorMessage = "Erreur: Le client ou l'animal sélectionné n'existe plus. Veuillez actualiser la page.";
+        } else if (error.message.includes('network')) {
+          errorMessage = "Erreur de connexion. Vérifiez votre connexion internet et réessayez.";
+        } else if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+          errorMessage = "Vous n'avez pas les permissions nécessaires pour créer une consultation.";
+        } else if (error.message.includes('duplicate') || error.message.includes('already exists')) {
+          errorMessage = "Une consultation similaire existe déjà pour cette date.";
+        }
+      }
+      
       toast({
-        title: "Erreur",
-        description: "Impossible d'enregistrer la consultation. Veuillez réessayer.",
+        title: "Erreur lors de la création",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -171,7 +237,6 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
         diagnosis: "",
         treatment: "",
         followUp: "",
-        cost: settings.defaultConsultationPrice.toString(),
         notes: "",
         photos: []
       });
@@ -197,16 +262,21 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
                   <Select 
                     value={formData.clientId.toString()} 
                     onValueChange={(value) => handleSelectChange("clientId", value)}
+                    disabled={clientsLoading}
                   >
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Sélectionner le client" />
+                      <SelectValue placeholder={clientsLoading ? "Chargement des clients..." : "Sélectionner le client"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {clients.map(client => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.first_name} {client.last_name}
-                        </SelectItem>
-                      ))}
+                      {clients.length === 0 && !clientsLoading ? (
+                        <SelectItem value="" disabled>Aucun client disponible</SelectItem>
+                      ) : (
+                        clients.map(client => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.first_name} {client.last_name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <Button 
@@ -215,6 +285,7 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
                     variant="outline"
                     onClick={() => setShowClientModal(true)}
                     className="px-2"
+                    disabled={clientsLoading}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -227,17 +298,29 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
                   <Select 
                     value={formData.animalId} 
                     onValueChange={(value) => handleSelectChange("animalId", value)}
-                    disabled={!formData.clientId}
+                    disabled={!formData.clientId || animalsLoading}
                   >
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder={formData.clientId ? "Sélectionner l'animal" : "Sélectionnez d'abord un client"} />
+                      <SelectValue placeholder={
+                        !formData.clientId 
+                          ? "Sélectionnez d'abord un client"
+                          : animalsLoading 
+                            ? "Chargement des animaux..."
+                            : availablePets.length === 0
+                              ? "Aucun animal pour ce client"
+                              : "Sélectionner l'animal"
+                      } />
                     </SelectTrigger>
                     <SelectContent>
-                      {availablePets.map(animal => (
-                        <SelectItem key={animal.id} value={animal.id}>
-                          {animal.name} ({animal.species})
-                        </SelectItem>
-                      ))}
+                      {availablePets.length === 0 && formData.clientId && !animalsLoading ? (
+                        <SelectItem value="" disabled>Aucun animal pour ce client</SelectItem>
+                      ) : (
+                        availablePets.map(animal => (
+                          <SelectItem key={animal.id} value={animal.id}>
+                            {animal.name} ({animal.species})
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <Button 
@@ -246,7 +329,7 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
                     variant="outline"
                     onClick={() => setShowPetModal(true)}
                     className="px-2"
-                    disabled={!formData.clientId}
+                    disabled={!formData.clientId || animalsLoading}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -272,11 +355,12 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
                   id="weight"
                   type="number"
                   step="0.1"
-                  min="0"
+                  min="0.1"
                   max="999.9"
                   value={formData.weight}
                   onChange={handleChange}
                   placeholder="ex: 25.5"
+                  title="Poids en kilogrammes (0.1 à 999.9 kg)"
                 />
               </div>
               <div className="space-y-2">
@@ -285,11 +369,12 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
                   id="temperature"
                   type="number"
                   step="0.1"
-                  min="0"
-                  max="99.9"
+                  min="30"
+                  max="50"
                   value={formData.temperature}
                   onChange={handleChange}
                   placeholder="ex: 38.5"
+                  title="Température corporelle (30°C à 50°C)"
                 />
               </div>
             </div>
@@ -300,9 +385,14 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
                 id="symptoms"
                 value={formData.symptoms}
                 onChange={handleChange}
-                placeholder="Décrivez les symptômes et observations..."
+                placeholder="Symptômes observés, comportement anormal..."
                 rows={3}
+                maxLength={1000}
+                title="Maximum 1000 caractères"
               />
+              <div className="text-xs text-muted-foreground text-right">
+                {formData.symptoms.length}/1000 caractères
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -311,9 +401,14 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
                 id="diagnosis"
                 value={formData.diagnosis}
                 onChange={handleChange}
-                placeholder="Diagnostic posé..."
+                placeholder="Diagnostic établi..."
                 rows={3}
+                maxLength={1000}
+                title="Maximum 1000 caractères"
               />
+              <div className="text-xs text-muted-foreground text-right">
+                {formData.diagnosis.length}/1000 caractères
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -324,31 +419,26 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
                 onChange={handleChange}
                 placeholder="Traitements, injections, interventions..."
                 rows={3}
+                maxLength={1000}
+                title="Maximum 1000 caractères"
               />
+              <div className="text-xs text-muted-foreground text-right">
+                {formData.treatment.length}/1000 caractères
+              </div>
             </div>
             
-
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="followUp">Suivi recommandé</Label>
-                <Input
-                  id="followUp"
-                  value={formData.followUp}
-                  onChange={handleChange}
-                  placeholder="ex: Contrôle dans 1 semaine"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cost">Coût ({settings.currency})</Label>
-                <Input
-                  id="cost"
-                  type="number"
-                  step="0.01"
-                  value={formData.cost}
-                  onChange={handleChange}
-                  placeholder="ex: 85.50"
-                />
+            <div className="space-y-2">
+              <Label htmlFor="followUp">Suivi recommandé</Label>
+              <Input
+                id="followUp"
+                value={formData.followUp}
+                onChange={handleChange}
+                placeholder="ex: Contrôle dans 1 semaine"
+                maxLength={500}
+                title="Maximum 500 caractères"
+              />
+              <div className="text-xs text-muted-foreground text-right">
+                {formData.followUp.length}/500 caractères
               </div>
             </div>
             
@@ -360,7 +450,12 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
                 onChange={handleChange}
                 placeholder="Notes diverses, recommandations..."
                 rows={3}
+                maxLength={2000}
+                title="Maximum 2000 caractères"
               />
+              <div className="text-xs text-muted-foreground text-right">
+                {formData.notes.length}/2000 caractères
+              </div>
             </div>
             {/* Photos upload */}
             <div className="space-y-2 col-span-2">
@@ -402,10 +497,24 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
             </div>
             
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                disabled={createConsultationMutation.isPending}
+              >
                 Annuler
               </Button>
-              <Button type="submit" disabled={!formData.animalId || createConsultationMutation.isPending}>
+              <Button 
+                type="submit" 
+                disabled={
+                  !formData.clientId || 
+                  !formData.animalId || 
+                  createConsultationMutation.isPending ||
+                  clientsLoading ||
+                  animalsLoading
+                }
+              >
                 {createConsultationMutation.isPending ? "Enregistrement..." : "Enregistrer Consultation"}
               </Button>
             </div>

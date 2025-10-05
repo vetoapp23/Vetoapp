@@ -34,7 +34,6 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
     diagnosis: "",
     treatment: "",
     notes: "",
-    cost: "",
     follow_up_date: "",
     follow_up_notes: "",
     status: "completed"
@@ -56,7 +55,6 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
         diagnosis: consultation.diagnosis || "",
         treatment: consultation.treatment || "",
         notes: consultation.notes || "",
-        cost: consultation.cost?.toString() || "",
         follow_up_date: consultation.follow_up_date || "",
         follow_up_notes: consultation.follow_up_notes || "",
         status: consultation.status || "completed"
@@ -89,13 +87,80 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!consultation) return;
-
-    // Validation basique
-    if (!formData.client_id || !formData.animal_id) {
+    if (!consultation) {
       toast({
         title: "Erreur",
-        description: "Veuillez sélectionner un client et un animal.",
+        description: "Aucune consultation sélectionnée pour modification.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Comprehensive form validation
+    const validationErrors: string[] = [];
+    
+    // Validate numeric fields
+    if (formData.weight) {
+      const weight = parseFloat(formData.weight);
+      if (isNaN(weight) || weight <= 0 || weight > 999.9) {
+        validationErrors.push("Le poids doit être un nombre valide entre 0.1 et 999.9 kg");
+      }
+    }
+    
+    if (formData.temperature) {
+      const temperature = parseFloat(formData.temperature);
+      if (isNaN(temperature) || temperature < 30 || temperature > 50) {
+        validationErrors.push("La température doit être un nombre valide entre 30°C et 50°C");
+      }
+    }
+    
+    // Validate text field lengths
+    if (formData.symptoms && formData.symptoms.length > 1000) {
+      validationErrors.push("Les symptômes ne peuvent pas dépasser 1000 caractères");
+    }
+    
+    if (formData.diagnosis && formData.diagnosis.length > 1000) {
+      validationErrors.push("Le diagnostic ne peut pas dépasser 1000 caractères");
+    }
+    
+    if (formData.treatment && formData.treatment.length > 1000) {
+      validationErrors.push("Le traitement ne peut pas dépasser 1000 caractères");
+    }
+    
+    if (formData.notes && formData.notes.length > 2000) {
+      validationErrors.push("Les notes ne peuvent pas dépasser 2000 caractères");
+    }
+    
+    if (formData.follow_up_notes && formData.follow_up_notes.length > 500) {
+      validationErrors.push("Les notes de suivi ne peuvent pas dépasser 500 caractères");
+    }
+    
+    // Validate follow-up date if provided
+    if (formData.follow_up_date) {
+      const followUpDate = new Date(formData.follow_up_date);
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+      
+      if (followUpDate > oneYearFromNow) {
+        validationErrors.push("La date de suivi ne peut pas être plus d'un an dans le futur");
+      }
+      
+      const consultationDate = new Date(consultation.consultation_date);
+      if (followUpDate < consultationDate) {
+        validationErrors.push("La date de suivi ne peut pas être antérieure à la date de consultation");
+      }
+    }
+    
+    // Validate status
+    const validStatuses = ["scheduled", "in-progress", "completed", "cancelled"];
+    if (formData.status && !validStatuses.includes(formData.status)) {
+      validationErrors.push("Le statut sélectionné n'est pas valide");
+    }
+    
+    if (validationErrors.length > 0) {
+      toast({
+        title: "Erreurs de validation",
+        description: validationErrors.join(". "),
         variant: "destructive",
       });
       return;
@@ -103,19 +168,16 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
 
     try {
       const updateData: Partial<CreateConsultationData> = {
-        client_id: formData.client_id,
-        animal_id: formData.animal_id,
-        consultation_date: formData.consultation_date + 'T00:00:00.000Z',
+        // Note: client_id and animal_id are not included as they are read-only in edit mode
         consultation_type: formData.consultation_type,
-        symptoms: formData.symptoms || undefined,
-        diagnosis: formData.diagnosis || undefined,
-        treatment: formData.treatment || undefined,
-        notes: formData.notes || undefined,
+        symptoms: formData.symptoms?.trim() || undefined,
+        diagnosis: formData.diagnosis?.trim() || undefined,
+        treatment: formData.treatment?.trim() || undefined,
+        notes: formData.notes?.trim() || undefined,
         weight: formData.weight ? parseFloat(formData.weight) : undefined,
         temperature: formData.temperature ? parseFloat(formData.temperature) : undefined,
-        cost: formData.cost ? parseFloat(formData.cost) : undefined,
         follow_up_date: formData.follow_up_date || null,
-        follow_up_notes: formData.follow_up_notes || undefined,
+        follow_up_notes: formData.follow_up_notes?.trim() || undefined,
         status: formData.status as "scheduled" | "in-progress" | "completed" | "cancelled"
       };
 
@@ -130,11 +192,29 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
       });
 
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating consultation:', error);
+      
+      let errorMessage = "Une erreur est survenue lors de la modification de la consultation.";
+      
+      // Handle specific error types
+      if (error?.message) {
+        if (error.message.includes('not found') || error.message.includes('does not exist')) {
+          errorMessage = "Cette consultation n'existe plus. Elle a peut-être été supprimée.";
+        } else if (error.message.includes('foreign key constraint')) {
+          errorMessage = "Erreur: Le client ou l'animal associé n'existe plus. Veuillez actualiser la page.";
+        } else if (error.message.includes('network')) {
+          errorMessage = "Erreur de connexion. Vérifiez votre connexion internet et réessayez.";
+        } else if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+          errorMessage = "Vous n'avez pas les permissions nécessaires pour modifier cette consultation.";
+        } else if (error.message.includes('version') || error.message.includes('conflict')) {
+          errorMessage = "Cette consultation a été modifiée par un autre utilisateur. Veuillez actualiser et réessayer.";
+        }
+      }
+      
       toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la modification de la consultation.",
+        title: "Erreur lors de la modification",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -153,50 +233,42 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="client_id">Client *</Label>
-              <Select value={formData.client_id} onValueChange={(value) => handleSelectChange('client_id', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.first_name} {client.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="animal_id">Animal *</Label>
-              <Select value={formData.animal_id} onValueChange={(value) => handleSelectChange('animal_id', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un animal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availablePets.map((animal) => (
-                    <SelectItem key={animal.id} value={animal.id}>
-                      {animal.name} ({animal.species})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {!consultation ? (
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            <p>Aucune consultation sélectionnée</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Read-only consultation context */}
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h4 className="font-medium mb-2">Consultation pour:</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Client:</span>{' '}
+                <span className="font-medium">
+                  {clients.find(c => c.id === formData.client_id)?.first_name} {clients.find(c => c.id === formData.client_id)?.last_name}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Animal:</span>{' '}
+                <span className="font-medium">
+                  {availablePets.find(a => a.id === formData.animal_id)?.name} ({availablePets.find(a => a.id === formData.animal_id)?.species})
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="consultation_date">Date de consultation *</Label>
+              <Label htmlFor="consultation_date">Date de consultation</Label>
               <Input
                 id="consultation_date"
                 type="date"
                 value={formData.consultation_date}
                 onChange={handleChange}
-                required
+                className="bg-muted/50"
+                readOnly
+                title="La date ne peut pas être modifiée"
               />
             </div>
 
@@ -224,9 +296,12 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
                 id="weight"
                 type="number"
                 step="0.1"
-                placeholder="Ex: 5.2"
+                min="0.1"
+                max="999.9"
+                placeholder="Ex: 25.5"
                 value={formData.weight}
                 onChange={handleChange}
+                title="Poids en kilogrammes (0.1 à 999.9 kg)"
               />
             </div>
 
@@ -236,9 +311,12 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
                 id="temperature"
                 type="number"
                 step="0.1"
+                min="30"
+                max="50"
                 placeholder="Ex: 38.5"
                 value={formData.temperature}
                 onChange={handleChange}
+                title="Température corporelle (30°C à 50°C)"
               />
             </div>
           </div>
@@ -251,7 +329,12 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
               value={formData.symptoms}
               onChange={handleChange}
               rows={3}
+              maxLength={1000}
+              title="Maximum 1000 caractères"
             />
+            <div className="text-xs text-muted-foreground text-right">
+              {(formData.symptoms || '').length}/1000 caractères
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -262,7 +345,12 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
               value={formData.diagnosis}
               onChange={handleChange}
               rows={3}
+              maxLength={1000}
+              title="Maximum 1000 caractères"
             />
+            <div className="text-xs text-muted-foreground text-right">
+              {(formData.diagnosis || '').length}/1000 caractères
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -273,31 +361,23 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
               value={formData.treatment}
               onChange={handleChange}
               rows={3}
+              maxLength={1000}
+              title="Maximum 1000 caractères"
             />
+            <div className="text-xs text-muted-foreground text-right">
+              {(formData.treatment || '').length}/1000 caractères
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="cost">Coût ({settings.currency})</Label>
-              <Input
-                id="cost"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                value={formData.cost}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="follow_up_date">Date de suivi</Label>
-              <Input
-                id="follow_up_date"
-                type="date"
-                value={formData.follow_up_date}
-                onChange={handleChange}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="follow_up_date">Date de suivi</Label>
+            <Input
+              id="follow_up_date"
+              type="date"
+              value={formData.follow_up_date}
+              onChange={handleChange}
+              title="Date recommandée pour le prochain suivi"
+            />
           </div>
 
           <div className="space-y-2">
@@ -308,7 +388,12 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
               value={formData.follow_up_notes}
               onChange={handleChange}
               rows={2}
+              maxLength={500}
+              title="Maximum 500 caractères"
             />
+            <div className="text-xs text-muted-foreground text-right">
+              {(formData.follow_up_notes || '').length}/500 caractères
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -319,7 +404,12 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
               value={formData.notes}
               onChange={handleChange}
               rows={2}
+              maxLength={2000}
+              title="Maximum 2000 caractères"
             />
+            <div className="text-xs text-muted-foreground text-right">
+              {(formData.notes || '').length}/2000 caractères
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -338,14 +428,23 @@ export function ConsultationEditModalNew({ open, onOpenChange, consultation }: C
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={updateConsultationMutation.isPending}
+            >
               Annuler
             </Button>
-            <Button type="submit" disabled={updateConsultationMutation.isPending}>
+            <Button 
+              type="submit" 
+              disabled={updateConsultationMutation.isPending || !consultation}
+            >
               {updateConsultationMutation.isPending ? "Modification..." : "Modifier"}
             </Button>
           </div>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

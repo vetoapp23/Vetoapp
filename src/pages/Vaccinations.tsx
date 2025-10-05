@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useDisplayPreference } from '@/hooks/use-display-preference';
+import { useAnimalSpecies } from '@/hooks/useAppSettings';
 import { 
   useVaccinations,
   useVaccinationProtocols,
@@ -91,10 +92,14 @@ export default function Vaccinations() {
   const { toast } = useToast();
   const { currentView } = useDisplayPreference('vaccinations');
   
+  // Dynamic settings
+  const { data: animalSpecies = [], isLoading: speciesLoading } = useAnimalSpecies();
+  
   // UI state
   const [viewMode, setViewMode] = useState<'cards' | 'table'>(currentView);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [speciesFilter, setSpeciesFilter] = useState<string>('all');
   const [currentTab, setCurrentTab] = useState('overview');
   const [selectedVaccination, setSelectedVaccination] = useState<any>(null);
   const [showVaccinationDetails, setShowVaccinationDetails] = useState(false);
@@ -146,10 +151,11 @@ export default function Vaccinations() {
         vaccination.vaccine_name.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || vaccination.status === statusFilter;
+      const matchesSpecies = speciesFilter === 'all' || vaccination.animal?.species === speciesFilter;
       
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesSpecies;
     });
-  }, [enrichedVaccinations, searchTerm, statusFilter]);
+  }, [enrichedVaccinations, searchTerm, statusFilter, speciesFilter]);
 
   const handleDeleteVaccination = (vaccination: any) => {
     setVaccinationToDelete(vaccination);
@@ -328,6 +334,20 @@ export default function Vaccinations() {
               <SelectItem value="completed">Terminées</SelectItem>
               <SelectItem value="scheduled">Planifiées</SelectItem>
               <SelectItem value="overdue">En retard</SelectItem>
+            </SelectContent>
+            </Select>
+            
+            <Select value={speciesFilter} onValueChange={setSpeciesFilter}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes espèces</SelectItem>
+              {animalSpecies.map((species) => (
+                <SelectItem key={species} value={species}>
+                  {species}
+                </SelectItem>
+              ))}
             </SelectContent>
             </Select>
           </div>
