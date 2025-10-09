@@ -2,10 +2,13 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, Calendar, Stethoscope, Syringe } from 'lucide-react';
-import { useClients } from '@/contexts/ClientContext';
+import { useConsultations, useAppointments, useVaccinations, useAntiparasitics } from '@/hooks/useDatabase';
 
 export function ActivityChart() {
-  const { consultations, appointments, vaccinations, antiparasitics } = useClients();
+  const { data: consultations = [] } = useConsultations();
+  const { data: appointments = [] } = useAppointments();
+  const { data: vaccinations = [] } = useVaccinations();
+  const { data: antiparasitics = [] } = useAntiparasitics();
 
   // Générer les données des 7 derniers jours
   const generateActivityData = () => {
@@ -17,10 +20,18 @@ export function ActivityChart() {
       date.setDate(date.getDate() - i);
       const dateString = date.toISOString().split('T')[0];
       
-      const consultationsCount = consultations.filter(c => c.date === dateString).length;
-      const appointmentsCount = appointments.filter(a => a.date === dateString).length;
-      const vaccinationsCount = vaccinations.filter(v => v.dateGiven === dateString).length;
-      const antiparasiticsCount = antiparasitics.filter(a => a.dateGiven === dateString).length;
+      const consultationsCount = consultations.filter(c => 
+        new Date(c.consultation_date).toISOString().split('T')[0] === dateString
+      ).length;
+      const appointmentsCount = appointments.filter(a => 
+        new Date(a.appointment_date).toISOString().split('T')[0] === dateString
+      ).length;
+      const vaccinationsCount = vaccinations.filter(v => 
+        new Date(v.vaccination_date).toISOString().split('T')[0] === dateString
+      ).length;
+      const antiparasiticsCount = antiparasitics.filter(a => 
+        new Date(a.treatment_date).toISOString().split('T')[0] === dateString
+      ).length;
       
       data.push({
         day: date.toLocaleDateString('fr-FR', { weekday: 'short' }),

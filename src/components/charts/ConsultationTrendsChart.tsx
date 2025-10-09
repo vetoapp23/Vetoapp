@@ -2,10 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { Stethoscope, TrendingUp } from 'lucide-react';
-import { useClients } from '@/contexts/ClientContext';
+import { useConsultations } from '@/hooks/useDatabase';
 
 export function ConsultationTrendsChart() {
-  const { consultations } = useClients();
+  const { data: consultations = [] } = useConsultations();
 
   // Générer les données des 12 derniers mois
   const generateTrendsData = () => {
@@ -19,7 +19,7 @@ export function ConsultationTrendsChart() {
       
       // Compter les consultations de ce mois
       const monthConsultations = consultations.filter(consultation => {
-        const consultationDate = new Date(consultation.date);
+        const consultationDate = new Date(consultation.consultation_date);
         return consultationDate >= monthStart && consultationDate <= monthEnd;
       });
       

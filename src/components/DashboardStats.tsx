@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Heart, Calendar, TrendingUp, Stethoscope, Clock, DollarSign, Activity, Syringe, Shield, Package, AlertTriangle } from "lucide-react";
-import { useClients, useAnimals, useConsultations, useAppointments, usePrescriptions, useVaccinations, useAntiparasitics, useStockItems } from "@/hooks/useDatabase";
+import { useClients, useAnimals, useConsultations, useAppointments, usePrescriptions, useVaccinations, useAntiparasitics, useStockItems, useFarms } from "@/hooks/useDatabase";
 import { useSettings } from "@/contexts/SettingsContext";
 
 export function DashboardStats() {
@@ -12,6 +12,7 @@ export function DashboardStats() {
   const { data: vaccinations = [] } = useVaccinations();
   const { data: antiparasitics = [] } = useAntiparasitics();
   const { data: stockItems = [] } = useStockItems();
+  const { data: farms = [] } = useFarms();
   const { settings } = useSettings();
 
   // Calculer les statistiques en temps réel
@@ -20,7 +21,7 @@ export function DashboardStats() {
   const totalConsultations = consultations.length;
   const totalAppointments = appointments.length;
   const totalPrescriptions = prescriptions.length;
-  const totalFarms = 0; // TODO: Add farms hook when available
+  const totalFarms = farms.length;
   const totalVaccinations = vaccinations.length;
   const totalAntiparasitics = antiparasitics.length;
   const totalStockItems = stockItems.length;
@@ -102,17 +103,27 @@ export function DashboardStats() {
     return consultationDate.getMonth() === previousMonth && consultationDate.getFullYear() === previousYear;
   }).length;
 
-  // TODO: Implement proper client/pet activity tracking
-  const clientsPreviousMonth = 0; // clients.filter(c => {
-  //   const lastVisit = new Date(c.lastVisit);
-  //   return lastVisit.getMonth() === previousMonth && lastVisit.getFullYear() === previousYear;
-  // }).length;
+  // Calculate clients and pets from previous month for comparison
+  const clientsPreviousMonth = clients.filter(c => {
+    const clientDate = new Date(c.created_at);
+    return clientDate.getMonth() === previousMonth && clientDate.getFullYear() === previousYear;
+  }).length;
 
-  const petsPreviousMonth = 0; // pets.filter(p => {
-  //   if (!p.lastVisit) return false;
-  //   const lastVisit = new Date(p.lastVisit);
-  //   return lastVisit.getMonth() === previousMonth && lastVisit.getFullYear() === previousYear;
-  // }).length;
+  const petsPreviousMonth = pets.filter(p => {
+    const petDate = new Date(p.created_at);
+    return petDate.getMonth() === previousMonth && petDate.getFullYear() === previousYear;
+  }).length;
+
+  // TODO: Implement proper client/pet activity tracking
+  const newClientsThisMonth = clients.filter(c => {
+    const clientDate = new Date(c.created_at);
+    return clientDate.getMonth() === thisMonth && clientDate.getFullYear() === thisYear;
+  }).length;
+
+  const newPetsThisMonth = pets.filter(p => {
+    const petDate = new Date(p.created_at);
+    return petDate.getMonth() === thisMonth && petDate.getFullYear() === thisYear;
+  }).length;
 
   const appointmentsPreviousMonth = appointments.filter(a => {
     const appointmentDate = new Date(a.appointment_date);
@@ -127,7 +138,7 @@ export function DashboardStats() {
       icon: Users,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
-      description: `${totalClients > 0 ? Math.round(totalClients / 10) : 0} nouveaux ce mois`
+      description: `${newClientsThisMonth} nouveaux ce mois`
     },
     {
       title: "Animaux Suivis",
@@ -136,7 +147,7 @@ export function DashboardStats() {
       icon: Heart,
       color: "text-red-600",
       bgColor: "bg-red-50",
-      description: `${totalPets > 0 ? Math.round(totalPets / 8) : 0} nouveaux ce mois`
+      description: `${newPetsThisMonth} nouveaux ce mois`
     },
     {
       title: "RDV Aujourd'hui",

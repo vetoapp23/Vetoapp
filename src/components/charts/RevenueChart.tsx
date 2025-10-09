@@ -2,11 +2,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { TrendingUp, DollarSign } from 'lucide-react';
-import { useClients } from '@/contexts/ClientContext';
+import { useConsultations } from '@/hooks/useDatabase';
 import { useSettings } from '@/contexts/SettingsContext';
 
 export function RevenueChart() {
-  const { accountingEntries } = useClients();
+  const { data: consultations = [] } = useConsultations();
   const { settings } = useSettings();
 
   // Générer les données des 6 derniers mois
@@ -20,19 +20,16 @@ export function RevenueChart() {
       const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
       
-      // Calculer les revenus et dépenses pour ce mois
-      const monthEntries = accountingEntries.filter(entry => {
-        const entryDate = new Date(entry.date);
-        return entryDate >= new Date(monthStart) && entryDate <= new Date(monthEnd);
+      // Calculer les revenus basés sur les consultations pour ce mois
+      const monthConsultations = consultations.filter(consultation => {
+        const consultationDate = new Date(consultation.consultation_date);
+        return consultationDate >= new Date(monthStart) && consultationDate <= new Date(monthEnd);
       });
       
-      const revenue = monthEntries
-        .filter(entry => entry.type === 'revenue')
-        .reduce((sum, entry) => sum + entry.amount, 0);
-      
-      const expenses = monthEntries
-        .filter(entry => entry.type === 'expense')
-        .reduce((sum, entry) => sum + entry.amount, 0);
+      // Estimation des revenus: 50€ par consultation en moyenne
+      const revenue = monthConsultations.length * 50;
+      // Estimation des dépenses: 30% des revenus
+      const expenses = Math.round(revenue * 0.3);
       
       data.push({
         month: date.toLocaleDateString('fr-FR', { month: 'short' }),

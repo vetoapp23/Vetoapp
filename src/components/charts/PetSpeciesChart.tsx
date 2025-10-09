@@ -2,10 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Heart, Dog, Cat, Fish, Bird } from 'lucide-react';
-import { useClients } from '@/contexts/ClientContext';
+import { useAnimals } from '@/hooks/useDatabase';
 
 export function PetSpeciesChart() {
-  const { pets } = useClients();
+  const { data: pets = [] } = useAnimals();
 
   // Calculer les données par espèce
   const speciesData = React.useMemo(() => {
@@ -28,7 +28,15 @@ export function PetSpeciesChart() {
   const totalPets = pets.length;
   const mostCommonSpecies = speciesData.length > 0 ? speciesData[0] : null;
   const averageAge = pets.length > 0 ? 
-    pets.reduce((sum, pet) => sum + (pet.age || 0), 0) / pets.length : 0;
+    pets.reduce((sum, pet) => {
+      if (pet.birth_date) {
+        const birthDate = new Date(pet.birth_date);
+        const now = new Date();
+        const ageInYears = (now.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+        return sum + ageInYears;
+      }
+      return sum;
+    }, 0) / pets.length : 0;
 
   const getSpeciesIcon = (species: string) => {
     switch (species.toLowerCase()) {

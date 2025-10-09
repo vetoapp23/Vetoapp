@@ -7,21 +7,23 @@ import { useState } from "react";
 import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
 import { ConsultationEditModal } from "@/components/modals/ConsultationEditModal";
 import { ConsultationPrint } from "@/components/ConsultationPrint";
-import { useClients, Consultation } from "@/contexts/ClientContext";
+import { useConsultations, useClients, useAnimals } from "@/hooks/useDatabase";
+import { Consultation } from "@/lib/database";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useToast } from "@/hooks/use-toast";
 
 export function ConsultationsOverview() {
-  const { consultations, deleteConsultation, pets, clients } = useClients();
+  const { data: consultations = [] } = useConsultations();
+  const { data: clients = [] } = useClients();
+  const { data: animals = [] } = useAnimals();
   const { settings } = useSettings();
-  const { toast } = useToast();
   const [showConsultationModal, setShowConsultationModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
+  const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
 
   // Trier les consultations par date (plus récente en premier)
   const sortedConsultations = [...consultations].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
+    new Date(b.consultation_date).getTime() - new Date(a.consultation_date).getTime()
   );
 
   // Prendre les 5 consultations les plus récentes
@@ -29,17 +31,20 @@ export function ConsultationsOverview() {
 
   // Calculer les statistiques des consultations
   const totalConsultations = consultations.length;
-  const consultationsToday = consultations.filter(c => c.date === new Date().toISOString().split('T')[0]).length;
+  const today = new Date().toISOString().split('T')[0];
+  const consultationsToday = consultations.filter(c => 
+    new Date(c.consultation_date).toISOString().split('T')[0] === today
+  ).length;
   
   const thisMonth = new Date().getMonth();
   const thisYear = new Date().getFullYear();
   const consultationsThisMonth = consultations.filter(c => {
-    const consultationDate = new Date(c.date);
+    const consultationDate = new Date(c.consultation_date);
     return consultationDate.getMonth() === thisMonth && consultationDate.getFullYear() === thisYear;
   }).length;
 
   const consultationsLastMonth = consultations.filter(c => {
-    const consultationDate = new Date(c.date);
+    const consultationDate = new Date(c.consultation_date);
     const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
     const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
     return consultationDate.getMonth() === lastMonth && consultationDate.getFullYear() === lastMonthYear;
@@ -56,88 +61,87 @@ export function ConsultationsOverview() {
     Math.round(((estimatedRevenue - previousRevenue) / previousRevenue) * 100) : 
     estimatedRevenue > 0 ? 100 : 0;
 
-  const handleEdit = (consultation: Consultation) => {
+  const handleEdit = (consultation: any) => {
     setSelectedConsultation(consultation);
     setShowEditModal(true);
   };
 
-  const handleDelete = (consultation: Consultation) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer la consultation pour ${consultation.petName} ?`)) {
-      deleteConsultation(consultation.id);
-      toast({
-        title: "Consultation supprimée",
-        description: `La consultation pour ${consultation.petName} a été supprimée.`,
-      });
-    }
-  };
-
-  const getStatusColor = (consultation: Consultation) => {
-    const today = new Date().toISOString().split('T')[0];
-    if (consultation.date === today) return "bg-accent text-accent-foreground";
-    if (consultation.date < today) return "bg-secondary text-secondary-foreground";
+  const getStatusColor = (consultation: any) => {
+    const consultationDate = new Date(consultation.consultation_date).toISOString().split('T')[0];
+    if (consultationDate === today) return "bg-accent text-accent-foreground";
+    if (consultationDate < today) return "bg-secondary text-secondary-foreground";
     return "bg-primary text-primary-foreground";
   };
 
-  const getStatusText = (consultation: Consultation) => {
-    const today = new Date().toISOString().split('T')[0];
-    if (consultation.date === today) return "Aujourd'hui";
-    if (consultation.date < today) return "Terminée";
+  const getStatusText = (consultation: any) => {
+    const consultationDate = new Date(consultation.consultation_date).toISOString().split('T')[0];
+    if (consultationDate === today) return "Aujourd'hui";
+    if (consultationDate < today) return "Terminée";
     return "À venir";
   };
 
-  const getConsultationDetails = (consultation: Consultation) => {
-    const pet = pets.find(p => p.id === consultation.petId);
-    const client = clients.find(c => c.id === consultation.clientId);
+  const getConsultationDetails = (consultation: any) => {
+    const animal = consultation.animal || animals.find(p => p.id === consultation.animal_id);
+    const client = consultation.client || clients.find(c => c.id === consultation.client_id);
     
     return {
-      petType: pet?.type || 'Inconnu',
-      petBreed: pet?.breed || 'Non spécifiée',
+      animalName: animal?.name || 'Animal inconnu',
+      animalSpecies: animal?.species || 'Inconnu',
+      animalBreed: animal?.breed || 'Non spécifiée',
+      clientName: client ? `${client.first_name} ${client.last_name}` : 'Client inconnu',
       clientPhone: client?.phone || 'Non spécifié',
-      clientCity: client?.city || 'Non spécifiée'
+      clientCity: client?.address || 'Non spécifiée'
     };
   };
 
   return (
     <>
       <Card className="card-hover">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg font-semibold">Consultations Récentes</CardTitle>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Stethoscope className="h-3 w-3" />
-                <span>{totalConsultations} total</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Activity className="h-3 w-3" />
-                <span>{consultationsToday} aujourd'hui</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                <span>{consultationsThisMonth} ce mois</span>
-                {changePercentage !== 0 && (
-                  <Badge variant={changePercentage > 0 ? "default" : "destructive"} className="text-xs">
-                    {changePercentage > 0 ? '+' : ''}{changePercentage}%
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-1">
-                <DollarSign className="h-3 w-3" />
-                <span>~{estimatedRevenue}€ ce mois</span>
-                {revenueChange !== 0 && (
-                  <Badge variant={revenueChange > 0 ? "default" : "destructive"} className="text-xs">
-                    {revenueChange > 0 ? '+' : ''}{revenueChange}%
-                  </Badge>
-                )}
-              </div>
-            </div>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Stethoscope className="h-5 w-5" />
+              Consultations Récentes
+            </CardTitle>
+            <Button size="sm" className="gap-2" onClick={() => setShowConsultationModal(true)}>
+              <Plus className="h-4 w-4" />
+              Nouveau
+            </Button>
           </div>
-          <Button size="sm" className="gap-2" onClick={() => setShowConsultationModal(true)}>
-            <Plus className="h-4 w-4" />
-            Nouvelle Consultation
-          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="text-center p-3 bg-muted rounded-lg">
+              <div className="text-2xl font-bold text-primary">{totalConsultations}</div>
+              <div className="text-sm text-muted-foreground">Total</div>
+            </div>
+            <div className="text-center p-3 bg-muted rounded-lg">
+              <div className="text-2xl font-bold text-green-600">{consultationsToday}</div>
+              <div className="text-sm text-muted-foreground">Aujourd'hui</div>
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-blue-600" />
+              <span>+{consultationsThisMonth} ce mois</span>
+              {changePercentage !== 0 && (
+                <Badge variant={changePercentage > 0 ? "default" : "destructive"} className="text-xs">
+                  {changePercentage > 0 ? '+' : ''}{changePercentage}%
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-green-600" />
+              <span>~{estimatedRevenue}€ ce mois</span>
+            </div>
+          </div>
+
+          {/* Recent Consultations List */}
+          <div className="space-y-3">
+            <h4 className="font-medium text-sm text-muted-foreground">Dernières consultations</h4>
           {recentConsultations.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Stethoscope className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
@@ -148,85 +152,52 @@ export function ConsultationsOverview() {
             recentConsultations.map((consultation) => {
               const details = getConsultationDetails(consultation);
               return (
-                <div 
+                <div
                   key={consultation.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarFallback className="bg-primary-glow text-primary-foreground">
-                        <Stethoscope className="h-6 w-6" />
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar className="h-9 w-9 flex-shrink-0">
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        <Stethoscope className="h-4 w-4" />
                       </AvatarFallback>
                     </Avatar>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium">Consultation #{consultation.id}</h4>
-                        <Badge variant="outline" className={getStatusColor(consultation)}>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-medium truncate">#{consultation.id.slice(0, 8)}</h4>
+                        <Badge variant="outline" className={`text-xs ${getStatusColor(consultation)}`}>
                           {getStatusText(consultation)}
                         </Badge>
-                        {consultation.cost && (
-                          <Badge variant="secondary" className="text-xs">
-                            {consultation.cost} {settings.currency || '€'}
-                          </Badge>
-                        )}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1">
-                            <Heart className="h-3 w-3" />
-                            <span>{consultation.petName} ({details.petType})</span>
-                            {details.petBreed !== 'Non spécifiée' && <span> - {details.petBreed}</span>}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            <span>{consultation.clientName}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>{new Date(consultation.date).toLocaleDateString('fr-FR')}</span>
-                          </div>
+                      <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
+                        <div className="flex items-center gap-1">
+                          <Heart className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{details.animalName}</span>
                         </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        <div className="flex items-center gap-4">
-                          {consultation.diagnosis && (
-                            <span>Diagnostic: {consultation.diagnosis}</span>
-                          )}
-                          {consultation.weight && (
-                            <span>Poids: {consultation.weight}</span>
-                          )}
-                          {consultation.temperature && (
-                            <span>Température: {consultation.temperature}°C</span>
-                          )}
-                          {consultation.photos && consultation.photos.length > 0 && (
-                            <span>📷 {consultation.photos.length} photo{consultation.photos.length > 1 ? 's' : ''}</span>
-                          )}
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{details.clientName}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 flex-shrink-0" />
+                          <span>{new Date(consultation.consultation_date).toLocaleDateString('fr-FR')}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(consultation)} className="gap-2">
+
+                  <div className="flex gap-1 flex-shrink-0 ml-2">
+                    <Button size="sm" variant="ghost" onClick={() => handleEdit(consultation)} className="h-8 w-8 p-0">
                       <Edit className="h-4 w-4" />
-                      Modifier
                     </Button>
-                    <ConsultationPrint consultation={consultation} />
-                    <Button 
-                      size="sm" 
-                      variant="destructive" 
-                      onClick={() => handleDelete(consultation)}
-                      className="gap-2"
-                    >
-                      <FileText className="h-4 w-4" />
-                      Supprimer
-                    </Button>
+                    <ConsultationPrint consultation={consultation as any} />
                   </div>
                 </div>
               );
             })
           )}
+          </div>
         </CardContent>
       </Card>
 

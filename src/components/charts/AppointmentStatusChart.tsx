@@ -2,10 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Calendar, CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
-import { useClients } from '@/contexts/ClientContext';
+import { useAppointments } from '@/hooks/useDatabase';
 
 export function AppointmentStatusChart() {
-  const { appointments } = useClients();
+  const { data: appointments = [] } = useAppointments();
 
   // Calculer les données des statuts de rendez-vous
   const statusData = React.useMemo(() => {

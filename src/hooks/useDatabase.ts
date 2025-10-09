@@ -41,6 +41,17 @@ import {
   createAntiparasiticProtocol,
   updateAntiparasiticProtocol,
   deleteAntiparasiticProtocol,
+  getFarms,
+  getFarmById,
+  getFarmsByClient,
+  createFarm,
+  updateFarm,
+  deleteFarm,
+  getFarmInterventions,
+  getFarmInterventionsByFarm,
+  createFarmIntervention,
+  updateFarmIntervention,
+  deleteFarmIntervention,
   type Client,
   type Animal,
   type Appointment,
@@ -49,12 +60,16 @@ import {
   type VaccinationProtocol,
   type Antiparasitic,
   type AntiparasiticProtocol,
+  type Farm,
+  type FarmIntervention,
   type CreateClientData,
   type CreateAnimalData,
   type CreateConsultationData,
   type CreateAppointmentData,
   type CreateVaccinationData,
   type CreateAntiparasiticData,
+  type CreateFarmData,
+  type CreateFarmInterventionData,
   type UpdateAppointmentData
 } from '../lib/database'
 import {
@@ -103,6 +118,24 @@ export const appointmentKeys = {
   detail: (id: string) => [...appointmentKeys.details(), id] as const,
   byAnimal: (animalId: string) => [...appointmentKeys.all, 'animal', animalId] as const,
   byClient: (clientId: string) => [...appointmentKeys.all, 'client', clientId] as const,
+}
+
+export const farmKeys = {
+  all: ['farms'] as const,
+  lists: () => [...farmKeys.all, 'list'] as const,
+  list: (filters: string) => [...farmKeys.lists(), { filters }] as const,
+  details: () => [...farmKeys.all, 'detail'] as const,
+  detail: (id: string) => [...farmKeys.details(), id] as const,
+  byClient: (clientId: string) => [...farmKeys.all, 'client', clientId] as const,
+}
+
+export const farmInterventionKeys = {
+  all: ['farmInterventions'] as const,
+  lists: () => [...farmInterventionKeys.all, 'list'] as const,
+  list: (filters: string) => [...farmInterventionKeys.lists(), { filters }] as const,
+  details: () => [...farmInterventionKeys.all, 'detail'] as const,
+  detail: (id: string) => [...farmInterventionKeys.details(), id] as const,
+  byFarm: (farmId: string) => [...farmInterventionKeys.all, 'farm', farmId] as const,
 }
 
 export const statsKeys = {
@@ -1446,14 +1479,178 @@ export const useDeleteAppointment = () => {
   })
 }
 
+// =============================================
+// FARM HOOKS
+// =============================================
+
+export const useFarms = () => {
+  return useQuery({
+    queryKey: farmKeys.lists(),
+    queryFn: getFarms,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+
+export const useFarm = (id: string) => {
+  return useQuery({
+    queryKey: farmKeys.detail(id),
+    queryFn: () => getFarmById(id),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export const useFarmsByClient = (clientId: string) => {
+  return useQuery({
+    queryKey: farmKeys.byClient(clientId),
+    queryFn: () => getFarmsByClient(clientId),
+    enabled: !!clientId,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export const useCreateFarm = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: createFarm,
+    onSuccess: (newFarm) => {
+      queryClient.setQueryData(farmKeys.lists(), (old: Farm[] | undefined) => {
+        if (!old) return [newFarm]
+        return [...old, newFarm]
+      })
+      
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: farmKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: farmKeys.byClient(newFarm.client_id) })
+    },
+  })
+}
+
+export const useUpdateFarm = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateFarmData> }) => 
+      updateFarm(id, data),
+    onSuccess: (updatedFarm) => {
+      queryClient.setQueryData(farmKeys.detail(updatedFarm.id), updatedFarm)
+      queryClient.setQueryData(farmKeys.lists(), (old: Farm[] | undefined) => {
+        if (!old) return [updatedFarm]
+        return old.map(farm => farm.id === updatedFarm.id ? updatedFarm : farm)
+      })
+      
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: farmKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: farmKeys.byClient(updatedFarm.client_id) })
+    },
+  })
+}
+
+export const useDeleteFarm = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: deleteFarm,
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueryData(farmKeys.lists(), (old: Farm[] | undefined) => {
+        if (!old) return []
+        return old.filter(farm => farm.id !== deletedId)
+      })
+      
+      // Invalidate related queries  
+      queryClient.invalidateQueries({ queryKey: farmKeys.lists() })
+    },
+  })
+}
+
+// =============================================
+// FARM INTERVENTION HOOKS
+// =============================================
+
+export const useFarmInterventions = () => {
+  return useQuery({
+    queryKey: farmInterventionKeys.lists(),
+    queryFn: getFarmInterventions,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+
+export const useFarmInterventionsByFarm = (farmId: string) => {
+  return useQuery({
+    queryKey: farmInterventionKeys.byFarm(farmId),
+    queryFn: () => getFarmInterventionsByFarm(farmId),
+    enabled: !!farmId,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export const useCreateFarmIntervention = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: createFarmIntervention,
+    onSuccess: (newIntervention) => {
+      queryClient.setQueryData(farmInterventionKeys.lists(), (old: FarmIntervention[] | undefined) => {
+        if (!old) return [newIntervention]
+        return [...old, newIntervention]
+      })
+      
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: farmInterventionKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: farmInterventionKeys.byFarm(newIntervention.farm_id) })
+    },
+  })
+}
+
+export const useUpdateFarmIntervention = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateFarmInterventionData> }) => 
+      updateFarmIntervention(id, data),
+    onSuccess: (updatedIntervention) => {
+      queryClient.setQueryData(farmInterventionKeys.lists(), (old: FarmIntervention[] | undefined) => {
+        if (!old) return [updatedIntervention]
+        return old.map(intervention => intervention.id === updatedIntervention.id ? updatedIntervention : intervention)
+      })
+      
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: farmInterventionKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: farmInterventionKeys.byFarm(updatedIntervention.farm_id) })
+    },
+  })
+}
+
+export const useDeleteFarmIntervention = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: deleteFarmIntervention,
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueryData(farmInterventionKeys.lists(), (old: FarmIntervention[] | undefined) => {
+        if (!old) return []
+        return old.filter(intervention => intervention.id !== deletedId)
+      })
+      
+      // Invalidate related queries  
+      queryClient.invalidateQueries({ queryKey: farmInterventionKeys.lists() })
+    },
+  })
+}
+
 // Re-export types for convenience
 export type { 
   Client, 
   Animal, 
   Appointment, 
+  Farm,
+  FarmIntervention,
   CreateClientData, 
   CreateAnimalData, 
   CreateAppointmentData,
+  CreateFarmData,
+  CreateFarmInterventionData,
   UpdateAppointmentData,
   Consultation,
   Prescription,

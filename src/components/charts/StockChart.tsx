@@ -2,16 +2,18 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Package, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useClients } from '@/contexts/ClientContext';
+import { useStockItems } from '@/hooks/useDatabase';
 
 export function StockChart() {
-  const { stockItems } = useClients();
+  const { data: stockItems = [] } = useStockItems();
 
   // Calculer les données du stock
   const stockData = React.useMemo(() => {
     const totalItems = stockItems.length;
-    const lowStockItems = stockItems.filter(item => item.currentStock <= item.minimumStock && item.currentStock > 0).length;
-    const outOfStockItems = stockItems.filter(item => item.currentStock === 0).length;
+    const lowStockItems = stockItems.filter(item => 
+      item.current_quantity <= item.minimum_quantity && item.current_quantity > 0
+    ).length;
+    const outOfStockItems = stockItems.filter(item => item.current_quantity === 0).length;
     const normalStockItems = totalItems - lowStockItems - outOfStockItems;
 
     return [
@@ -22,11 +24,15 @@ export function StockChart() {
   }, [stockItems]);
 
   // Calculer la valeur totale du stock
-  const totalStockValue = stockItems.reduce((sum, item) => sum + (item.currentStock * item.purchasePrice), 0);
+  const totalStockValue = stockItems.reduce((sum, item) => 
+    sum + (item.current_quantity * (item.unit_cost || 0)), 0
+  );
 
   // Top 5 des articles les plus chers
   const topExpensiveItems = stockItems
-    .sort((a, b) => (b.currentStock * b.purchasePrice) - (a.currentStock * a.purchasePrice))
+    .sort((a, b) => 
+      (b.current_quantity * (b.unit_cost || 0)) - (a.current_quantity * (a.unit_cost || 0))
+    )
     .slice(0, 5);
 
   return (
@@ -77,7 +83,7 @@ export function StockChart() {
               <div key={item.id} className="flex items-center justify-between text-xs">
                 <span className="truncate flex-1">{item.name}</span>
                 <span className="text-muted-foreground ml-2">
-                  {(item.currentStock * item.purchasePrice).toFixed(0)} €
+                  {(item.current_quantity * (item.unit_cost || 0)).toFixed(0)} €
                 </span>
               </div>
             ))}

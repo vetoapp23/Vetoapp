@@ -13,7 +13,7 @@ import {
   Clock,
   AlertTriangle
 } from 'lucide-react';
-import { useClients, useAnimals, useConsultations, useAppointments, useVaccinations, useAntiparasitics, useStockItems } from "@/hooks/useDatabase";
+import { useClients, useAnimals, useConsultations, useAppointments, useVaccinations, useAntiparasitics, useStockItems, useFarms } from "@/hooks/useDatabase";
 import { useSettings } from '@/contexts/SettingsContext';
 
 export function RealTimeKPIs() {
@@ -24,6 +24,7 @@ export function RealTimeKPIs() {
   const { data: vaccinations = [] } = useVaccinations();
   const { data: antiparasitics = [] } = useAntiparasitics();
   const { data: stockItems = [] } = useStockItems();
+  const { data: farms = [] } = useFarms();
   const { settings } = useSettings();
 
   // Calculer les KPI en temps réel
@@ -71,18 +72,16 @@ export function RealTimeKPIs() {
   };
   
   // Nouveaux clients ce mois
-  // TODO: Implement with proper data source that includes created_at dates
-  const newClientsThisMonth = 0; // clients.filter(c => {
-  //   const clientDate = new Date(c.created_at);
-  //   return clientDate.getMonth() === thisMonth && clientDate.getFullYear() === thisYear;
-  // }).length;
+  const newClientsThisMonth = clients.filter(c => {
+    const clientDate = new Date(c.created_at);
+    return clientDate.getMonth() === thisMonth && clientDate.getFullYear() === thisYear;
+  }).length;
   
   // Nouveaux animaux ce mois
-  // TODO: Implement with proper data source that includes created_at dates
-  const newPetsThisMonth = 0; // pets.filter(p => {
-  //   const petDate = new Date(p.created_at);
-  //   return petDate.getMonth() === thisMonth && petDate.getFullYear() === thisYear;
-  // }).length;
+  const newPetsThisMonth = pets.filter(p => {
+    const petDate = new Date(p.created_at);
+    return petDate.getMonth() === thisMonth && petDate.getFullYear() === thisYear;
+  }).length;
 
   const kpis = [
     {
