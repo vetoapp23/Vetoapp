@@ -5,11 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, Plus, Calendar, Eye, Edit, Stethoscope, TrendingUp, Clock, Activity, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { NewPetModal } from "@/components/forms/NewPetModal";
-import { PetViewModal } from "@/components/modals/PetViewModal";
-import { PetEditModal } from "@/components/modals/PetEditModal";
-import { PetDossierModal } from "@/components/modals/PetDossierModal";
-import { NewConsultationModal } from "@/components/forms/NewConsultationModal";
-import { useClients, Pet } from "@/contexts/ClientContext";
+import { useClients, useAnimals, useConsultations, useAppointments, type Animal } from "@/hooks/useDatabase";
 import { useSettings } from "@/contexts/SettingsContext";
 import { calculateAge } from "@/lib/utils";
 
@@ -20,240 +16,179 @@ const statusStyles = {
 };
 
 export function PetsOverview() {
-  const { pets, consultations, appointments, clients } = useClients();
+  const { data: clients = [] } = useClients();
+  const { data: pets = [] } = useAnimals();
+  const { data: consultations = [] } = useConsultations();
+  const { data: appointments = [] } = useAppointments();
   const { settings } = useSettings();
   const [showPetModal, setShowPetModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDossierModal, setShowDossierModal] = useState(false);
-  const [showConsultationModal, setShowConsultationModal] = useState(false);
-  const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
 
-  // Trier les animaux par dernière visite (plus récente en premier)
-  const sortedPets = [...pets].sort((a, b) => {
-    if (!a.lastVisit && !b.lastVisit) return 0;
-    if (!a.lastVisit) return 1;
-    if (!b.lastVisit) return -1;
-    return new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime();
+  // Calculate pet statistics with real data
+  const totalPets = pets.length;
+  
+  // Calculate pets by status
+  const healthyPets = pets.filter(p => p.status === 'vivant').length;
+  const sickPets = pets.filter(p => {
+    // Check if pet has recent consultations indicating treatment
+    const recentConsultations = consultations.filter(c => 
+      c.animal_id === p.id && 
+      new Date(c.consultation_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    );
+    return recentConsultations.length > 0;
+  }).length;
+  
+  // Sort pets by last consultation (most recent first)
+  const petsWithActivity = pets.map(pet => {
+    const petConsultations = consultations.filter(c => c.animal_id === pet.id);
+    const lastConsultation = petConsultations.length > 0 
+      ? Math.max(...petConsultations.map(c => new Date(c.consultation_date).getTime()))
+      : 0;
+    return {
+      ...pet,
+      lastActivity: lastConsultation > 0 ? new Date(lastConsultation).toISOString() : pet.created_at,
+      consultationsCount: petConsultations.length
+    };
   });
 
-  // Prendre les 5 animaux les plus récents
+  const sortedPets = [...petsWithActivity].sort((a, b) => 
+    new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
+  );
+
+  // Take the 5 most recent pets
   const recentPets = sortedPets.slice(0, 5);
 
-  // Calculer les statistiques des animaux
-  const totalPets = pets.length;
-  const healthyPets = pets.filter(p => p.status === 'healthy').length;
-  const treatmentPets = pets.filter(p => p.status === 'treatment').length;
-  const urgentPets = pets.filter(p => p.status === 'urgent').length;
-
+  // Calculate stats for this month
+  const thisMonth = new Date().getMonth();
+  const thisYear = new Date().getFullYear();
   const newPetsThisMonth = pets.filter(p => {
-    if (!p.lastVisit) return false;
-    const lastVisit = new Date(p.lastVisit);
-    const thisMonth = new Date().getMonth();
-    const thisYear = new Date().getFullYear();
-    return lastVisit.getMonth() === thisMonth && lastVisit.getFullYear() === thisYear;
+    const createdDate = new Date(p.created_at);
+    return createdDate.getMonth() === thisMonth && createdDate.getFullYear() === thisYear;
   }).length;
 
-  const averageConsultationsPerPet = totalPets > 0 ? (consultations.length / totalPets).toFixed(1) : "0";
-
-  const handleView = (pet: Pet) => {
-    setSelectedPet(pet);
-    setShowViewModal(true);
-  };
-
-  const handleEdit = (pet: Pet) => {
-    setSelectedPet(pet);
-    setShowEditModal(true);
-  };
-
-  const handleShowDossier = (pet: Pet) => {
-    setSelectedPet(pet);
-    setShowDossierModal(true);
-  };
-
-  const handleNewConsultation = (pet: Pet) => {
-    setSelectedPet(pet);
-    setShowConsultationModal(true);
-  };
-
-  const getPetActivity = (pet: Pet) => {
-    const petConsultations = consultations.filter(c => c.petId === pet.id);
-    const petAppointments = appointments.filter(a => a.petId === pet.id);
-    const petOwner = clients.find(c => c.id === pet.ownerId);
-    
-    return {
-      consultations: petConsultations.length,
-      appointments: petAppointments.length,
-      owner: petOwner?.name || pet.owner,
-      lastConsultation: petConsultations.length > 0 ? 
-        Math.max(...petConsultations.map(c => new Date(c.date).getTime())) : 
-        pet.lastVisit ? new Date(pet.lastVisit).getTime() : 0
-    };
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return <Heart className="h-3 w-3 text-green-600" />;
-      case 'treatment':
-        return <Stethoscope className="h-3 w-3 text-yellow-600" />;
-      case 'urgent':
-        return <AlertTriangle className="h-3 w-3 text-red-600" />;
-      default:
-        return <Heart className="h-3 w-3" />;
-    }
-  };
-  
   return (
-    <>
-      <Card className="card-hover">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg font-semibold">Animaux Récents</CardTitle>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Heart className="h-3 w-3" />
-                <span>{totalPets} total</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Activity className="h-3 w-3" />
-                <span>{healthyPets} en bonne santé</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                <span>+{newPetsThisMonth} ce mois</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                <span>Ø {averageConsultationsPerPet} consultations</span>
-              </div>
-            </div>
-          </div>
-          <Button size="sm" className="gap-2" onClick={() => setShowPetModal(true)}>
+    <Card className="h-fit">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Heart className="h-5 w-5" />
+            Animaux Récents
+          </CardTitle>
+          <Button 
+            size="sm" 
+            onClick={() => setShowPetModal(true)}
+            className="gap-2"
+          >
             <Plus className="h-4 w-4" />
-            Nouvel Animal
+            Nouveau
           </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="text-center p-3 bg-muted rounded-lg">
+            <div className="text-2xl font-bold text-primary">{totalPets}</div>
+            <div className="text-sm text-muted-foreground">Total</div>
+          </div>
+          <div className="text-center p-3 bg-green-50 rounded-lg">
+            <div className="text-2xl font-bold text-green-600">{healthyPets}</div>
+            <div className="text-sm text-muted-foreground">En bonne santé</div>
+          </div>
+          <div className="text-center p-3 bg-orange-50 rounded-lg">
+            <div className="text-2xl font-bold text-orange-600">{sickPets}</div>
+            <div className="text-sm text-muted-foreground">En traitement</div>
+          </div>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-blue-600" />
+            <span>+{newPetsThisMonth} ce mois</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-purple-600" />
+            <span>{totalPets} suivis actifs</span>
+          </div>
+        </div>
+
+        {/* Recent Pets List */}
+        <div className="space-y-3">
+          <h4 className="font-medium text-sm text-muted-foreground">Derniers animaux</h4>
           {recentPets.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Heart className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-              <p>Aucun animal enregistré</p>
-              <p className="text-sm">Commencez par créer votre premier animal</p>
-            </div>
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              Aucun animal trouvé
+            </p>
           ) : (
             recentPets.map((pet) => {
-              const activity = getPetActivity(pet);
+              const owner = clients.find(c => c.id === pet.client_id);
+              const ownerName = owner ? `${owner.first_name} ${owner.last_name}` : 'Propriétaire inconnu';
+              
+              const getStatusColor = (status: string) => {
+                switch (status) {
+                  case 'vivant': return 'bg-green-100 text-green-800';
+                  case 'décédé': return 'bg-red-100 text-red-800';
+                  case 'perdu': return 'bg-orange-100 text-orange-800';
+                  default: return 'bg-gray-100 text-gray-800';
+                }
+              };
+
+              const getSpeciesIcon = (species: string) => {
+                // You can add more specific logic here
+                return '🐾';
+              };
+
               return (
-                <div 
+                <div
                   key={pet.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <Avatar className="h-12 w-12 flex-shrink-0">
-                      {pet.photo ? (
-                        <AvatarImage src={pet.photo} alt={pet.name} />
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar className="h-9 w-9 flex-shrink-0">
+                      {pet.photo_url ? (
+                        <AvatarImage src={pet.photo_url} alt={pet.name} />
                       ) : (
-                        <AvatarFallback className="bg-primary-glow text-primary-foreground">
-                          <Heart className="h-6 w-6" />
+                        <AvatarFallback className="text-sm">
+                          {getSpeciesIcon(pet.species)}
                         </AvatarFallback>
                       )}
                     </Avatar>
-                    
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="font-medium truncate">{pet.name}</h4>
-                        <Badge 
-                          variant="outline" 
-                          className={statusStyles[pet.status as keyof typeof statusStyles]}
-                        >
-                          {getStatusIcon(pet.status)}
-                          <span className="ml-1">
-                            {pet.status === 'healthy' ? 'En bonne santé' : 
-                             pet.status === 'treatment' ? 'En traitement' : 'Urgent'}
-                          </span>
+                        <Badge variant="outline" className="text-xs flex-shrink-0">
+                          {pet.species}
+                        </Badge>
+                        <Badge className={`text-xs flex-shrink-0 ${getStatusColor(pet.status)}`}>
+                          {pet.status}
                         </Badge>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium">{pet.type}</span>
-                            {pet.breed && <span> - {pet.breed}</span>}
-                            {pet.gender && <span> ({pet.gender === 'male' ? 'Mâle' : 'Femelle'})</span>}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>{pet.birthDate ? calculateAge(pet.birthDate) : 'Âge inconnu'}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>Propriétaire: {activity.owner}</span>
-                        <span>Consultations: {activity.consultations}</span>
-                        <span>RDV: {activity.appointments}</span>
-                        {pet.lastVisit && (
-                          <span>Dernière visite: {new Date(pet.lastVisit).toLocaleDateString('fr-FR')}</span>
+                      <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
+                        <span>Propriétaire: {ownerName}</span>
+                        {pet.breed && <span>Race: {pet.breed}</span>}
+                        {pet.birth_date && (
+                          <span>Âge: {calculateAge(pet.birth_date)}</span>
                         )}
                       </div>
+                      <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
+                        <span>Consultations: {pet.consultationsCount}</span>
+                        <span>Dernière activité: {new Date(pet.lastActivity).toLocaleDateString()}</span>
+                        {pet.weight && <span>Poids: {pet.weight}kg</span>}
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex gap-1 flex-shrink-0 ml-2">
-                    <Button size="sm" variant="outline" onClick={() => handleView(pet)} className="h-8 px-2">
-                      <Eye className="h-3 w-3" />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(pet)} className="h-8 px-2">
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleShowDossier(pet)} className="h-8 px-2 text-xs">
-                      Dossier
-                    </Button>
-                    <Button size="sm" onClick={() => handleNewConsultation(pet)} className="h-8 px-2 text-xs">
-                      <Stethoscope className="h-3 w-3" />
-                    </Button>
                   </div>
                 </div>
               );
             })
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
 
+      {/* Modals */}
       <NewPetModal 
         open={showPetModal} 
-        onOpenChange={setShowPetModal} 
+        onOpenChange={setShowPetModal}
       />
-      
-      <PetViewModal
-        open={showViewModal}
-        onOpenChange={setShowViewModal}
-        pet={selectedPet}
-        onEdit={() => {
-          setShowViewModal(false);
-          setShowEditModal(true);
-        }}
-        onShowDossier={() => {
-          setShowViewModal(false);
-          setShowDossierModal(true);
-        }}
-      />
-      
-      <PetEditModal
-        open={showEditModal}
-        onOpenChange={setShowEditModal}
-        pet={selectedPet}
-      />
-      
-      <PetDossierModal
-        open={showDossierModal}
-        onOpenChange={setShowDossierModal}
-        pet={selectedPet}
-      />
-      
-      <NewConsultationModal 
-        open={showConsultationModal} 
-        onOpenChange={setShowConsultationModal} 
-      />
-    </>
+    </Card>
   );
 }

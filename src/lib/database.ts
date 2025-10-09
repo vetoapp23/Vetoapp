@@ -257,6 +257,41 @@ export interface AntiparasiticProtocol {
   updated_at: string
 }
 
+export interface Farm {
+  id: string
+  client_id: string
+  farm_name: string
+  farm_type?: string
+  registration_number?: string
+  address?: string
+  phone?: string
+  email?: string
+  herd_size?: number
+  certifications?: string[]
+  notes?: string
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface FarmIntervention {
+  id: string
+  farm_id: string
+  veterinarian_id?: string
+  intervention_date: string
+  intervention_type: string
+  animal_count?: number
+  description?: string
+  diagnosis?: string
+  treatment?: string
+  medications_used?: string[]
+  cost?: number
+  follow_up_date?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
 // =============================================
 // SUMMARY & STATS TYPES
 // =============================================
@@ -302,6 +337,7 @@ export interface FarmManagementSettings {
   equipment_types: string[]
   default_surface_unit: string
   default_coordinate_format: string
+  enabled?: boolean
 }
 
 export interface ScheduleSettings {
@@ -311,6 +347,10 @@ export interface ScheduleSettings {
   lunch_break_start: string
   lunch_break_end: string
   working_days: string[]
+  working_hours?: Record<string, { start: string; end: string; enabled: boolean }>
+  appointment_duration?: number
+  buffer_time?: number
+  max_appointments_per_day?: number
 }
 
 export interface AnimalMedicalSummary {
@@ -467,6 +507,35 @@ export interface UpdateAppointmentData {
   status?: 'scheduled' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show'
   notes?: string
   reminder_sent?: boolean
+}
+
+export interface CreateFarmData {
+  client_id: string
+  farm_name: string
+  farm_type?: string
+  registration_number?: string
+  address?: string
+  phone?: string
+  email?: string
+  herd_size?: number
+  certifications?: string[]
+  notes?: string
+  active?: boolean
+}
+
+export interface CreateFarmInterventionData {
+  farm_id: string
+  veterinarian_id?: string
+  intervention_date: string
+  intervention_type: string
+  animal_count?: number
+  description?: string
+  diagnosis?: string
+  treatment?: string
+  medications_used?: string[]
+  cost?: number
+  follow_up_date?: string
+  notes?: string
 }
 
 // =============================================
@@ -1801,6 +1870,295 @@ export const getDetailedStats = async () => {
 }
 
 // =============================================
+// FARM OPERATIONS
+// =============================================
+
+export const getFarms = async (): Promise<Farm[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch farms')
+  }
+
+  const { data, error } = await supabase
+    .from('farms')
+    .select(`
+      *,
+      clients!inner(
+        id,
+        first_name,
+        last_name,
+        user_id
+      )
+    `)
+    .eq('clients.user_id', user.id)
+    .order('farm_name', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching farms: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const getFarmById = async (id: string): Promise<Farm | null> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch farm')
+  }
+
+  const { data, error } = await supabase
+    .from('farms')
+    .select(`
+      *,
+      clients!inner(
+        id,
+        first_name,
+        last_name,
+        user_id
+      )
+    `)
+    .eq('id', id)
+    .eq('clients.user_id', user.id)
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null // Farm not found
+    }
+    throw new Error(`Error fetching farm: ${error.message}`)
+  }
+
+  return data
+}
+
+export const getFarmsByClient = async (clientId: string): Promise<Farm[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch farms')
+  }
+
+  const { data, error } = await supabase
+    .from('farms')
+    .select(`
+      *,
+      clients!inner(
+        id,
+        first_name,
+        last_name,
+        user_id
+      )
+    `)
+    .eq('client_id', clientId)
+    .eq('clients.user_id', user.id)
+    .order('farm_name', { ascending: true })
+
+  if (error) {
+    throw new Error(`Error fetching farms: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const createFarm = async (farmData: CreateFarmData): Promise<Farm> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to create farm')
+  }
+
+  const { data, error } = await supabase
+    .from('farms')
+    .insert({
+      ...farmData,
+      active: farmData.active ?? true
+    })
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Error creating farm: ${error.message}`)
+  }
+
+  return data
+}
+
+export const updateFarm = async (id: string, farmData: Partial<CreateFarmData>): Promise<Farm> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to update farm')
+  }
+
+  const { data, error } = await supabase
+    .from('farms')
+    .update({
+      ...farmData,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating farm: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteFarm = async (id: string): Promise<void> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to delete farm')
+  }
+
+  const { error } = await supabase
+    .from('farms')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting farm: ${error.message}`)
+  }
+}
+
+// =============================================
+// FARM INTERVENTION OPERATIONS
+// =============================================
+
+export const getFarmInterventions = async (): Promise<FarmIntervention[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch farm interventions')
+  }
+
+  const { data, error } = await supabase
+    .from('farm_interventions')
+    .select(`
+      *,
+      farms!inner(
+        id,
+        farm_name,
+        client_id,
+        clients!inner(
+          id,
+          first_name,
+          last_name,
+          user_id
+        )
+      )
+    `)
+    .eq('farms.clients.user_id', user.id)
+    .order('intervention_date', { ascending: false })
+
+  if (error) {
+    throw new Error(`Error fetching farm interventions: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const getFarmInterventionsByFarm = async (farmId: string): Promise<FarmIntervention[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch farm interventions')
+  }
+
+  const { data, error } = await supabase
+    .from('farm_interventions')
+    .select(`
+      *,
+      farms!inner(
+        id,
+        farm_name,
+        client_id,
+        clients!inner(
+          id,
+          first_name,
+          last_name,
+          user_id
+        )
+      )
+    `)
+    .eq('farm_id', farmId)
+    .eq('farms.clients.user_id', user.id)
+    .order('intervention_date', { ascending: false })
+
+  if (error) {
+    throw new Error(`Error fetching farm interventions: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const createFarmIntervention = async (interventionData: CreateFarmInterventionData): Promise<FarmIntervention> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to create farm intervention')
+  }
+
+  const { data, error } = await supabase
+    .from('farm_interventions')
+    .insert(interventionData)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Error creating farm intervention: ${error.message}`)
+  }
+
+  return data
+}
+
+export const updateFarmIntervention = async (id: string, interventionData: Partial<CreateFarmInterventionData>): Promise<FarmIntervention> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to update farm intervention')
+  }
+
+  const { data, error } = await supabase
+    .from('farm_interventions')
+    .update({
+      ...interventionData,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Error updating farm intervention: ${error.message}`)
+  }
+
+  return data
+}
+
+export const deleteFarmIntervention = async (id: string): Promise<void> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to delete farm intervention')
+  }
+
+  const { error } = await supabase
+    .from('farm_interventions')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(`Error deleting farm intervention: ${error.message}`)
+  }
+}
+
+// =============================================
 // APP SETTINGS OPERATIONS
 // =============================================
 
@@ -2039,14 +2397,28 @@ export const initializeDefaultSettings = async (): Promise<void> => {
   // Create default farm management settings
   const defaultFarmSettings: FarmManagementSettings = {
     enabled: true,
-    default_herd_size: 50,
-    visit_frequency_days: 30,
-    report_format: 'standard',
-    certification_tracking: true
+    farm_types: ['Laitière', 'Viande', 'Mixte', 'Avicole'],
+    animal_categories: ['Bovin', 'Ovin', 'Caprin', 'Volaille'],
+    breeds_by_category: {
+      'Bovin': ['Holstein', 'Montbéliarde', 'Prim Holstein'],
+      'Ovin': ['Timahdit', 'Beni Guil', 'Sardi'],
+      'Caprin': ['Drâa', 'Noire de Marrakech'],
+      'Volaille': ['Pondeuse', 'Chair', 'Locale']
+    },
+    certification_types: ['Bio', 'Label Rouge', 'Standard'],
+    equipment_types: ['Traite', 'Alimentation', 'Vétérinaire'],
+    default_surface_unit: 'hectare',
+    default_coordinate_format: 'GPS'
   }
 
   // Create default schedule settings
   const defaultScheduleSettings: ScheduleSettings = {
+    opening_time: '08:00',
+    closing_time: '18:00',
+    slot_duration: 30,
+    lunch_break_start: '12:00',
+    lunch_break_end: '14:00',
+    working_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
     working_hours: {
       monday: { start: '08:00', end: '18:00', enabled: true },
       tuesday: { start: '08:00', end: '18:00', enabled: true },

@@ -2,10 +2,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { Users, TrendingUp } from 'lucide-react';
-import { useClients } from '@/contexts/ClientContext';
+import { useClients, useAnimals } from '@/hooks/useDatabase';
 
 export function ClientGrowthChart() {
-  const { clients, pets } = useClients();
+  const { data: clients = [] } = useClients();
+  const { data: pets = [] } = useAnimals();
 
   // Générer les données de croissance des 6 derniers mois
   const generateGrowthData = () => {
@@ -19,24 +20,24 @@ export function ClientGrowthChart() {
       
       // Compter les nouveaux clients de ce mois
       const newClients = clients.filter(client => {
-        const clientDate = new Date(client.createdAt);
+        const clientDate = new Date(client.created_at);
         return clientDate >= monthStart && clientDate <= monthEnd;
       }).length;
       
       // Compter les nouveaux animaux de ce mois
       const newPets = pets.filter(pet => {
-        const petDate = new Date(pet.createdAt);
+        const petDate = new Date(pet.created_at);
         return petDate >= monthStart && petDate <= monthEnd;
       }).length;
       
       // Calculer le total cumulé
       const totalClientsAtMonth = clients.filter(client => {
-        const clientDate = new Date(client.createdAt);
+        const clientDate = new Date(client.created_at);
         return clientDate <= monthEnd;
       }).length;
       
       const totalPetsAtMonth = pets.filter(pet => {
-        const petDate = new Date(pet.createdAt);
+        const petDate = new Date(pet.created_at);
         return petDate <= monthEnd;
       }).length;
       

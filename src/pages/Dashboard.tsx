@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { HeroSection } from "@/components/HeroSection";
 import { DashboardStats } from "@/components/DashboardStats";
 import { ClientsOverview } from "@/components/ClientsOverview";
@@ -15,67 +16,210 @@ import { AppointmentStatusChart } from "@/components/charts/AppointmentStatusCha
 import { ConsultationTrendsChart } from "@/components/charts/ConsultationTrendsChart";
 import { PetSpeciesChart } from "@/components/charts/PetSpeciesChart";
 import { AdminOnly } from "@/components/RoleGuard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { 
+  LayoutDashboard, 
+  TrendingUp, 
+  Users, 
+  Heart, 
+  Calendar, 
+  Stethoscope, 
+  BarChart3,
+  Shield,
+  Activity,
+  AlertTriangle,
+  Settings,
+  PieChart
+} from "lucide-react";
 
 const Dashboard = () => {
   return (
-    <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8">
+    <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 max-w-7xl">
       <HeroSection />
       
-      {/* KPI en temps réel */}
-      <section>
-      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 lg:mb-6">KPI en Temps Réel</h2>
-      <RealTimeKPIs />
-      </section>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 lg:gap-6">
-      <SyncStatus />
-      <DataManager />
-      <DashboardAlerts />
+      <div className="mt-6 sm:mt-8">
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 lg:grid-cols-6 h-auto p-1">
+            <TabsTrigger value="overview" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
+              <LayoutDashboard className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="text-[10px] sm:text-xs lg:text-sm">Vue d'ensemble</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="text-[10px] sm:text-xs lg:text-sm">Analyses</span>
+            </TabsTrigger>
+            <TabsTrigger value="clients" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="text-[10px] sm:text-xs lg:text-sm">Clients</span>
+            </TabsTrigger>
+            <TabsTrigger value="animals" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
+              <Heart className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="text-[10px] sm:text-xs lg:text-sm">Animaux</span>
+            </TabsTrigger>
+            <TabsTrigger value="consultations" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
+              <Stethoscope className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="text-[10px] sm:text-xs lg:text-sm">Consultations</span>
+            </TabsTrigger>
+            <TabsTrigger value="charts" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
+              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="text-[10px] sm:text-xs lg:text-sm">Graphiques</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Vue d'ensemble Tab */}
+          <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+            <Tabs defaultValue="kpis" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 h-auto p-1">
+                <TabsTrigger value="kpis" className="flex items-center gap-1 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-sm">
+                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>KPIs</span>
+                </TabsTrigger>
+                <TabsTrigger value="activities" className="flex items-center gap-1 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-sm">
+                  <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>Activités</span>
+                </TabsTrigger>
+                <TabsTrigger value="statistics" className="flex items-center gap-1 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-sm">
+                  <PieChart className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>Statistiques</span>
+                </TabsTrigger>
+                <TabsTrigger value="system" className="flex items-center gap-1 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-sm">
+                  <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>Système</span>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* KPIs Sub-tab */}
+              <TabsContent value="kpis" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+                <section>
+                  <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 px-1">Indicateurs Clés de Performance</h2>
+                  <RealTimeKPIs />
+                </section>
+              </TabsContent>
+
+              {/* Activities Sub-tab */}
+              <TabsContent value="activities" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+                <section>
+                  <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 px-1">Activités Récentes</h2>
+                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
+                    <div className="w-full">
+                      <ClientsOverview />
+                    </div>
+                    <div className="w-full">
+                      <PetsOverview />
+                    </div>
+                    <div className="w-full">
+                      <ConsultationsOverview />
+                    </div>
+                  </div>
+                </section>
+              </TabsContent>
+
+              {/* Statistics Sub-tab */}
+              <TabsContent value="statistics" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+                <section>
+                  <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 px-1">Statistiques Détaillées</h2>
+                  <DashboardStats />
+                </section>
+              </TabsContent>
+
+              {/* System Sub-tab */}
+              <TabsContent value="system" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+                <section>
+                  <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 px-1">État du Système</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+                    <SyncStatus />
+                    <DataManager />
+                    <DashboardAlerts />
+                  </div>
+                </section>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+            <section>
+              <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 px-1">Analyses et Tendances</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <AdminOnly>
+                  <RevenueChart />
+                </AdminOnly>
+                <ActivityChart />
+              </div>
+            </section>
+          </TabsContent>
+
+          {/* Clients Tab */}
+          <TabsContent value="clients" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+            <section>
+              <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 px-1">Gestion des Clients</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <ClientsOverview />
+                <ClientGrowthChart />
+              </div>
+            </section>
+          </TabsContent>
+
+          {/* Animals Tab */}
+          <TabsContent value="animals" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+            <section>
+              <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 px-1">Gestion des Animaux</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <PetsOverview />
+                <PetSpeciesChart />
+              </div>
+            </section>
+          </TabsContent>
+
+          {/* Consultations Tab */}
+          <TabsContent value="consultations" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+            <section>
+              <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 px-1">Activité Récente</h2>
+              <ConsultationsOverview />
+            </section>
+            
+            <section>
+              <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 px-1">Rendez-vous</h2>
+              <AppointmentStatusChart />
+            </section>
+          </TabsContent>
+
+          {/* Charts Tab */}
+          <TabsContent value="charts" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+            <section>
+              <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 px-1">Graphiques Détaillés</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <ConsultationTrendsChart />
+                <AppointmentStatusChart />
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
+                <PetSpeciesChart />
+                <StockChart />
+              </div>
+            </section>
+          </TabsContent>
+        </Tabs>
       </div>
-      
-      <section>
-      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 lg:mb-6">Vue d'ensemble</h2>
-      <DashboardStats />
-      </section>
-      
-      {/* Graphiques de performance */}
-      <section>
-      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 lg:mb-6">Analyses et Tendances</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 lg:gap-6">
-        <AdminOnly>
-        <RevenueChart />
-        </AdminOnly>
-        <ActivityChart />
-      </div>
-      </section>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 lg:gap-6">
-      <StockChart />
-      <ClientGrowthChart />
-      <AppointmentStatusChart />
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 lg:gap-6">
-      <ConsultationTrendsChart />
-      <PetSpeciesChart />
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 lg:gap-6">
-      <ClientsOverview />
-      <PetsOverview />
-      </div>
-      
-      <section>
-      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 lg:mb-6">Activité Récente</h2>
-      <ConsultationsOverview />
-      </section>
 
       {/* Admin Only Section */}
       <AdminOnly>
-      <section>
-        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 lg:mb-6">Admin Dashboard</h2>
-        {/* Admin specific components or charts can be added here */}
-      </section>
+        <div className="mt-6 sm:mt-8 p-4 sm:p-6 border rounded-lg bg-muted/50">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
+            <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
+            <h2 className="text-base sm:text-lg lg:text-xl font-bold">Administration</h2>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <RevenueChart />
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="font-semibold text-sm sm:text-base">Fonctionnalités Admin</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Section réservée aux administrateurs pour la gestion avancée du système.
+              </p>
+            </div>
+          </div>
+        </div>
       </AdminOnly>
     </div>
   );

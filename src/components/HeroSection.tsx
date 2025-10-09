@@ -50,8 +50,7 @@ export function HeroSection() {
     <>
       <div className="relative overflow-hidden gradient-hero rounded-2xl p-4 md:p-8 mb-8">
           <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6 md:gap-8">
-        {/* Logo */}
-        {settings.logo && <img src={settings.logo} alt="Logo clinique" className="h-16 w-16 md:h-20 md:w-20 object-contain rounded" />}
+       
         {/* Texte de bienvenue */}
         <div className="flex-1 space-y-4 md:space-y-6">
           <div className="flex items-center gap-2">
