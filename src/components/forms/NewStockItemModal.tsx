@@ -6,13 +6,46 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useClients, StockItem } from "@/contexts/ClientContext";
+import { useStock } from "@/hooks/useStock";
 import { useSettings } from "@/contexts/SettingsContext";
+
+// UI-compatible types for the existing interface
+interface StockItem {
+  id: number;
+  name: string;
+  category: 'medication' | 'vaccine' | 'consumable' | 'equipment' | 'supplement';
+  subcategory?: string;
+  description?: string;
+  manufacturer?: string;
+  batchNumber?: string;
+  dosage?: string;
+  unit: 'unit' | 'box' | 'vial' | 'bottle' | 'pack' | 'kg' | 'g' | 'ml' | 'l';
+  currentStock: number;
+  minimumStock: number;
+  maximumStock?: number;
+  purchasePrice: number;
+  sellingPrice: number;
+  totalValue: number;
+  expirationDate?: string;
+  supplier?: string;
+  location?: string;
+  notes?: string;
+  lastUpdated: string;
+  lastRestocked?: string;
+  isActive: boolean;
+  barcode?: string;
+  sku?: string;
+}
 
 interface NewStockItemModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingItem?: StockItem | null;
+  onItemAdded?: () => void; // Callback to refresh parent state
+  // Pass these from parent to avoid hook duplication
+  addStockItemFn?: (itemData: any) => Promise<any>;
+  updateStockItemFn?: (id: string, updates: any) => Promise<any>;
+  rawStockItems?: any[];
 }
 
 // Catégories de stock
@@ -57,10 +90,79 @@ const subcategories = {
   ]
 };
 
-export function NewStockItemModal({ open, onOpenChange, editingItem }: NewStockItemModalProps) {
-  const { addStockItem, updateStockItem } = useClients();
+export function NewStockItemModal({ 
+  open, 
+  onOpenChange, 
+  editingItem, 
+  onItemAdded,
+  addStockItemFn,
+  updateStockItemFn,
+  rawStockItems: rawStockItemsProp
+}: NewStockItemModalProps) {
+  // Use props if provided, otherwise fall back to hook (for backwards compatibility)
+  const hookData = useStock();
+  const { addStockItem: addStockItemRaw, updateStockItem: updateStockItemRaw, stockItems: rawStockItems } = addStockItemFn && updateStockItemFn && rawStockItemsProp 
+    ? { addStockItem: addStockItemFn, updateStockItem: updateStockItemFn, stockItems: rawStockItemsProp }
+    : hookData;
+  
   const { settings } = useSettings();
   const { toast } = useToast();
+
+  // Helper function to find database item ID from compatibility ID
+  const findDatabaseItemId = (compatibilityId: number): string | null => {
+    const dbItem = rawStockItems.find(item => 
+      parseInt(item.id.replace(/-/g, '').slice(0, 8), 16) === compatibilityId
+    );
+    return dbItem?.id || null;
+  };
+
+  // Wrapper functions for database operations
+  const updateStockItem = async (compatibilityId: number, updates: any) => {
+    const dbId = findDatabaseItemId(compatibilityId);
+    if (!dbId) return null;
+    
+    // Convert UI updates to database format - only include fields that exist in database
+    const dbUpdates: any = {};
+    if (updates.currentStock !== undefined) dbUpdates.current_quantity = updates.currentStock;
+    if (updates.minimumStock !== undefined) dbUpdates.minimum_quantity = updates.minimumStock;
+    if (updates.maximumStock !== undefined) dbUpdates.maximum_quantity = updates.maximumStock;
+    if (updates.purchasePrice !== undefined) dbUpdates.unit_cost = updates.purchasePrice;
+    if (updates.sellingPrice !== undefined) dbUpdates.selling_price = updates.sellingPrice;
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.supplier !== undefined) dbUpdates.supplier = updates.supplier;
+    if (updates.location !== undefined) dbUpdates.location = updates.location;
+    if (updates.batchNumber !== undefined) dbUpdates.batch_number = updates.batchNumber;
+    if (updates.expirationDate !== undefined) dbUpdates.expiration_date = updates.expirationDate;
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.unit !== undefined) dbUpdates.unit = updates.unit;
+    if (updates.category !== undefined) dbUpdates.category = updates.category;
+    // Skip non-existent database fields: subcategory, dosage, barcode, sku, manufacturer, notes
+    
+    return await updateStockItemRaw(dbId, dbUpdates);
+  };
+
+  const addStockItem = async (itemData: StockItem) => {
+    // Convert UI item to database format - only include fields that exist in database
+    const dbItemData = {
+      name: itemData.name,
+      category: itemData.category,
+      description: itemData.description,
+      batch_number: itemData.batchNumber,
+      unit: itemData.unit,
+      current_quantity: itemData.currentStock,
+      minimum_quantity: itemData.minimumStock,
+      maximum_quantity: itemData.maximumStock,
+      unit_cost: itemData.purchasePrice,
+      selling_price: itemData.sellingPrice,
+      expiration_date: itemData.expirationDate,
+      supplier: itemData.supplier,
+      location: itemData.location,
+      active: itemData.isActive !== undefined ? itemData.isActive : true,
+      // Skip non-existent database fields: subcategory, manufacturer, dosage, barcode, sku, notes, last_restocked
+    };
+    
+    return await addStockItemRaw(dbItemData);
+  };
   
   const [formData, setFormData] = useState({
     name: '',
@@ -137,7 +239,7 @@ export function NewStockItemModal({ open, onOpenChange, editingItem }: NewStockI
     }
   }, [editingItem, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
@@ -159,12 +261,14 @@ export function NewStockItemModal({ open, onOpenChange, editingItem }: NewStockI
     }
 
     const itemData = {
+      id: 0, // Temporary ID for UI compatibility
       ...formData,
       currentStock: Number(formData.currentStock),
       minimumStock: Number(formData.minimumStock),
       maximumStock: Number(formData.maximumStock) || undefined,
       purchasePrice: Number(formData.purchasePrice),
       sellingPrice: Number(formData.sellingPrice),
+      totalValue: Number(formData.currentStock) * Number(formData.purchasePrice), // Calculate total value
       expirationDate: formData.expirationDate || undefined,
       subcategory: formData.subcategory || undefined,
       description: formData.description || undefined,
@@ -175,21 +279,29 @@ export function NewStockItemModal({ open, onOpenChange, editingItem }: NewStockI
       location: formData.location || undefined,
       notes: formData.notes || undefined,
       barcode: formData.barcode || undefined,
-      sku: formData.sku || undefined
+      sku: formData.sku || undefined,
+      lastUpdated: new Date().toISOString(),
+      lastRestocked: undefined,
+      isActive: true
     };
 
     if (editingItem) {
-      updateStockItem(editingItem.id, itemData);
+      await updateStockItem(editingItem.id, itemData);
       toast({
         title: "Élément modifié",
         description: `"${formData.name}" a été modifié avec succès.`,
       });
     } else {
-      addStockItem(itemData);
+      await addStockItem(itemData);
       toast({
         title: "Élément ajouté",
         description: `"${formData.name}" a été ajouté au stock.`,
       });
+    }
+    
+    // Call the refresh callback if provided
+    if (onItemAdded) {
+      onItemAdded();
     }
     
     onOpenChange(false);

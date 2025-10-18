@@ -15,37 +15,97 @@ import {
   Cog,
   Calculator,
   Menu,
-  X
+  X,
+  Shield,
+  Building2,
+  Euro
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LogoutButton } from "@/components/LogoutButton";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Navigation principale (toujours visible)
 const primaryNavItems = [
-  { icon: Home, label: "Dashboard", path: "/dashboard" },
-  { icon: Users, label: "Clients", path: "/clients" },
-  { icon: Heart, label: "Animaux", path: "/pets" },
-  { icon: Calendar, label: "RDV", path: "/appointments" },
-  { icon: FileText, label: "Consultations", path: "/consultations" },
-  { icon: Syringe, label: "Vaccinations", path: "/vaccinations" },
-  { icon: Bug, label: "Antiparasites", path: "/antiparasites" },
-  { icon: BarChart3, label: "Historiques", path: "/history" },
-  { icon: Tractor, label: "Farm Mgmt", path: "/farm" }
+  { icon: Home, label: "Dashboard", path: "/dashboard", permission: null },
+  { icon: Users, label: "Clients", path: "/clients", permission: "can_manage_clients" },
+  { icon: Heart, label: "Animaux", path: "/pets", permission: "can_manage_animals" },
+  { icon: Calendar, label: "RDV", path: "/appointments", permission: "can_create_consultations" },
+  { icon: FileText, label: "Consultations", path: "/consultations", permission: "can_create_consultations" },
+  { icon: Syringe, label: "Vaccinations", path: "/vaccinations", permission: "can_create_consultations" },
+  { icon: Bug, label: "Antiparasites", path: "/antiparasites", permission: "can_create_consultations" },
+  { icon: BarChart3, label: "Historiques", path: "/history", permission: "can_view_reports" }
 ];
 
 // Navigation secondaire (dans le menu déroulant)
 const secondaryNavItems = [
-  { icon: Package, label: "Stock", path: "/stock" },
-  { icon: Calculator, label: "Comptabilité", path: "/accounting" },
-  { icon: Cog, label: "Paramètres", path: "/settings" }
+  { icon: Building2, label: "Fermes", path: "/farms", permission: "can_manage_farms" },
+  { icon: Package, label: "Stock", path: "/stock", permission: "can_manage_stock" },
+  { icon: Euro, label: "Comptabilité", path: "/accounting", permission: "can_manage_accounting" },
+  { icon: Shield, label: "Administration", path: "/admin", permission: null, adminOnly: true },
+  { icon: Cog, label: "Paramètres", path: "/settings", permission: null }
 ];
 
-// Tous les éléments pour la navigation mobile
-const allNavItems = [...primaryNavItems, ...secondaryNavItems];
+// Function to check if user has permission for a nav item
+const hasPermission = (user: any, item: any) => {
+  // Admin has access to everything
+  if (user?.profile?.role === 'admin') return true;
+  
+  // Admin-only items - only admins can access
+  if (item.adminOnly && user?.profile?.role !== 'admin') return false;
+  
+  // Items without permission requirements are accessible to all authenticated users
+  if (!item.permission) return true;
+  
+  // For items with permission requirements, check if user has that permission
+  // If permissions object doesn't exist, deny access (don't grant access by default)
+  if (!user?.profile?.permissions) return false;
+  
+  // Check specific permission - must be explicitly set to true
+  return user?.profile?.permissions[item.permission] === true;
+};
 
 export function VetNavigation() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
+
+  // Debug logging for permissions
+  console.log('🔍 Navigation Debug - Full User Object:', user);
+  console.log('🔍 Navigation Debug - Profile:', user?.profile);
+  console.log('🔍 Navigation Debug:', {
+    role: user?.profile?.role,
+    permissions: user?.profile?.permissions,
+    hasPermissionsObject: !!user?.profile?.permissions,
+    userExists: !!user,
+    profileExists: !!user?.profile
+  });
+  
+  console.log('📋 Primary Nav Items to check:', primaryNavItems.map(i => i.label));
+  console.log('📋 Secondary Nav Items to check:', secondaryNavItems.map(i => i.label));
+
+  // Filter navigation items based on user permissions
+  const filteredPrimaryNavItems = primaryNavItems.filter(item => {
+    const allowed = hasPermission(user, item);
+    console.log(`  PRIMARY - ${item.label}: ${allowed ? '✅' : '❌'} (permission: ${item.permission || 'none'}, returns: ${allowed})`);
+    if (allowed) {
+      console.log(`    ✓ Adding to filtered list: ${item.label}`);
+    }
+    return allowed;
+  });
+  
+  console.log('✅ Filtered Primary Items:', filteredPrimaryNavItems.map(i => i.label));
+  
+  const filteredSecondaryNavItems = secondaryNavItems.filter(item => {
+    const allowed = hasPermission(user, item);
+    console.log(`  SECONDARY - ${item.label}: ${allowed ? '✅' : '❌'} (permission: ${item.permission || 'none'}, adminOnly: ${item.adminOnly || false})`);
+    return allowed;
+  });
+  
+  console.log('✅ Filtered Secondary Items:', filteredSecondaryNavItems.map(i => i.label));
+  
+  const allNavItems = [...filteredPrimaryNavItems, ...filteredSecondaryNavItems];
+  
+  console.log(`📊 Filtered Navigation: ${filteredPrimaryNavItems.length} primary, ${filteredSecondaryNavItems.length} secondary, ${allNavItems.length} total`);
 
   return (
     <nav className="bg-card border-b shadow-card">
@@ -69,7 +129,7 @@ export function VetNavigation() {
 
           {/* Navigation principale - Desktop */}
           <div className="hidden lg:flex items-center gap-1">
-            {primaryNavItems.map((item) => (
+            {filteredPrimaryNavItems.map((item) => (
               <Button
                 key={item.path}
                 variant={location.pathname === item.path ? "default" : "ghost"}
@@ -85,34 +145,36 @@ export function VetNavigation() {
             ))}
             
             {/* Menu déroulant pour les éléments secondaires */}
-            <div className="relative group">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1 px-3 transition-all hover:medical-glow"
-              >
-                <Menu className="h-4 w-4" />
-                <span className="hidden xl:inline">Plus</span>
-              </Button>
-              
-              {/* Menu déroulant */}
-              <div className="absolute right-0 top-full mt-1 w-40 bg-card border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="py-1">
-                  {secondaryNavItems.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted ${
-                        location.pathname === item.path ? 'bg-primary text-primary-foreground' : ''
-                      }`}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.label}
-                    </Link>
-                  ))}
+            {filteredSecondaryNavItems.length > 0 && (
+              <div className="relative group">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1 px-3 transition-all hover:medical-glow"
+                >
+                  <Menu className="h-4 w-4" />
+                  <span className="hidden xl:inline">Plus</span>
+                </Button>
+                
+                {/* Menu déroulant */}
+                <div className="absolute right-0 top-full mt-1 w-40 bg-card border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="py-1">
+                    {filteredSecondaryNavItems.map((item) => (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted ${
+                          location.pathname === item.path ? 'bg-primary text-primary-foreground' : ''
+                        }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
           
           {/* Bouton de déconnexion - Desktop */}

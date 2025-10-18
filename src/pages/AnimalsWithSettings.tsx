@@ -15,8 +15,7 @@ import { useAnimals, useCreateAnimal, useUpdateAnimal, useDeleteAnimal, useClien
 import { useDisplayPreference } from "@/hooks/use-display-preference";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  useAnimalSpecies, 
-  useAnimalBreeds, 
+  useFarmManagementSettings,
   useAnimalColors,
   DEFAULT_SETTINGS
 } from "@/hooks/useAppSettings";
@@ -28,9 +27,12 @@ const AnimalsPage = () => {
   const { currentView } = useDisplayPreference('animals');
   
   // Settings hooks
-  const { data: animalSpecies = DEFAULT_SETTINGS.animal_species } = useAnimalSpecies();
-  const { data: animalBreeds = DEFAULT_SETTINGS.animal_breeds } = useAnimalBreeds();
+  const { data: farmSettings } = useFarmManagementSettings();
   const { data: animalColors = DEFAULT_SETTINGS.animal_colors } = useAnimalColors();
+  
+  // Extract animal settings from farm management settings with fallbacks
+  const animalSpecies = farmSettings?.animal_categories || ['Chien', 'Chat', 'Bovin', 'Ovin', 'Caprin'];
+  const animalBreeds = farmSettings?.breeds_by_category || {};
   
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<'cards' | 'table'>(currentView);

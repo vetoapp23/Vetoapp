@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateClient } from "@/hooks/useDatabase";
 import { useClientTypes } from '@/hooks/useAppSettings';
 import { Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { CreateClientData } from "@/lib/database";
 
 interface NewClientModalProps {
@@ -46,21 +47,87 @@ export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
   };
 
   const handleSelectChange = (field: keyof CreateClientData, value: string) => {
+    // Normalize client_type to match database constraints
+    let normalizedValue = value;
+    if (field === 'client_type') {
+      // Map display values to database values
+      const typeMap: Record<string, string> = {
+        'particulier': 'particulier',
+        'éleveur': 'eleveur',
+        'eleveur': 'eleveur',
+        'ferme': 'ferme',
+        'refuge': 'particulier', // Map to particulier if not in DB constraint
+        'clinique': 'particulier',
+        'zoo': 'particulier'
+      };
+      normalizedValue = typeMap[value.toLowerCase()] || 'particulier';
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: normalizedValue
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validation
+    if (!formData.first_name?.trim() || !formData.last_name?.trim()) {
+      toast({
+        title: "Champs requis manquants",
+        description: "Veuillez renseigner le prénom et le nom du client.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.phone?.trim()) {
+      toast({
+        title: "Téléphone requis",
+        description: "Veuillez renseigner un numéro de téléphone pour contacter le client.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate email format if provided
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      toast({
+        title: "Email invalide",
+        description: "Veuillez saisir une adresse email valide (ex: exemple@email.com).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate phone format (basic check)
+    if (formData.phone && !/^[\d\s\-\+\(\)]+$/.test(formData.phone)) {
+      toast({
+        title: "Téléphone invalide",
+        description: "Le numéro de téléphone ne doit contenir que des chiffres et symboles (+, -, espaces).",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate client_type against database constraints
+    const validClientTypes = ['particulier', 'eleveur', 'ferme'];
+    if (!validClientTypes.includes(formData.client_type)) {
+      toast({
+        title: "Type de client invalide",
+        description: "Le type de client sélectionné n'est pas valide. Veuillez sélectionner Particulier, Éleveur ou Ferme.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       await createClientMutation.mutateAsync(formData);
       
       toast({
-        title: "Client ajouté",
-        description: `${formData.first_name} ${formData.last_name} a été ajouté et sauvegardé avec succès.`,
+        title: "✓ Client ajouté avec succès",
+        description: `${formData.first_name} ${formData.last_name} a été enregistré dans votre base de données.`,
       });
       
       // Reset form
@@ -79,10 +146,27 @@ export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
       });
       
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Client creation error:", error);
+      
+      // Handle specific error types
+      let errorMessage = "Une erreur inattendue s'est produite. Veuillez réessayer.";
+      
+      if (error?.code === '23514' || error?.message?.includes('client_type_check')) {
+        errorMessage = "Type de client invalide. Seuls Particulier, Éleveur et Ferme sont acceptés. Veuillez contacter le support si le problème persiste.";
+      } else if (error?.message?.includes("duplicate") || error?.message?.includes("unique")) {
+        errorMessage = "Ce client existe déjà dans votre base de données. Vérifiez le nom et le téléphone.";
+      } else if (error?.message?.includes("network") || error?.message?.includes("fetch")) {
+        errorMessage = "Problème de connexion. Vérifiez votre connexion internet et réessayez.";
+      } else if (error?.message?.includes("permission") || error?.message?.includes("authorized")) {
+        errorMessage = "Vous n'avez pas les permissions nécessaires pour ajouter un client.";
+      } else if (error?.message) {
+        errorMessage = `Erreur: ${error.message}`;
+      }
+      
       toast({
-        title: "Erreur",
-        description: "Une erreur s'est produite lors de l'ajout du client.",
+        title: "⚠ Impossible d'ajouter le client",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -180,19 +264,51 @@ export function NewClientModal({ open, onOpenChange }: NewClientModalProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="client_type">Type de client</Label>
-            <Select value={formData.client_type} onValueChange={(value) => handleSelectChange('client_type', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner le type" />
-              </SelectTrigger>
-              <SelectContent>
-                {clientTypes.map((type) => (
-                  <SelectItem key={type} value={type.toLowerCase()}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="client_type">Type de client *</Label>
+            {typesLoading ? (
+              <div className="flex items-center gap-2 p-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Chargement des types...
+              </div>
+            ) : clientTypes.length === 0 ? (
+              <div className="space-y-2">
+                <div className="p-3 border border-orange-200 bg-orange-50 rounded-md">
+                  <p className="text-sm text-orange-800 font-medium">
+                    ⚠️ Aucun type de client configuré
+                  </p>
+                  <p className="text-xs text-orange-700 mt-1">
+                    Veuillez d'abord créer des types de clients dans les paramètres.
+                  </p>
+                  <Link 
+                    to="/settings" 
+                    className="inline-flex items-center gap-1 text-xs text-orange-600 hover:text-orange-800 mt-2 font-medium"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    → Aller aux Paramètres
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <Select value={formData.client_type} onValueChange={(value) => handleSelectChange('client_type', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner le type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientTypes.map((type) => {
+                    // Normalize type to database-compatible value
+                    const normalizedType = type.toLowerCase()
+                      .normalize('NFD')
+                      .replace(/[\u0300-\u036f]/g, ''); // Remove accents
+                    
+                    return (
+                      <SelectItem key={type} value={normalizedType}>
+                        {type}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           
           <div className="space-y-2">

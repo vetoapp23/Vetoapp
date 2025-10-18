@@ -6,9 +6,50 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useClients, StockItem, StockMovement } from "@/contexts/ClientContext";
+import { useStock } from "@/hooks/useStock";
 import { useSettings } from "@/contexts/SettingsContext";
 import { TrendingUp, TrendingDown, RotateCcw, ArrowRightLeft, Package, MapPin, AlertTriangle } from "lucide-react";
+
+// UI-compatible types for the existing interface
+interface StockItem {
+  id: number;
+  name: string;
+  category: 'medication' | 'vaccine' | 'consumable' | 'equipment' | 'supplement';
+  subcategory?: string;
+  description?: string;
+  manufacturer?: string;
+  batchNumber?: string;
+  dosage?: string;
+  unit: 'unit' | 'box' | 'vial' | 'bottle' | 'pack' | 'kg' | 'g' | 'ml' | 'l';
+  currentStock: number;
+  minimumStock: number;
+  maximumStock?: number;
+  purchasePrice: number;
+  sellingPrice: number;
+  totalValue: number;
+  expirationDate?: string;
+  supplier?: string;
+  location?: string;
+  notes?: string;
+  lastUpdated: string;
+  lastRestocked?: string;
+  isActive: boolean;
+  barcode?: string;
+  sku?: string;
+}
+
+interface StockMovement {
+  id: number;
+  itemId: number;
+  itemName: string;
+  type: 'in' | 'out' | 'adjustment' | 'transfer';
+  quantity: number;
+  reason: string;
+  reference?: string;
+  performedBy?: string;
+  date: string;
+  notes?: string;
+}
 
 interface StockMovementModalProps {
   open: boolean;
@@ -78,9 +119,38 @@ const commonReasons = {
 };
 
 export function StockMovementModal({ open, onOpenChange, item }: StockMovementModalProps) {
-  const { updateStockItem, addStockMovement } = useClients();
+  const { addStockMovement: addStockMovementRaw, stockItems: rawStockItems } = useStock();
   const { settings } = useSettings();
   const { toast } = useToast();
+
+  // Helper function to find database item ID from compatibility ID
+  const findDatabaseItemId = (compatibilityId: number): string | null => {
+    const dbItem = rawStockItems.find(dbItem => 
+      parseInt(dbItem.id.replace(/-/g, '').slice(0, 8), 16) === compatibilityId
+    );
+    return dbItem?.id || null;
+  };
+
+  // Wrapper function for adding stock movement
+  const addStockMovement = async (movementData: any) => {
+    const dbItemId = findDatabaseItemId(movementData.itemId);
+    if (!dbItemId) return null;
+    
+    // Convert UI movement to database format
+    const dbMovementData = {
+      stock_item_id: dbItemId,
+      item_name: movementData.itemName,
+      movement_type: movementData.type,
+      quantity: movementData.quantity,
+      reason: movementData.reason,
+      reference: movementData.reference,
+      performed_by: movementData.performedBy,
+      movement_date: movementData.date,
+      notes: movementData.notes,
+    };
+    
+    return await addStockMovementRaw(dbMovementData);
+  };
   
   const [formData, setFormData] = useState({
     type: 'out' as StockMovement['type'],
@@ -130,7 +200,7 @@ export function StockMovementModal({ open, onOpenChange, item }: StockMovementMo
       return;
     }
 
-    // Calculer le nouveau stock
+    // Calculer le nouveau stock (pour validation seulement)
     let newStock = item.currentStock;
     if (formData.type === 'in') {
       newStock += formData.quantity;
@@ -149,13 +219,7 @@ export function StockMovementModal({ open, onOpenChange, item }: StockMovementMo
     }
     // Pour 'transfer', on ne change pas le stock total, juste l'emplacement
 
-    // Mettre à jour le stock de l'item
-    if (formData.type !== 'transfer') {
-      updateStockItem(item.id, { 
-        currentStock: newStock,
-        lastRestocked: formData.type === 'in' ? new Date().toISOString().split('T')[0] : undefined
-      });
-    }
+    // Note: Le stock sera automatiquement mis à jour par le trigger de la base de données
 
     // Créer le mouvement de stock
     const performedByValue = formData.performedBy === "Autre" ? customPerformedBy : formData.performedBy;

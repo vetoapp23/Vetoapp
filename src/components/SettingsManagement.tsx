@@ -122,7 +122,7 @@ export const SettingsManagement = () => {
     }
   };
 
-  const handleAddValue = (key: string, newValue: string) => {
+  const handleAddValue = async (key: string, newValue: string) => {
     if (!newValue.trim()) return;
 
     const currentValue = editingValues[key] || [];
@@ -134,9 +134,30 @@ export const SettingsManagement = () => {
       ...prev,
       [key]: updatedValue
     }));
+
+    // Auto-save after adding value
+    try {
+      await updateSettingMutation.mutateAsync({
+        category: selectedCategory,
+        key,
+        value: updatedValue,
+        description: `Configuration ${key} pour ${selectedCategory}`
+      });
+
+      toast({
+        title: "✓ Valeur ajoutée",
+        description: `La valeur a été ajoutée et sauvegardée`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder la valeur",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleRemoveValue = (key: string, valueToRemove: string) => {
+  const handleRemoveValue = async (key: string, valueToRemove: string) => {
     const currentValue = editingValues[key] || [];
     const updatedValue = Array.isArray(currentValue)
       ? currentValue.filter(v => v !== valueToRemove)
@@ -146,6 +167,27 @@ export const SettingsManagement = () => {
       ...prev,
       [key]: updatedValue
     }));
+
+    // Auto-save after removing value
+    try {
+      await updateSettingMutation.mutateAsync({
+        category: selectedCategory,
+        key,
+        value: updatedValue,
+        description: `Configuration ${key} pour ${selectedCategory}`
+      });
+
+      toast({
+        title: "✓ Valeur supprimée",
+        description: `La valeur a été supprimée et les changements sauvegardés`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder les changements",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleAddNewSetting = async () => {

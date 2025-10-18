@@ -97,19 +97,28 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
       errors.weight = "Le poids semble anormalement élevé (max: 1000kg)";
     }
     
-    // Microchip validation
+    // Microchip validation - flexible format
     if (formData.microchip && formData.microchip.trim()) {
-      const microchipRegex = /^[0-9A-Fa-f]{15}$/; // Standard 15-digit microchip
-      if (!microchipRegex.test(formData.microchip.trim())) {
-        errors.microchip = "Le numéro de puce doit contenir exactement 15 caractères alphanumériques";
+      const microchipValue = formData.microchip.trim();
+      
+      // Check length - allow 10-15 characters (more flexible)
+      if (microchipValue.length < 10) {
+        errors.microchip = "Le numéro de puce doit contenir au moins 10 caractères";
+      } else if (microchipValue.length > 15) {
+        errors.microchip = "Le numéro de puce ne doit pas dépasser 15 caractères";
+      }
+      
+      // Check for valid characters (alphanumeric only)
+      if (!/^[0-9A-Fa-f]+$/.test(microchipValue)) {
+        errors.microchip = "Le numéro de puce ne doit contenir que des chiffres et lettres (A-F)";
       }
       
       // Check for existing microchip
       const existingAnimal = animals.find(animal => 
-        animal.microchip_number === formData.microchip.trim()
+        animal.microchip_number === microchipValue
       );
       if (existingAnimal) {
-        errors.microchip = "Un animal avec ce numéro de puce existe déjà";
+        errors.microchip = `Ce numéro de puce est déjà utilisé par ${existingAnimal.name}`;
       }
     }
     
@@ -135,9 +144,20 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
+    
+    // Auto-format microchip input
+    let processedValue = value;
+    if (id === 'microchip') {
+      // Remove any non-alphanumeric characters and convert to uppercase
+      processedValue = value
+        .replace(/[^0-9A-Fa-f]/g, '')
+        .toUpperCase()
+        .slice(0, 15); // Limit to 15 characters
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [id]: value
+      [id]: processedValue
     }));
     
     // Clear error when user starts typing
@@ -174,9 +194,10 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
     setFormErrors(errors);
     
     if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0];
       toast({
-        title: "Erreurs de validation",
-        description: "Veuillez corriger les erreurs dans le formulaire",
+        title: "⚠ Formulaire incomplet",
+        description: firstError || "Veuillez corriger les erreurs dans le formulaire",
         variant: "destructive",
       });
       return;
@@ -205,8 +226,8 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
       await createAnimalMutation.mutateAsync(animalData);
     
       toast({
-        title: "Animal ajouté avec succès",
-        description: `${formData.name} a été ajouté et sauvegardé dans la base de données.`,
+        title: "✓ Animal ajouté avec succès",
+        description: `${formData.name} a été enregistré dans votre base de données.`,
       });
       
       // Reset form with all required properties
@@ -246,37 +267,37 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
       console.error('Error creating animal:', error);
       
       // Enhanced error handling with specific messages
-      let errorMessage = "Une erreur inattendue s'est produite";
+      let errorMessage = "Une erreur inattendue s'est produite. Veuillez réessayer.";
       
       if (error instanceof Error) {
         const errorMsg = error.message.toLowerCase();
         
         if (errorMsg.includes('microchip') || errorMsg.includes('unique')) {
-          errorMessage = "Ce numéro de puce électronique est déjà utilisé par un autre animal";
+          errorMessage = "Ce numéro de puce électronique est déjà utilisé par un autre animal. Vérifiez le numéro.";
           setFormErrors({ microchip: errorMessage });
         } else if (errorMsg.includes('client') || errorMsg.includes('foreign key')) {
-          errorMessage = "Le propriétaire sélectionné n'est plus valide. Veuillez en choisir un autre.";
+          errorMessage = "Le propriétaire sélectionné n'existe pas. Veuillez créer le client d'abord.";
           setFormErrors({ ownerId: errorMessage });
         } else if (errorMsg.includes('name') || errorMsg.includes('not null')) {
-          errorMessage = "Tous les champs obligatoires doivent être remplis";
+          errorMessage = "Le nom de l'animal et son propriétaire sont obligatoires.";
         } else if (errorMsg.includes('authentication') || errorMsg.includes('not authenticated')) {
-          errorMessage = "Votre session a expiré. Veuillez vous reconnecter.";
-        } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
-          errorMessage = "Problème de connexion. Vérifiez votre connexion internet.";
-        } else if (errorMsg.includes('permission') || errorMsg.includes('access')) {
-          errorMessage = "Vous n'avez pas les permissions nécessaires pour effectuer cette action.";
+          errorMessage = "Votre session a expiré. Veuillez vous reconnecter à l'application.";
+        } else if (errorMsg.includes('network') || errorMsg.includes('connection') || errorMsg.includes('fetch')) {
+          errorMessage = "Problème de connexion. Vérifiez votre connexion internet et réessayez.";
+        } else if (errorMsg.includes('permission') || errorMsg.includes('access') || errorMsg.includes('authorized')) {
+          errorMessage = "Vous n'avez pas les permissions nécessaires pour ajouter un animal.";
         } else {
           // Extract meaningful part of the error message
           if (error.message.includes('Error creating animal:')) {
             errorMessage = error.message.replace('Error creating animal:', '').trim();
-          } else {
+          } else if (error.message.length < 100) {
             errorMessage = error.message;
           }
         }
       }
       
       toast({
-        title: "Erreur lors de l'ajout de l'animal",
+        title: "⚠ Impossible d'ajouter l'animal",
         description: errorMessage,
         variant: "destructive",
       });
@@ -485,15 +506,39 @@ export function NewPetModal({ open, onOpenChange }: NewPetModalProps) {
           
           <div className="space-y-2">
             <Label htmlFor="microchip" className={formErrors.microchip ? "text-destructive" : ""}>
-              Numéro de puce électronique
+              Numéro de puce électronique (optionnel)
             </Label>
-            <Input
-              id="microchip"
-              value={formData.microchip}
-              onChange={handleChange}
-              className={formErrors.microchip ? "border-destructive focus:border-destructive" : ""}
-              placeholder="15 caractères alphanumériques"
-            />
+            <div className="relative">
+              <Input
+                id="microchip"
+                value={formData.microchip}
+                onChange={handleChange}
+                className={formErrors.microchip ? "border-destructive focus:border-destructive" : ""}
+                placeholder="Ex: 250268500123456 (10-15 caractères)"
+              />
+              {formData.microchip && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {formData.microchip.length >= 10 && formData.microchip.length <= 15 ? (
+                    <span className="text-green-600 text-xs font-medium">
+                      ✓ {formData.microchip.length}/15
+                    </span>
+                  ) : (
+                    <span className="text-orange-600 text-xs font-medium">
+                      {formData.microchip.length}/15
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {formData.microchip 
+                ? `${formData.microchip.length < 10 
+                    ? `Encore ${10 - formData.microchip.length} caractères minimum` 
+                    : formData.microchip.length > 15 
+                      ? 'Trop de caractères' 
+                      : 'Format valide ✓'}`
+                : 'Format: 10 à 15 caractères alphanumériques (chiffres et lettres A-F)'}
+            </p>
             {formErrors.microchip && (
               <p className="text-sm text-destructive">{formErrors.microchip}</p>
             )}
