@@ -1,76 +1,35 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useStock } from '@/hooks/useStock';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Package,
   AlertTriangle,
-  TrendingUp,
-  TrendingDown,
-  Search,
   Plus,
-  Filter,
-  Download,
-  Upload,
   Edit,
   Trash2,
-  Eye,
-  FileSpreadsheet,
-  Bell,
+  DollarSign,
   Calendar,
   MapPin,
-  DollarSign,
-  Hash,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  MoreHorizontal
+  Download,
+  Upload,
+  FileSpreadsheet
 } from 'lucide-react';
-import { format, isWithinInterval, startOfDay, endOfDay, addDays, isSameDay } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { NewStockItemModal } from '@/components/forms/NewStockItemModal';
 
-// Interface pour compatibilité avec l'ancienne UI
-interface StockItem {
-  id: number;
-  name: string;
-  category: 'medication' | 'vaccine' | 'consumable' | 'equipment' | 'supplement';
-  subcategory?: string;
-  manufacturer?: string;
-  batchNumber?: string;
-  dosage?: string;
-  unit: string;
-  currentStock: number;
-  minimumStock: number;
-  maximumStock?: number;
-  purchasePrice: number;
-  sellingPrice: number;
-  totalValue: number;
-  expirationDate?: string;
-  supplier?: string;
-  location?: string;
-  notes?: string;
-  barcode?: string;
-  sku?: string;
-  lastUpdated?: string;
-  isActive: boolean;
-}
-
-// Catégories de stock avec leurs couleurs
+// Catégories de stock
 const categoryConfig = {
   medication: { label: 'Médicaments', color: 'bg-blue-100 text-blue-800', icon: '💊' },
   vaccine: { label: 'Vaccins', color: 'bg-green-100 text-green-800', icon: '💉' },
   consumable: { label: 'Consommables', color: 'bg-orange-100 text-orange-800', icon: '🩹' },
   equipment: { label: 'Équipement', color: 'bg-purple-100 text-purple-800', icon: '🔧' },
+  supplement: { label: 'Suppléments', color: 'bg-yellow-100 text-yellow-800', icon: '🧪' }
+};
   supplement: { label: 'Suppléments', color: 'bg-yellow-100 text-yellow-800', icon: '🧪' }
 };
 
@@ -90,54 +49,100 @@ const units = [
 export default function Stock() {
   const { 
     stockItems: rawStockItems,
-    loading,
-    addStockItem,
-    updateStockItem,
-    deleteStockItem
+    compatibleStockItems: stockItems, 
+    compatibleStockAlerts: stockAlerts, 
+    compatibleStockMovements: stockMovements, 
+    addStockItem: addStockItemRaw, 
+    updateStockItem: updateStockItemRaw, 
+    deleteStockItem: deleteStockItemRaw, 
+    addStockMovement, 
+    generateStockAlerts,
+    loading 
   } = useStock();
+  const { settings } = useSettings();
   const { toast } = useToast();
-  
-  // State for forcing refresh
-  const [refreshKey, setRefreshKey] = useState(0);
-  
-  // Convert database items to old UI format
-  const stockItems: StockItem[] = useMemo(() => {
-    console.log('🔄 Recalculating stockItems, raw count:', rawStockItems.length);
-    return rawStockItems.map(item => ({
-      id: parseInt(item.id.replace(/-/g, '').slice(0, 8), 16), // Convert UUID to number for compatibility
-      name: item.name,
-      category: item.category as any,
-      subcategory: '', // Not in database
-      manufacturer: item.supplier || '', // Use supplier as manufacturer
-      batchNumber: item.batch_number || '',
-      dosage: '', // Not in database
-      unit: item.unit,
-      currentStock: item.current_quantity || 0,
-      minimumStock: item.minimum_quantity || 0,
-      maximumStock: item.maximum_quantity || 0,
-      purchasePrice: item.unit_cost || 0,
-      sellingPrice: item.selling_price || 0,
-      totalValue: (item.current_quantity || 0) * (item.unit_cost || 0),
-      expirationDate: item.expiration_date,
-      supplier: item.supplier || '',
-      location: item.location || '',
-      notes: item.description || '',
-      barcode: '', // Not in database
-      sku: '', // Not in database
-      lastUpdated: item.updated_at,
-      isActive: item.active || true
-    }));
-  }, [rawStockItems, refreshKey]);
 
-  // Mock stock movements for old UI (since we don't have them populated)
-  const stockMovements: any[] = [];
+  // Helper function to find database item ID from compatibility ID
+  const findDatabaseItemId = (compatibilityId: number): string | null => {
+    const dbItem = rawStockItems.find(item => 
+      parseInt(item.id.replace(/-/g, '').slice(0, 8), 16) === compatibilityId
+    );
+    return dbItem?.id || null;
+  };
+
+  // Wrapper functions for database operations
+  const updateStockItem = async (compatibilityId: number, updates: any) => {
+    const dbId = findDatabaseItemId(compatibilityId);
+    if (!dbId) return null;
+    
+    // Convert UI updates to database format
+    const dbUpdates: any = {};
+    if (updates.currentStock !== undefined) dbUpdates.current_stock = updates.currentStock;
+    if (updates.minimumStock !== undefined) dbUpdates.minimum_stock = updates.minimumStock;
+    if (updates.maximumStock !== undefined) dbUpdates.maximum_stock = updates.maximumStock;
+    if (updates.purchasePrice !== undefined) dbUpdates.purchase_price = updates.purchasePrice;
+    if (updates.sellingPrice !== undefined) dbUpdates.selling_price = updates.sellingPrice;
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.manufacturer !== undefined) dbUpdates.manufacturer = updates.manufacturer;
+    if (updates.supplier !== undefined) dbUpdates.supplier = updates.supplier;
+    if (updates.location !== undefined) dbUpdates.location = updates.location;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    if (updates.batchNumber !== undefined) dbUpdates.batch_number = updates.batchNumber;
+    if (updates.expirationDate !== undefined) dbUpdates.expiration_date = updates.expirationDate;
+    
+    return await updateStockItemRaw(dbId, dbUpdates);
+  };
+
+  const deleteStockItem = async (compatibilityId: number) => {
+    const dbId = findDatabaseItemId(compatibilityId);
+    if (!dbId) return false;
+    return await deleteStockItemRaw(dbId);
+  };
+
+  const addStockItem = async (itemData: StockItem) => {
+    // Convert UI item to database format
+    const dbItemData = {
+      name: itemData.name,
+      category: itemData.category,
+      subcategory: itemData.subcategory,
+      description: itemData.description,
+      manufacturer: itemData.manufacturer,
+      batch_number: itemData.batchNumber,
+      dosage: itemData.dosage,
+      unit: itemData.unit,
+      current_stock: itemData.currentStock,
+      minimum_stock: itemData.minimumStock,
+      maximum_stock: itemData.maximumStock,
+      purchase_price: itemData.purchasePrice,
+      selling_price: itemData.sellingPrice,
+      expiration_date: itemData.expirationDate,
+      supplier: itemData.supplier,
+      location: itemData.location,
+      notes: itemData.notes,
+      last_restocked: itemData.lastRestocked,
+      is_active: itemData.isActive,
+      barcode: itemData.barcode,
+      sku: itemData.sku,
+    };
+    
+    return await addStockItemRaw(dbItemData);
+  };
+  
+  // Debug pour vérifier les mises à jour
+  React.useEffect(() => {
+    console.log('Stock mis à jour:', {
+      items: stockItems.length,
+      movements: stockMovements.length,
+      lastMovement: stockMovements[stockMovements.length - 1]
+    });
+  }, [stockItems, stockMovements]);
   
   // États pour les modales
   const [showNewItemModal, setShowNewItemModal] = useState(false);
   const [showMovementModal, setShowMovementModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
-  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   
   // États pour la recherche et filtres
   const [searchTerm, setSearchTerm] = useState("");
@@ -172,11 +177,6 @@ export default function Stock() {
       expiringSoonItems
     };
   }, [stockItems]);
-
-  // Force refresh function
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
-  };
 
   // Filtrer et trier les éléments
   const filteredItems = useMemo(() => {
@@ -239,42 +239,32 @@ export default function Stock() {
     return filtered;
   }, [stockItems, searchTerm, filterCategory, filterStatus, sortBy, sortOrder]);
 
-  // Helper function to find database item by UI ID
-  const findDatabaseItem = (uiId: number) => {
-    return rawStockItems.find(item => 
-      parseInt(item.id.replace(/-/g, '').slice(0, 8), 16) === uiId
-    );
-  };
-
   // Gestion de l'édition inline
-  const handleFieldSave = async (itemId: number, field: string, value: string) => {
-    const dbItem = findDatabaseItem(itemId);
-    if (!dbItem) return;
-
-    const updates: any = {};
+  const handleFieldSave = (itemId: number, field: string, value: string) => {
+    const updates: Partial<StockItem> = {};
     
     switch (field) {
       case "currentStock":
-        updates.current_quantity = parseInt(value) || 0;
+        updates.currentStock = parseInt(value) || 0;
         break;
       case "minimumStock":
-        updates.minimum_quantity = parseInt(value) || 0;
+        updates.minimumStock = parseInt(value) || 0;
         break;
       case "purchasePrice":
-        updates.unit_cost = parseFloat(value) || 0;
+        updates.purchasePrice = parseFloat(value) || 0;
         break;
       case "sellingPrice":
-        updates.selling_price = parseFloat(value) || 0;
+        updates.sellingPrice = parseFloat(value) || 0;
         break;
       case "location":
         updates.location = value;
         break;
       case "notes":
-        updates.description = value;
+        updates.notes = value;
         break;
     }
     
-    await updateStockItem(dbItem.id, updates);
+    updateStockItem(itemId, updates);
     setEditingField(null);
     
     toast({
@@ -284,7 +274,6 @@ export default function Stock() {
   };
 
   const handleEditItem = (item: StockItem) => {
-    // Pass the UI-formatted item, not the database item
     setEditingItem(item);
     setShowEditModal(true);
   };
@@ -296,12 +285,9 @@ export default function Stock() {
     }
   };
 
-  const handleDeleteItem = async (item: StockItem) => {
-    const dbItem = findDatabaseItem(item.id);
-    if (!dbItem) return;
-
+  const handleDeleteItem = (item: StockItem) => {
     if (confirm(`Êtes-vous sûr de vouloir supprimer "${item.name}" du stock ?`)) {
-      await deleteStockItem(dbItem.id);
+      deleteStockItem(item.id);
       toast({
         title: "Élément supprimé",
         description: `"${item.name}" a été supprimé du stock.`,
@@ -358,12 +344,12 @@ export default function Stock() {
   };
 
   // Fonction pour importer depuis Excel/CSV
-  const importFromExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const importFromExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = async (e) => {
+    reader.onload = (e) => {
       try {
         const csv = e.target?.result as string;
         const lines = csv.split('\n');
@@ -382,6 +368,7 @@ export default function Stock() {
           return;
         }
 
+        const importedItems: StockItem[] = [];
         let successCount = 0;
         let errorCount = 0;
 
@@ -410,29 +397,43 @@ export default function Stock() {
               continue;
             }
 
-            const newItem = {
+            const newItem: StockItem = {
+              id: Date.now() + i, // ID temporaire
               name: row['Nom'],
               category: row['Catégorie'] as any,
-              description: row['Notes'] || '',
+              subcategory: row['Sous-catégorie'] || '',
+              manufacturer: row['Fabricant'] || '',
+              batchNumber: row['Numéro de lot'] || '',
+              dosage: row['Dosage'] || '',
               unit: row['Unité'] as any,
-              current_quantity: parseInt(row['Stock actuel']) || 0,
-              minimum_quantity: parseInt(row['Stock minimum']) || 0,
-              maximum_quantity: 0,
-              unit_cost: parseFloat(row['Prix d\'achat']) || 0,
-              selling_price: parseFloat(row['Prix de vente']) || 0,
-              expiration_date: row['Date d\'expiration'] || null,
+              currentStock: parseInt(row['Stock actuel']) || 0,
+              minimumStock: parseInt(row['Stock minimum']) || 0,
+              purchasePrice: parseFloat(row['Prix d\'achat']) || 0,
+              sellingPrice: parseFloat(row['Prix de vente']) || 0,
+              totalValue: (parseInt(row['Stock actuel']) || 0) * (parseFloat(row['Prix d\'achat']) || 0),
+              expirationDate: row['Date d\'expiration'] || undefined,
               supplier: row['Fournisseur'] || '',
               location: row['Emplacement'] || '',
-              batch_number: row['Numéro de lot'] || '',
-              active: true
+              notes: row['Notes'] || '',
+              barcode: row['Code-barres'] || '',
+              sku: row['SKU'] || '',
+              lastUpdated: new Date().toISOString(),
+              isActive: true
             };
 
-            await addStockItem(newItem);
+            importedItems.push(newItem);
             successCount++;
           } catch (error) {
             errorCount++;
             console.error(`Erreur ligne ${i + 1}:`, error);
           }
+        }
+
+        // Ajouter les éléments importés au stock existant
+        if (importedItems.length > 0) {
+          importedItems.forEach(item => {
+            addStockItem(item);
+          });
         }
 
         toast({
@@ -481,41 +482,27 @@ export default function Stock() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">Chargement du stock...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-8">
+    <div className="container mx-auto px-6 py-8 space-y-8">
       {/* En-tête */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-            <Package className="h-6 sm:h-8 w-6 sm:w-8 text-primary" />
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Package className="h-8 w-8 text-primary" />
             Gestion de Stock
           </h1>
-          <p className="text-muted-foreground mt-2 text-sm sm:text-base">
+          <p className="text-muted-foreground mt-2">
             Gérez votre inventaire de médicaments, vaccins et consommables
           </p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
             onClick={exportToExcel}
-            className="gap-2 text-xs sm:text-sm"
-            size="sm"
+            className="gap-2"
           >
-            <Download className="h-3 sm:h-4 w-3 sm:w-4" />
+            <Download className="h-4 w-4" />
             Exporter CSV
           </Button>
           <div className="relative">
@@ -528,12 +515,11 @@ export default function Stock() {
             />
             <Button 
               variant="outline" 
-              className="gap-2 text-xs sm:text-sm"
-              size="sm"
+              className="gap-2"
               asChild
             >
               <label htmlFor="import-file" className="cursor-pointer">
-                <Upload className="h-3 sm:h-4 w-3 sm:w-4" />
+                <Upload className="h-4 w-4" />
                 Importer CSV
               </label>
             </Button>
@@ -541,81 +527,79 @@ export default function Stock() {
           <Button 
             variant="outline" 
             onClick={downloadTemplate}
-            className="gap-2 text-xs sm:text-sm"
-            size="sm"
+            className="gap-2"
           >
-            <FileSpreadsheet className="h-3 sm:h-4 w-3 sm:w-4" />
+            <FileSpreadsheet className="h-4 w-4" />
             Gabarit
           </Button>
           <Button 
-            className="gap-2 medical-glow text-xs sm:text-sm"
-            size="sm"
+            className="gap-2 medical-glow"
             onClick={() => setShowNewItemModal(true)}
           >
-            <Plus className="h-3 sm:h-4 w-3 sm:w-4" />
+            <Plus className="h-4 w-4" />
             Nouvel Élément
           </Button>
         </div>
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Éléments</p>
-                <p className="text-xl sm:text-2xl font-bold">{stats.totalItems}</p>
+                <p className="text-2xl font-bold">{stats.totalItems}</p>
               </div>
-              <Package className="h-6 sm:h-8 w-6 sm:w-8 text-muted-foreground" />
+              <Package className="h-8 w-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Valeur Totale</p>
-                <p className="text-xl sm:text-2xl font-bold">{stats.totalValue.toFixed(2)} MAD</p>
+                <p className="text-2xl font-bold">{stats.totalValue.toFixed(2)} {settings.currency}</p>
               </div>
-              <DollarSign className="h-6 sm:h-8 w-6 sm:w-8 text-green-600" />
+              <DollarSign className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Stock Bas</p>
-                <p className="text-xl sm:text-2xl font-bold text-orange-600">{stats.lowStockItems}</p>
+                <p className="text-2xl font-bold text-orange-600">{stats.lowStockItems}</p>
               </div>
-              <AlertTriangle className="h-6 sm:h-8 w-6 sm:w-8 text-orange-600" />
+              <AlertTriangle className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Expirés</p>
-                <p className="text-xl sm:text-2xl font-bold text-red-600">{stats.expiredItems}</p>
+                <p className="text-2xl font-bold text-red-600">{stats.expiredItems}</p>
               </div>
-              <XCircle className="h-6 sm:h-8 w-6 sm:w-8 text-red-600" />
+              <XCircle className="h-8 w-8 text-red-600" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Expirent Bientôt</p>
-                <p className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.expiringSoonItems}</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.expiringSoonItems}</p>
               </div>
-              <Clock className="h-6 sm:h-8 w-6 sm:w-8 text-yellow-600" />
+              <Clock className="h-8 w-8 text-yellow-600" />
             </div>
           </CardContent>
         </Card>
@@ -624,14 +608,14 @@ export default function Stock() {
       {/* Filtres et recherche */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-            <Filter className="h-4 sm:h-5 w-4 sm:w-5" />
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
             Rechercher et filtrer
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
-            <div className="flex-1 min-w-[250px] sm:min-w-[300px]">
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-[300px]">
               <Input 
                 placeholder="Rechercher par nom, fabricant, lot..."
                 value={searchTerm}
@@ -641,7 +625,7 @@ export default function Stock() {
             </div>
             
             <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-48">
                 <SelectValue placeholder="Catégorie" />
               </SelectTrigger>
               <SelectContent>
@@ -655,7 +639,7 @@ export default function Stock() {
             </Select>
             
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-48">
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
               <SelectContent>
@@ -668,7 +652,7 @@ export default function Stock() {
             </Select>
             
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-48">
                 <SelectValue placeholder="Trier par" />
               </SelectTrigger>
               <SelectContent>
@@ -682,8 +666,6 @@ export default function Stock() {
             <Button
               variant="outline"
               onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-              size="sm"
-              className="w-full sm:w-auto"
             >
               {sortOrder === "asc" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
             </Button>
@@ -692,27 +674,47 @@ export default function Stock() {
       </Card>
 
       {/* Section d'aide pour l'import */}
-  
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <FileSpreadsheet className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div className="space-y-2">
+              <h3 className="font-semibold text-blue-900">Import en masse</h3>
+              <p className="text-sm text-blue-700">
+                Utilisez le bouton "Gabarit" pour télécharger un fichier CSV avec le format correct. 
+                Les données importées seront ajoutées au stock existant.
+              </p>
+              <div className="text-xs text-blue-600">
+                <strong>Catégories valides :</strong> medication, vaccine, consumable, equipment, supplement
+              </div>
+              <div className="text-xs text-blue-600">
+                <strong>Unités valides :</strong> box, vial, unit, ml, mg, g, kg, l, pack, tube, sachet
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Tableau de stock */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg sm:text-xl">Inventaire ({filteredItems.length} éléments)</CardTitle>
+          <CardTitle>Inventaire ({filteredItems.length} éléments)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[150px]">Nom</TableHead>
-                  <TableHead className="min-w-[120px]">Catégorie</TableHead>
-                  <TableHead className="min-w-[100px] hidden sm:table-cell">Fabricant</TableHead>
-                  <TableHead className="min-w-[100px]">Stock</TableHead>
-                  <TableHead className="min-w-[100px] hidden md:table-cell">Prix d'achat</TableHead>
-                  <TableHead className="min-w-[100px] hidden md:table-cell">Prix de vente</TableHead>
-                  <TableHead className="min-w-[100px] hidden lg:table-cell">Valeur totale</TableHead>
-                  <TableHead className="min-w-[100px] hidden md:table-cell">Expiration</TableHead>
-                  <TableHead className="min-w-[120px] hidden lg:table-cell">Emplacement</TableHead>
-                  <TableHead className="min-w-[120px]">Actions</TableHead>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Catégorie</TableHead>
+                  <TableHead>Fabricant</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Prix d'achat</TableHead>
+                  <TableHead>Prix de vente</TableHead>
+                  <TableHead>Valeur totale</TableHead>
+                  <TableHead>Expiration</TableHead>
+                  <TableHead>Emplacement</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -727,14 +729,14 @@ export default function Stock() {
                     <TableRow key={item.id} className={!item.isActive ? "opacity-50" : ""}>
                       <TableCell>
                         <div className="space-y-1">
-                          <div className="font-medium text-sm sm:text-base">{item.name}</div>
+                          <div className="font-medium">{item.name}</div>
                           {item.batchNumber && (
-                            <div className="text-xs sm:text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground">
                               Lot: {item.batchNumber}
                             </div>
                           )}
                           {item.dosage && (
-                            <div className="text-xs sm:text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground">
                               {item.dosage}
                             </div>
                           )}
@@ -742,21 +744,21 @@ export default function Stock() {
                       </TableCell>
                       
                       <TableCell>
-                        <Badge className={`${categoryConfig[item.category].color} text-xs sm:text-sm`}>
+                        <Badge className={categoryConfig[item.category].color}>
                           {categoryConfig[item.category].icon} {categoryConfig[item.category].label}
                         </Badge>
                         {item.subcategory && (
-                          <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+                          <div className="text-sm text-muted-foreground mt-1">
                             {item.subcategory}
                           </div>
                         )}
                       </TableCell>
                       
-                      <TableCell className="hidden sm:table-cell">
+                      <TableCell>
                         <div className="space-y-1">
-                          <div className="text-sm">{item.manufacturer || '-'}</div>
+                          <div>{item.manufacturer || '-'}</div>
                           {item.supplier && (
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-sm text-muted-foreground">
                               {item.supplier}
                             </div>
                           )}
@@ -765,10 +767,10 @@ export default function Stock() {
                       
                       <TableCell>
                         <div className="space-y-1">
-                          <div className={`font-medium text-sm sm:text-base ${isLowStock ? 'text-orange-600' : ''}`}>
+                          <div className={`font-medium ${isLowStock ? 'text-orange-600' : ''}`}>
                             {item.currentStock} {units.find(u => u.value === item.unit)?.label || item.unit}
                           </div>
-                          <div className="text-xs sm:text-sm text-muted-foreground">
+                          <div className="text-sm text-muted-foreground">
                             Min: {item.minimumStock}
                           </div>
                           <div className="flex items-center gap-2">
@@ -786,7 +788,7 @@ export default function Stock() {
                         </div>
                       </TableCell>
                       
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         {editingField?.id === item.id && editingField.field === 'purchasePrice' ? (
                           <Input
                             type="number"
@@ -800,22 +802,22 @@ export default function Stock() {
                               }
                             }}
                             autoFocus
-                            className="w-16 sm:w-20"
+                            className="w-20"
                           />
                         ) : (
                           <div
-                            className="cursor-pointer hover:bg-muted p-1 rounded text-sm"
+                            className="cursor-pointer hover:bg-muted p-1 rounded"
                             onClick={() => {
                               setEditingField({ id: item.id, field: 'purchasePrice' });
                               setFieldValue(item.purchasePrice.toString());
                             }}
                           >
-                            {item.purchasePrice.toFixed(2)} MAD
+                            {item.purchasePrice.toFixed(2)} {settings.currency}
                           </div>
                         )}
                       </TableCell>
                       
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         {editingField?.id === item.id && editingField.field === 'sellingPrice' ? (
                           <Input
                             type="number"
@@ -829,7 +831,7 @@ export default function Stock() {
                               }
                             }}
                             autoFocus
-                            className="w-16 sm:w-20"
+                            className="w-20"
                           />
                         ) : (
                           <div
@@ -839,24 +841,24 @@ export default function Stock() {
                               setFieldValue(item.sellingPrice.toString());
                             }}
                           >
-                            <div className="font-medium text-sm">{item.sellingPrice.toFixed(2)} MAD</div>
+                            <div className="font-medium">{item.sellingPrice.toFixed(2)} {settings.currency}</div>
                             <div className="text-xs text-green-600">
-                              Marge: {((item.sellingPrice - item.purchasePrice) * item.currentStock).toFixed(2)} MAD
+                              Marge: {((item.sellingPrice - item.purchasePrice) * item.currentStock).toFixed(2)} {settings.currency}
                             </div>
                           </div>
                         )}
                       </TableCell>
                       
-                      <TableCell className="hidden lg:table-cell">
-                        <div className="font-medium text-sm">
-                          {item.totalValue.toFixed(2)} MAD
+                      <TableCell>
+                        <div className="font-medium">
+                          {item.totalValue.toFixed(2)} {settings.currency}
                         </div>
                       </TableCell>
                       
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         {item.expirationDate ? (
                           <div className="space-y-1">
-                            <div className={`text-xs sm:text-sm ${isExpired ? 'text-red-600 font-medium' : isExpiringSoon ? 'text-yellow-600 font-medium' : ''}`}>
+                            <div className={`text-sm ${isExpired ? 'text-red-600 font-medium' : isExpiringSoon ? 'text-yellow-600 font-medium' : ''}`}>
                               {format(new Date(item.expirationDate), 'dd/MM/yyyy', { locale: fr })}
                             </div>
                             {isExpired && (
@@ -871,11 +873,11 @@ export default function Stock() {
                             )}
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-xs sm:text-sm">-</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
                       
-                      <TableCell className="hidden lg:table-cell">
+                      <TableCell>
                         {editingField?.id === item.id && editingField.field === 'location' ? (
                           <Input
                             value={fieldValue}
@@ -887,11 +889,11 @@ export default function Stock() {
                               }
                             }}
                             autoFocus
-                            className="w-24 sm:w-32"
+                            className="w-32"
                           />
                         ) : (
                           <div
-                            className="cursor-pointer hover:bg-muted p-1 rounded flex items-center gap-1 text-xs sm:text-sm"
+                            className="cursor-pointer hover:bg-muted p-1 rounded flex items-center gap-1"
                             onClick={() => {
                               setEditingField({ id: item.id, field: 'location' });
                               setFieldValue(item.location || '');
@@ -904,12 +906,11 @@ export default function Stock() {
                       </TableCell>
                       
                       <TableCell>
-                        <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="flex items-center gap-2">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleMovement(item)}
-                            className="p-1 sm:p-2"
                           >
                             <TrendingUp className="h-3 w-3" />
                           </Button>
@@ -917,7 +918,6 @@ export default function Stock() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleEditItem(item)}
-                            className="p-1 sm:p-2"
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
@@ -925,7 +925,6 @@ export default function Stock() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleDeleteItem(item)}
-                            className="p-1 sm:p-2"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -940,9 +939,9 @@ export default function Stock() {
           
           {filteredItems.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              <Package className="h-8 sm:h-12 w-8 sm:w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm sm:text-base">Aucun élément trouvé</p>
-              <p className="text-xs sm:text-sm">Ajustez vos filtres ou ajoutez de nouveaux éléments</p>
+              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Aucun élément trouvé</p>
+              <p className="text-sm">Ajustez vos filtres ou ajoutez de nouveaux éléments</p>
             </div>
           )}
         </CardContent>
@@ -951,19 +950,19 @@ export default function Stock() {
       {/* Historique des mouvements */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-            <Clock className="h-4 sm:h-5 w-4 sm:w-5" />
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
             Historique des Mouvements ({stockMovements.length})
           </CardTitle>
-          <div className="text-xs sm:text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground">
             Derniers mouvements de stock (prescriptions, achats, ajustements)
           </div>
         </CardHeader>
         <CardContent>
           {stockMovements.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <Clock className="h-8 sm:h-12 w-8 sm:w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm sm:text-base">Aucun mouvement de stock enregistré</p>
+              <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Aucun mouvement de stock enregistré</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -975,22 +974,22 @@ export default function Stock() {
                     in: { label: 'Entrée', color: 'text-green-600', icon: '↗️' },
                     out: { 
                       label: movement.reason === 'Prescription médicale' ? 'Prescription' : 'Sortie', 
-                      color: movement.reason === 'Prescription médicale' ? 'text-orange-600' : 'text-red-600',
+                      color: movement.reason === 'Prescription médicale' ? 'text-orange-600' : 'text-red-600', 
                       icon: movement.reason === 'Prescription médicale' ? '💊' : '↘️' 
                     },
                     adjustment: { label: 'Ajustement', color: 'text-blue-600', icon: '⚖️' },
                     transfer: { label: 'Transfert', color: 'text-purple-600', icon: '↔️' }
                   };
                   
-                  const config = movementTypeConfig[movement.type as keyof typeof movementTypeConfig];
+                  const config = movementTypeConfig[movement.type];
                   
                   return (
-                    <div key={movement.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-muted/50 gap-2 sm:gap-4">
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="text-xl sm:text-2xl">{config.icon}</div>
+                    <div key={movement.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
+                      <div className="flex items-center gap-4">
+                        <div className="text-2xl">{config.icon}</div>
                         <div>
-                          <div className="font-medium text-sm sm:text-base">{movement.itemName}</div>
-                          <div className="text-xs sm:text-sm text-muted-foreground">
+                          <div className="font-medium">{movement.itemName}</div>
+                          <div className="text-sm text-muted-foreground">
                             {movement.reason} • {movement.performedBy || 'Non spécifié'}
                           </div>
                           {movement.reference && (
@@ -1000,11 +999,11 @@ export default function Stock() {
                           )}
                         </div>
                       </div>
-                      <div className="text-right sm:text-left">
-                        <div className={`font-semibold text-sm sm:text-base ${config.color}`}>
+                      <div className="text-right">
+                        <div className={`font-semibold ${config.color}`}>
                           {movement.type === 'in' ? '+' : movement.type === 'out' ? '-' : ''}{movement.quantity}
                         </div>
-                        <div className="text-xs sm:text-sm text-muted-foreground">
+                        <div className="text-sm text-muted-foreground">
                           {format(new Date(movement.date), 'dd/MM/yyyy HH:mm', { locale: fr })}
                         </div>
                       </div>
@@ -1014,7 +1013,7 @@ export default function Stock() {
               
               {stockMovements.length > 20 && (
                 <div className="text-center pt-4">
-                  <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                  <Button variant="outline" size="sm">
                     Voir tous les mouvements ({stockMovements.length})
                   </Button>
                 </div>
@@ -1028,37 +1027,19 @@ export default function Stock() {
       <NewStockItemModal 
         open={showNewItemModal}
         onOpenChange={setShowNewItemModal}
-        onItemAdded={handleRefresh}
-        addStockItemFn={addStockItem}
-        updateStockItemFn={updateStockItem}
-        rawStockItems={rawStockItems}
       />
       
       <NewStockItemModal 
         open={showEditModal}
         onOpenChange={handleCloseEditModal}
         editingItem={editingItem}
-        onItemAdded={handleRefresh}
-        addStockItemFn={addStockItem}
-        updateStockItemFn={updateStockItem}
-        rawStockItems={rawStockItems}
       />
       
-      {showMovementModal && (
-        <Dialog open={showMovementModal} onOpenChange={setShowMovementModal}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Mouvement de Stock</DialogTitle>
-              <DialogDescription>
-                Ajouter une entrée ou sortie pour {selectedItem?.name}
-              </DialogDescription>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              Cette fonctionnalité sera bientôt disponible.
-            </p>
-          </DialogContent>
-        </Dialog>
-      )}
+      <StockMovementModal
+        open={showMovementModal}
+        onOpenChange={setShowMovementModal}
+        item={selectedItem}
+      />
     </div>
   );
 }

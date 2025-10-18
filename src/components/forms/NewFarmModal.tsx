@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useFarmManagementSettings, useVeterinarianSettings } from "@/hooks/useAppSettings";
 import { useClients } from "@/contexts/ClientContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Farm, FarmAnimalDetail } from "@/contexts/ClientContext";
@@ -24,6 +25,10 @@ const NewFarmModal = ({ open, onOpenChange }: NewFarmModalProps) => {
   const { addFarm } = useClients();
   const { settings } = useSettings();
   const { toast } = useToast();
+  
+  // Fetch settings for dynamic data
+  const { data: farmSettings } = useFarmManagementSettings();
+  const { data: veterinarians = [] } = useVeterinarianSettings();
   
   const [formData, setFormData] = useState<Partial<Farm> & { coordinates: { latitude: number; longitude: number }; emergencyContact: { name: string; phone: string; relation: string } }>({
     name: "",
@@ -336,12 +341,21 @@ const NewFarmModal = ({ open, onOpenChange }: NewFarmModalProps) => {
               </div>
               <div>
                 <Label htmlFor="veterinarian">Vétérinaire responsable</Label>
-                <Input
-                  id="veterinarian"
-                  value={formData.veterinarian || ""}
-                  onChange={(e) => handleChange("veterinarian", e.target.value)}
-                  placeholder="Vétérinaire"
-                />
+                <Select 
+                  value={formData.veterinarian || ""} 
+                  onValueChange={(value) => handleChange("veterinarian", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un vétérinaire" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {veterinarians.filter(v => v.is_active).map((vet) => (
+                      <SelectItem key={vet.id} value={vet.name}>
+                        {vet.name} {vet.title ? `- ${vet.title}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="status">Statut</Label>
@@ -539,7 +553,7 @@ const NewFarmModal = ({ open, onOpenChange }: NewFarmModalProps) => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {settings.farmManagement.certificationTypes.map((certification) => (
+                {(farmSettings?.certification_types || ['Bio', 'Label Rouge', 'Standard']).map((certification) => (
                   <div key={certification} className="flex items-center space-x-2">
                     <Checkbox
                       id={`cert-${certification}`}

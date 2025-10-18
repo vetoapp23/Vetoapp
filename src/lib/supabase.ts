@@ -24,6 +24,12 @@ export interface UserProfile {
   username: string
   full_name: string | null
   role: 'admin' | 'assistant'
+  status?: 'pending' | 'approved' | 'rejected' | 'suspended'
+  approved_by?: string | null
+  approved_at?: string | null
+  rejection_reason?: string | null
+  last_login?: string | null
+  permissions?: Record<string, boolean>
   created_at: string
   updated_at: string
   avatar_url: string | null

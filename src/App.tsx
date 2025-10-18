@@ -10,9 +10,11 @@ import { ClientProvider } from "@/contexts/ClientContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import { AuthRedirect } from "@/components/AuthRedirect";
 import Landing from "./pages/Landing";
 import Register from "./pages/Register";
+import PendingApproval from "./pages/PendingApproval";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import Pets from "./pages/Pets";
@@ -23,7 +25,9 @@ import Farm from "./pages/Farm";
 import Vaccinations from "./pages/Vaccinations";
 import Antiparasites from "./pages/Antiparasites";
 import Stock from "./pages/Stock";
-import Accounting from "./pages/Accounting";
+import AccountingNew from "./pages/AccountingNew";
+import StockManagement from "./pages/StockManagement";
+import AdminPanel from "./pages/AdminPanel";
 import TestStats from "./pages/TestStats";
 import SimpleTest from "./pages/SimpleTest";
 import NotFound from "./pages/NotFound";
@@ -58,6 +62,14 @@ const App = () => (
                         }
                       />
                       <Route path="/register" element={<Register />} />
+                      <Route 
+                        path="/pending-approval" 
+                        element={
+                          <ProtectedRoute>
+                            <PendingApproval />
+                          </ProtectedRoute>
+                        } 
+                      />
                       <Route
                         path="/dashboard"
                         element={
@@ -140,6 +152,24 @@ const App = () => (
                         }
                       />
                       <Route
+                        path="/accounting"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <AccountingNew />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/farms"
+                        element={
+                          <ProtectedRoute>
+                            <VetNavigation />
+                            <Farm />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
                         path="/stock"
                         element={
                           <ProtectedRoute>
@@ -149,12 +179,12 @@ const App = () => (
                         }
                       />
                       <Route
-                        path="/accounting"
+                        path="/admin"
                         element={
-                          <ProtectedRoute>
+                          <AdminRoute>
                             <VetNavigation />
-                            <Accounting />
-                          </ProtectedRoute>
+                            <AdminPanel />
+                          </AdminRoute>
                         }
                       />
                       <Route

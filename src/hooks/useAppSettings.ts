@@ -36,7 +36,9 @@ export const DEFAULT_SETTINGS = {
     'Cheval': ['Pur-sang', 'Arabe', 'Quarter Horse', 'Frison', 'Andalou', 'Trotteur']
   },
   animal_colors: ['Noir', 'Blanc', 'Marron', 'Gris', 'Roux', 'Crème', 'Tacheté', 'Tricolore', 'Bringé', 'Fauve'],
-  client_types: ['Particulier', 'Éleveur', 'Ferme', 'Refuge', 'Clinique', 'Zoo'],
+  // Note: client_types must match database constraint (particulier, eleveur, ferme)
+  // Display names are shown in UI, but values sent to DB are lowercase without accents
+  client_types: ['Particulier', 'Éleveur', 'Ferme'],
   consultation_types: [
     'Consultation générale',
     'Vaccination',
@@ -247,11 +249,42 @@ export const useVeterinarianSettings = () => {
   })
 }
 
+// Default values for settings
+const DEFAULT_FARM_SETTINGS: FarmManagementSettings = {
+  enabled: true,
+  farm_types: ['Laitière', 'Viande', 'Mixte', 'Avicole', 'Ovine', 'Caprine'],
+  animal_categories: ['Bovin', 'Ovin', 'Caprin', 'Volaille', 'Équin'],
+  breeds_by_category: {
+    'Bovin': ['Holstein', 'Montbéliarde', 'Prim Holstein', 'Charolaise', 'Limousine'],
+    'Ovin': ['Timahdit', 'Beni Guil', 'Sardi', 'D\'man'],
+    'Caprin': ['Drâa', 'Noire de Marrakech', 'Alpine', 'Saanen'],
+    'Volaille': ['Pondeuse', 'Chair', 'Locale', 'Pintade'],
+    'Équin': ['Arabe', 'Barbe', 'Trait', 'Pur-sang']
+  },
+  certification_types: ['Bio', 'Label Rouge', 'Standard', 'AOC', 'IGP'],
+  equipment_types: ['Traite', 'Alimentation', 'Vétérinaire', 'Stockage'],
+  default_surface_unit: 'hectare',
+  default_coordinate_format: 'GPS'
+}
+
+const DEFAULT_SCHEDULE_SETTINGS: ScheduleSettings = {
+  opening_time: '08:00',
+  closing_time: '18:00',
+  slot_duration: 30,
+  lunch_break_start: '12:00',
+  lunch_break_end: '14:00',
+  working_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+  appointment_duration: 30,
+  buffer_time: 10,
+  max_appointments_per_day: 20
+}
+
 // Hook for farm management settings
 export const useFarmManagementSettings = () => {
   return useQuery({
     queryKey: ['farm-management-settings'],
     queryFn: getFarmManagementSettings,
+    select: (data) => data || DEFAULT_FARM_SETTINGS,
   })
 }
 
@@ -260,6 +293,7 @@ export const useScheduleSettings = () => {
   return useQuery({
     queryKey: ['schedule-settings'],
     queryFn: getScheduleSettings,
+    select: (data) => data || DEFAULT_SCHEDULE_SETTINGS,
   })
 }
 

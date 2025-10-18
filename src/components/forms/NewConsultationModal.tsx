@@ -148,8 +148,8 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
     
     if (validationErrors.length > 0) {
       toast({
-        title: "Erreurs de validation",
-        description: validationErrors.join(". "),
+        title: "⚠ Formulaire incomplet",
+        description: validationErrors[0], // Show first error
         variant: "destructive",
       });
       return;
@@ -174,8 +174,8 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
       await createConsultationMutation.mutateAsync(consultationData);
       
       toast({
-        title: "Consultation enregistrée",
-        description: `Consultation pour ${formData.animalName} (${formData.clientName}) a été enregistrée avec succès.`,
+        title: "✓ Consultation enregistrée",
+        description: `La consultation pour ${formData.animalName} a été sauvegardée avec succès.`,
       });
       
       // Reset form
@@ -199,23 +199,29 @@ export function NewConsultationModal({ open, onOpenChange, prefillData }: NewCon
     } catch (error: any) {
       console.error('Error creating consultation:', error);
       
-      let errorMessage = "Impossible d'enregistrer la consultation. Veuillez réessayer.";
+      let errorMessage = "Une erreur inattendue s'est produite. Veuillez réessayer.";
       
       // Handle specific error types
       if (error?.message) {
-        if (error.message.includes('foreign key constraint')) {
-          errorMessage = "Erreur: Le client ou l'animal sélectionné n'existe plus. Veuillez actualiser la page.";
-        } else if (error.message.includes('network')) {
-          errorMessage = "Erreur de connexion. Vérifiez votre connexion internet et réessayez.";
-        } else if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('foreign key') || errorMsg.includes('constraint')) {
+          errorMessage = "Le client ou l'animal sélectionné n'existe plus. Veuillez actualiser la page.";
+        } else if (errorMsg.includes('network') || errorMsg.includes('fetch') || errorMsg.includes('connection')) {
+          errorMessage = "Problème de connexion. Vérifiez votre connexion internet et réessayez.";
+        } else if (errorMsg.includes('permission') || errorMsg.includes('unauthorized') || errorMsg.includes('authorized')) {
           errorMessage = "Vous n'avez pas les permissions nécessaires pour créer une consultation.";
-        } else if (error.message.includes('duplicate') || error.message.includes('already exists')) {
-          errorMessage = "Une consultation similaire existe déjà pour cette date.";
+        } else if (errorMsg.includes('duplicate') || errorMsg.includes('already exists')) {
+          errorMessage = "Une consultation similaire existe déjà pour cette date et cet animal.";
+        } else if (errorMsg.includes('authentication')) {
+          errorMessage = "Votre session a expiré. Veuillez vous reconnecter.";
+        } else if (error.message.length < 100) {
+          errorMessage = error.message;
         }
       }
       
       toast({
-        title: "Erreur lors de la création",
+        title: "⚠ Impossible d'enregistrer la consultation",
         description: errorMessage,
         variant: "destructive",
       });

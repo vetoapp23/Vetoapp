@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAccounting } from '@/hooks/useAccounting';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useAccountingTemplates, type AccountingTemplate } from '@/hooks/useAccountingTemplates';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Calculator, 
@@ -45,34 +46,7 @@ export interface AccountingEntry {
   createdBy?: string;
 }
 
-// Interface pour les suggestions
-interface AccountingSuggestion {
-  description: string;
-  amount: number;
-  type: 'revenue' | 'expense';
-  frequency: 'monthly' | 'annual' | 'occasional';
-  source: string;
-}
-
-// Suggestions prédéfinies pour les charges et recettes
-const ACCOUNTING_SUGGESTIONS: { monthly: AccountingSuggestion[]; annual: AccountingSuggestion[]; occasional: AccountingSuggestion[] } = {
-  monthly: [
-    { description: 'Salaire Secrétaire', amount: 3000, type: 'expense', frequency: 'monthly', source: 'salary' },
-    { description: 'CNSS Secrétaire', amount: 700, type: 'expense', frequency: 'monthly', source: 'insurance' },
-    { description: 'CNSS Vétérinaire', amount: 1500, type: 'expense', frequency: 'monthly', source: 'insurance' },
-    { description: 'Loyer', amount: 3000, type: 'expense', frequency: 'monthly', source: 'rent' },
-    { description: 'Eau et Électricité', amount: 300, type: 'expense', frequency: 'monthly', source: 'other' }
-  ],
-  annual: [
-    { description: 'Impôts', amount: 3000, type: 'expense', frequency: 'annual', source: 'tax' },
-    { description: 'Cotisation Ordre des Vétérinaires', amount: 1200, type: 'expense', frequency: 'annual', source: 'other' }
-  ],
-  occasional: [
-    { description: 'Maintenance Équipement', amount: 500, type: 'expense', frequency: 'occasional', source: 'other' },
-    { description: 'Formation Professionnelle', amount: 800, type: 'expense', frequency: 'occasional', source: 'other' },
-    { description: 'Achat Matériel', amount: 1200, type: 'expense', frequency: 'occasional', source: 'other' }
-  ]
-};
+// Using dynamic templates via hook; removed hardcoded suggestions
 
 const Accounting: React.FC = () => {
   const { 
@@ -137,9 +111,9 @@ const Accounting: React.FC = () => {
   const [editingEntry, setEditingEntry] = useState<AccountingEntry | null>(null);
   const [summary, setSummary] = useState<any>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [customSuggestions, setCustomSuggestions] = useState<{ monthly: AccountingSuggestion[]; annual: AccountingSuggestion[]; occasional: AccountingSuggestion[] }>(ACCOUNTING_SUGGESTIONS);
+  const { grouped: templateGroups, addTemplate, updateTemplate, deleteTemplate } = useAccountingTemplates();
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
-  const [editingSuggestion, setEditingSuggestion] = useState<AccountingSuggestion | null>(null);
+  const [editingSuggestion, setEditingSuggestion] = useState<AccountingTemplate | null>(null);
 
   // Formulaire pour la configuration des suggestions
   const [suggestionFormData, setSuggestionFormData] = useState({
@@ -344,7 +318,7 @@ const Accounting: React.FC = () => {
     }
   };
 
-  const handleApplySuggestion = (suggestion: AccountingSuggestion) => {
+  const handleApplySuggestion = (suggestion: AccountingTemplate) => {
     setFormData({
       ...formData,
       type: suggestion.type,
@@ -357,33 +331,26 @@ const Accounting: React.FC = () => {
     setShowSuggestions(false);
   };
 
-  const handleAddSuggestion = () => {
+  const handleAddSuggestion = async () => {
     if (!suggestionFormData.description || !suggestionFormData.amount) return;
 
-    const newSuggestion: AccountingSuggestion = {
-      description: suggestionFormData.description,
-      amount: parseFloat(suggestionFormData.amount),
-      type: suggestionFormData.type,
-      frequency: suggestionFormData.frequency,
-      source: suggestionFormData.source
-    };
-
     if (editingSuggestion) {
-      // Modifier une suggestion existante
-      const updatedSuggestions = { ...customSuggestions };
-      const category = editingSuggestion.frequency;
-      const index = updatedSuggestions[category].findIndex(s => s === editingSuggestion);
-      if (index !== -1) {
-        updatedSuggestions[category][index] = newSuggestion;
-      }
-      setCustomSuggestions(updatedSuggestions);
+      await updateTemplate(editingSuggestion.id, {
+        description: suggestionFormData.description,
+        amount: parseFloat(suggestionFormData.amount),
+        type: suggestionFormData.type,
+        frequency: suggestionFormData.frequency,
+        source: suggestionFormData.source,
+      });
       setEditingSuggestion(null);
     } else {
-      // Ajouter une nouvelle suggestion
-      const updatedSuggestions = { ...customSuggestions };
-      const category = suggestionFormData.frequency;
-      updatedSuggestions[category].push(newSuggestion);
-      setCustomSuggestions(updatedSuggestions);
+      await addTemplate({
+        description: suggestionFormData.description,
+        amount: parseFloat(suggestionFormData.amount),
+        type: suggestionFormData.type,
+        frequency: suggestionFormData.frequency,
+        source: suggestionFormData.source,
+      });
     }
 
     // Reset form
@@ -397,7 +364,7 @@ const Accounting: React.FC = () => {
     setIsConfigModalOpen(false);
   };
 
-  const handleEditSuggestion = (suggestion: AccountingSuggestion) => {
+  const handleEditSuggestion = (suggestion: AccountingTemplate) => {
     setEditingSuggestion(suggestion);
     setSuggestionFormData({
       description: suggestion.description,
@@ -409,12 +376,9 @@ const Accounting: React.FC = () => {
     setIsConfigModalOpen(true);
   };
 
-  const handleDeleteSuggestion = (suggestion: AccountingSuggestion) => {
+  const handleDeleteSuggestion = async (suggestion: AccountingTemplate) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette suggestion ?')) {
-      const updatedSuggestions = { ...customSuggestions };
-      const category = suggestion.frequency;
-      updatedSuggestions[category] = updatedSuggestions[category].filter(s => s !== suggestion);
-      setCustomSuggestions(updatedSuggestions);
+      await deleteTemplate(suggestion.id);
     }
   };
 
@@ -445,7 +409,7 @@ const Accounting: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto p-4">
       {/* En-tête */}
       <div className="flex justify-between items-center">
         <div>
@@ -497,9 +461,9 @@ const Accounting: React.FC = () => {
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground mb-2">Charges mensuelles</h4>
                         <div className="grid grid-cols-1 gap-2">
-                          {customSuggestions.monthly.map((suggestion, index) => (
+                          {templateGroups.monthly.map((suggestion) => (
                             <Button
-                              key={index}
+                              key={suggestion.id}
                               variant="outline"
                               size="sm"
                               className="justify-start text-left h-auto p-2"
@@ -519,9 +483,9 @@ const Accounting: React.FC = () => {
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground mb-2">Charges annuelles</h4>
                         <div className="grid grid-cols-1 gap-2">
-                          {customSuggestions.annual.map((suggestion, index) => (
+                          {templateGroups.annual.map((suggestion) => (
                             <Button
-                              key={index}
+                              key={suggestion.id}
                               variant="outline"
                               size="sm"
                               className="justify-start text-left h-auto p-2"
@@ -541,9 +505,9 @@ const Accounting: React.FC = () => {
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground mb-2">Charges occasionnelles</h4>
                         <div className="grid grid-cols-1 gap-2">
-                          {customSuggestions.occasional.map((suggestion, index) => (
+                          {templateGroups.occasional.map((suggestion) => (
                             <Button
-                              key={index}
+                              key={suggestion.id}
                               variant="outline"
                               size="sm"
                               className="justify-start text-left h-auto p-2"
@@ -900,8 +864,8 @@ const Accounting: React.FC = () => {
               </div>
               
               <div className="grid gap-3">
-                {customSuggestions.monthly.map((suggestion, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                {templateGroups.monthly.map((suggestion) => (
+                  <div key={suggestion.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium">{suggestion.description}</span>
                       <span className="text-sm text-muted-foreground">{suggestion.amount} {settings.currency}</span>
@@ -927,8 +891,8 @@ const Accounting: React.FC = () => {
               </div>
               
               <div className="grid gap-3">
-                {customSuggestions.annual.map((suggestion, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                {templateGroups.annual.map((suggestion) => (
+                  <div key={suggestion.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium">{suggestion.description}</span>
                       <span className="text-sm text-muted-foreground">{suggestion.amount} {settings.currency}</span>
@@ -954,8 +918,8 @@ const Accounting: React.FC = () => {
               </div>
               
               <div className="grid gap-3">
-                {customSuggestions.occasional.map((suggestion, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                {templateGroups.occasional.map((suggestion) => (
+                  <div key={suggestion.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium">{suggestion.description}</span>
                       <span className="text-sm text-muted-foreground">{suggestion.amount} {settings.currency}</span>

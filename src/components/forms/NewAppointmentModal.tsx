@@ -58,19 +58,57 @@ export function NewAppointmentModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.clientId || !formData.animalId || !formData.date || !formData.time) {
+    // Validation
+    if (!formData.clientId) {
       toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs obligatoires",
+        title: "Client manquant",
+        description: "Veuillez sélectionner le propriétaire de l'animal.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.animalId) {
+      toast({
+        title: "Animal manquant",
+        description: "Veuillez sélectionner l'animal pour ce rendez-vous.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.date) {
+      toast({
+        title: "Date manquante",
+        description: "Veuillez choisir une date pour le rendez-vous.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.time) {
+      toast({
+        title: "Heure manquante",
+        description: "Veuillez choisir une heure pour le rendez-vous.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate date is not in the past
+    const appointmentDateTime = new Date(`${formData.date}T${formData.time}:00`);
+    const now = new Date();
+    
+    if (appointmentDateTime < now) {
+      toast({
+        title: "Date invalide",
+        description: "Vous ne pouvez pas créer un rendez-vous dans le passé. Veuillez choisir une date future.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      // Create appointment date from date and time
-      const appointmentDateTime = new Date(`${formData.date}T${formData.time}:00`);
-
       await createAppointment.mutateAsync({
         client_id: formData.clientId,
         animal_id: formData.animalId,
@@ -81,8 +119,8 @@ export function NewAppointmentModal({
       });
 
       toast({
-        title: "Succès",
-        description: "Rendez-vous créé avec succès",
+        title: "✓ Rendez-vous créé",
+        description: `Le rendez-vous a été enregistré pour le ${new Date(appointmentDateTime).toLocaleDateString('fr-FR')} à ${formData.time}.`,
       });
 
       // Reset form and close modal
@@ -97,11 +135,30 @@ export function NewAppointmentModal({
       setAvailableAnimals([]);
       onOpenChange(false);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating appointment:', error);
+      
+      let errorMessage = "Une erreur inattendue s'est produite. Veuillez réessayer.";
+      
+      if (error?.message) {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('duplicate') || errorMsg.includes('conflict')) {
+          errorMessage = "Un rendez-vous existe déjà à cette date et heure. Veuillez choisir un autre créneau.";
+        } else if (errorMsg.includes('client') || errorMsg.includes('animal')) {
+          errorMessage = "Le client ou l'animal sélectionné n'est pas valide. Veuillez rafraîchir la page.";
+        } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+          errorMessage = "Problème de connexion. Vérifiez votre connexion internet et réessayez.";
+        } else if (errorMsg.includes('permission') || errorMsg.includes('authorized')) {
+          errorMessage = "Vous n'avez pas les permissions nécessaires pour créer un rendez-vous.";
+        } else if (error.message.length < 100) {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Erreur",
-        description: "Impossible de créer le rendez-vous",
+        title: "⚠ Impossible de créer le rendez-vous",
+        description: errorMessage,
         variant: "destructive",
       });
     }

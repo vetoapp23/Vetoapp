@@ -45,5 +45,15 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
+  // Only redirect if user explicitly has 'pending' status (not null/undefined)
+  if (user?.profile?.status === 'pending' && window.location.pathname !== '/pending-approval') {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
+  // Redirect rejected users to login
+  if (user?.profile?.status === 'rejected') {
+    return <Navigate to="/login" replace />;
+  }
+
   return <>{children}</>;
 }

@@ -57,10 +57,29 @@ export default function NewVaccinationModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.animalId || !formData.vaccineName || !formData.vaccinationDate) {
+    // Validation with specific messages
+    if (!formData.animalId) {
       toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs obligatoires",
+        title: "Animal manquant",
+        description: "Veuillez sélectionner l'animal à vacciner.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.vaccineName?.trim()) {
+      toast({
+        title: "Nom du vaccin manquant",
+        description: "Veuillez indiquer le nom du vaccin administré.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.vaccinationDate) {
+      toast({
+        title: "Date manquante",
+        description: "Veuillez indiquer la date de vaccination.",
         variant: "destructive"
       });
       return;
@@ -70,11 +89,30 @@ export default function NewVaccinationModal({
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(formData.animalId)) {
       toast({
-        title: "Erreur",
-        description: "ID d'animal invalide",
+        title: "Erreur système",
+        description: "L'animal sélectionné n'est pas valide. Veuillez rafraîchir la page.",
         variant: "destructive"
       });
       return;
+    }
+
+    // Validate date is not too far in the future
+    const vaccinationDate = new Date(formData.vaccinationDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (vaccinationDate > today) {
+      const oneMonthFromNow = new Date();
+      oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
+      
+      if (vaccinationDate > oneMonthFromNow) {
+        toast({
+          title: "Date invalide",
+          description: "La date de vaccination ne peut pas être plus d'un mois dans le futur.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     // Clean and validate the payload
@@ -93,9 +131,12 @@ export default function NewVaccinationModal({
     try {
       await createVaccinationMutation.mutateAsync(payload);
 
+      const selectedAnimal = animals.find(a => a.id === formData.animalId);
+      const animalName = selectedAnimal?.name || "l'animal";
+
       toast({
-        title: "Vaccination ajoutée",
-        description: `La vaccination ${formData.vaccineName} a été ajoutée avec succès`
+        title: "✓ Vaccination enregistrée",
+        description: `La vaccination de ${animalName} a été ajoutée avec succès.`
       });
 
       // Reset form
@@ -112,10 +153,32 @@ export default function NewVaccinationModal({
       });
 
       setModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error creating vaccination:', error);
+      
+      let errorMessage = "Une erreur inattendue s'est produite. Veuillez réessayer.";
+      
+      if (error?.message) {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('duplicate') || errorMsg.includes('unique')) {
+          errorMessage = "Cette vaccination existe déjà pour cet animal à cette date.";
+        } else if (errorMsg.includes('foreign key') || errorMsg.includes('animal')) {
+          errorMessage = "L'animal sélectionné n'existe plus. Veuillez rafraîchir la page.";
+        } else if (errorMsg.includes('network') || errorMsg.includes('fetch') || errorMsg.includes('connection')) {
+          errorMessage = "Problème de connexion. Vérifiez votre connexion internet et réessayez.";
+        } else if (errorMsg.includes('permission') || errorMsg.includes('authorized')) {
+          errorMessage = "Vous n'avez pas les permissions nécessaires pour ajouter une vaccination.";
+        } else if (errorMsg.includes('authentication')) {
+          errorMessage = "Votre session a expiré. Veuillez vous reconnecter.";
+        } else if (error.message.length < 100) {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Erreur",
-        description: "Impossible d'ajouter la vaccination",
+        title: "⚠ Impossible d'enregistrer la vaccination",
+        description: errorMessage,
         variant: "destructive"
       });
     }

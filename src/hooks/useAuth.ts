@@ -28,27 +28,18 @@ const fetchAuthSession = async (): Promise<User | null> => {
     
     try {
       profile = await getCurrentUserProfile()
+      console.log('✅ Profile loaded from database:', profile);
     } catch (profileError) {
+      console.error('❌ Error loading profile:', profileError);
       // Try to create profile if it doesn't exist
       try {
         profile = await createUserProfileIfNotExists(session.user)
+        console.log('✅ Profile created:', profile);
       } catch (createError) {
-        // Use fallback profile as last resort to prevent login failures
-        console.error('Failed to create user profile:', createError);
-        const metadata = session.user.user_metadata || {};
-        const fullName = metadata.full_name || metadata.name || '';
-        const username = metadata.username || session.user.email!.split('@')[0];
-        
-        profile = {
-          id: session.user.id,
-          email: session.user.email!,
-          username: username,
-          full_name: fullName,
-          role: 'assistant', // Default to assistant role
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          avatar_url: metadata.avatar_url || metadata.picture || null
-        }
+        console.error('❌ Failed to create user profile:', createError);
+        // CRITICAL: Don't use fallback - throw error instead
+        // This fallback was causing the admin role to be overridden with 'assistant'
+        throw new Error('Failed to load or create user profile. Please contact support.');
       }
     }
 

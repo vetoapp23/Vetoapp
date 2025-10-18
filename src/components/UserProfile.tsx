@@ -88,30 +88,7 @@ export function UserProfile() {
             </div>
           </div>
         </div>
-        
-        <div className="border-t pt-4">
-          <h4 className="text-sm font-medium mb-3">Informations de session</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">ID Utilisateur:</span>
-              <span className="font-mono text-xs">{user.id}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Nom d'utilisateur:</span>
-              <span>@{user.profile.username}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Rôle:</span>
-              <span>{getRoleLabel(user.profile.role)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Statut:</span>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                Connecté
-              </Badge>
-            </div>
-          </div>
-        </div>
+    
         
         <div className="border-t pt-4">
           <Button 

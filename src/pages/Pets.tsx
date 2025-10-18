@@ -31,8 +31,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useDisplayPreference } from "@/hooks/use-display-preference";
 import { calculateAge } from "@/lib/utils";
 import { 
-  useAnimalSpecies, 
-  useAnimalBreeds, 
+  useFarmManagementSettings,
   useAnimalColors,
   DEFAULT_SETTINGS
 } from "@/hooks/useAppSettings";
@@ -100,9 +99,12 @@ const PetsContent = () => {
   const deleteAnimalMutation = useDeleteAnimal();
   
   // Settings hooks for dynamic animal data
-  const { data: animalSpecies = DEFAULT_SETTINGS.animal_species } = useAnimalSpecies();
-  const { data: animalBreeds = DEFAULT_SETTINGS.animal_breeds } = useAnimalBreeds();
+  const { data: farmSettings } = useFarmManagementSettings();
   const { data: animalColors = DEFAULT_SETTINGS.animal_colors } = useAnimalColors();
+  
+  // Extract animal settings from farm management settings with fallbacks
+  const animalSpecies = farmSettings?.animal_categories || ['Chien', 'Chat', 'Bovin', 'Ovin', 'Caprin'];
+  const animalBreeds = farmSettings?.breeds_by_category || {};
   
   // Convert animals to pets format for compatibility
   const pets = animals.map(animal => convertAnimalToPet(animal, clients));
@@ -825,17 +827,14 @@ const PetsContent = () => {
           </div>
           <div className="space-y-2">
           <Label htmlFor="species">Espèce *</Label>
-          <Select value={editForm.species} onValueChange={(value) => setEditForm(prev => ({ ...prev, species: value as 'Chien' | 'Chat' | 'Oiseau' | 'Lapin' | 'Furet' | 'Autre' }))}>
+          <Select value={editForm.species} onValueChange={(value) => setEditForm(prev => ({ ...prev, species: value }))}>
             <SelectTrigger>
             <SelectValue placeholder="Sélectionner l'espèce" />
             </SelectTrigger>
             <SelectContent>
-            <SelectItem value="Chien">Chien</SelectItem>
-            <SelectItem value="Chat">Chat</SelectItem>
-            <SelectItem value="Oiseau">Oiseau</SelectItem>
-            <SelectItem value="Lapin">Lapin</SelectItem>
-            <SelectItem value="Furet">Furet</SelectItem>
-            <SelectItem value="Autre">Autre</SelectItem>
+            {animalSpecies.map(species => (
+              <SelectItem key={species} value={species}>{species}</SelectItem>
+            ))}
             </SelectContent>
           </Select>
           </div>
