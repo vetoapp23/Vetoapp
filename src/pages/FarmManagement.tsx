@@ -7,45 +7,34 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Building2, Users, MapPin } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { useFarmManagementSettings } from '@/hooks/useAppSettings';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-
-interface Farm {
-  id: string;
-  farm_name: string;
-  farm_type: string;
-  registration_number: string;
-  address: string;
-  phone: string;
-  email: string;
-  herd_size: number;
-  certifications: string[];
-  notes: string;
-  active: boolean;
-  client_id: string;
-  client?: {
-    first_name: string;
-    last_name: string;
-  };
-  created_at: string;
-  updated_at: string;
-}
-
-interface Client {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
+import { useFarms, useCreateFarm, useUpdateFarm, useDeleteFarm, useClients, type Farm, type Client } from '@/hooks/useDatabase';
 
 const FarmManagement: React.FC = () => {
   const { user } = useAuth();
   const { data: farmSettings, isLoading: settingsLoading } = useFarmManagementSettings();
-  const [farms, setFarms] = useState<Farm[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Use hooks for data fetching
+  const { data: farms = [], isLoading: farmsLoading, error: farmsError } = useFarms();
+  const { data: clients = [], isLoading: clientsLoading, error: clientsError } = useClients();
+  const createFarmMutation = useCreateFarm();
+  const updateFarmMutation = useUpdateFarm();
+  const deleteFarmMutation = useDeleteFarm();
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('🔍 FarmManagement Debug:');
+    console.log('  User:', user?.id);
+    console.log('  Farms loaded:', farms?.length, farms);
+    console.log('  Farms loading:', farmsLoading);
+    console.log('  Farms error:', farmsError);
+    console.log('  Clients loaded:', clients?.length);
+    console.log('  Clients loading:', clientsLoading);
+  }, [farms, farmsLoading, farmsError, clients, clientsLoading, user]);
+  
   const [showForm, setShowForm] = useState(false);
   const [editingFarm, setEditingFarm] = useState<Farm | null>(null);
   const [selectedCertifications, setSelectedCertifications] = useState<string[]>([]);
@@ -75,52 +64,15 @@ const FarmManagement: React.FC = () => {
     'Autre'
   ];
 
-  useEffect(() => {
-    if (user) {
-      fetchFarms();
-      fetchClients();
+  const loading = farmsLoading || clientsLoading;
+
+  // Helper function to get client name for a farm
+  const getClientName = (farm: any): string => {
+    if (farm.clients) {
+      return `${farm.clients.first_name} ${farm.clients.last_name}`;
     }
-  }, [user]);
-
-  const fetchFarms = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('farms')
-        .select(`
-          *,
-          client:clients(first_name, last_name)
-        `)
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setFarms(data || []);
-    } catch (error) {
-      console.error('Error fetching farms:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de charger les fermes.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchClients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, first_name, last_name')
-        .eq('user_id', user?.id)
-        .eq('status', 'actif')
-        .order('last_name');
-
-      if (error) throw error;
-      setClients(data || []);
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-    }
+    const client = clients.find(c => c.id === farm.client_id);
+    return client ? `${client.first_name} ${client.last_name}` : 'Client inconnu';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,30 +80,31 @@ const FarmManagement: React.FC = () => {
     
     try {
       const farmData = {
-        ...formData,
+        farm_name: formData.farm_name,
+        farm_type: formData.farm_type,
+        registration_number: formData.registration_number,
+        address: formData.address,
+        phone: formData.phone,
+        email: formData.email,
         herd_size: parseInt(formData.herd_size.toString()) || 0,
-        certifications: selectedCertifications, // Use selected certifications array directly
-        user_id: user?.id
+        certifications: selectedCertifications,
+        notes: formData.notes,
+        client_id: formData.client_id,
+        active: formData.active
       };
 
       if (editingFarm) {
-        const { error } = await supabase
-          .from('farms')
-          .update(farmData)
-          .eq('id', editingFarm.id);
-
-        if (error) throw error;
+        await updateFarmMutation.mutateAsync({
+          id: editingFarm.id,
+          data: farmData
+        });
         
         toast({
           title: 'Succès',
           description: 'Ferme mise à jour avec succès.',
         });
       } else {
-        const { error } = await supabase
-          .from('farms')
-          .insert([farmData]);
-
-        if (error) throw error;
+        await createFarmMutation.mutateAsync(farmData);
         
         toast({
           title: 'Succès',
@@ -162,7 +115,6 @@ const FarmManagement: React.FC = () => {
       setShowForm(false);
       setEditingFarm(null);
       resetForm();
-      fetchFarms();
     } catch (error) {
       console.error('Error saving farm:', error);
       toast({
@@ -196,19 +148,12 @@ const FarmManagement: React.FC = () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette ferme ?')) return;
 
     try {
-      const { error } = await supabase
-        .from('farms')
-        .delete()
-        .eq('id', farmId);
-
-      if (error) throw error;
+      await deleteFarmMutation.mutateAsync(farmId);
       
       toast({
         title: 'Succès',
         description: 'Ferme supprimée avec succès.',
       });
-      
-      fetchFarms();
     } catch (error) {
       console.error('Error deleting farm:', error);
       toast({
@@ -433,12 +378,10 @@ const FarmManagement: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {farm.client && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="h-4 w-4" />
-                    <span>{farm.client.first_name} {farm.client.last_name}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-sm">
+                  <Users className="h-4 w-4" />
+                  <span>{getClientName(farm)}</span>
+                </div>
                 
                 {farm.address && (
                   <div className="flex items-center gap-2 text-sm">

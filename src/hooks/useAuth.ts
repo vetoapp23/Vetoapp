@@ -6,6 +6,7 @@ export interface User {
   id: string
   email: string
   profile: UserProfile
+  organization_id?: string | null
 }
 
 // Auth query keys - simplified and consistent
@@ -50,7 +51,8 @@ const fetchAuthSession = async (): Promise<User | null> => {
     return {
       id: session.user.id,
       email: session.user.email!,
-      profile
+      profile,
+      organization_id: profile.organization_id
     }
   } catch (error) {
     return null
@@ -62,11 +64,11 @@ export const useAuthSession = () => {
   return useQuery({
     queryKey: authKeys.session(),
     queryFn: fetchAuthSession,
-    staleTime: 5 * 60 * 1000, // 5 minutes - shorter for better responsiveness
+    staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
     gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
-    retry: false, // No retries to prevent loops
+    retry: 1, // One retry on failure
     refetchOnWindowFocus: false, // Prevent focus refetches
-    refetchOnMount: 'always', // Always refetch on mount for consistency
+    refetchOnMount: false, // Changed from 'always' to false - prevents hang on login
     refetchOnReconnect: false, // Prevent reconnect refetches
     networkMode: 'offlineFirst', // Better offline handling
   })
@@ -102,9 +104,8 @@ export const useLogin = () => {
       return data.user
     },
     onSuccess: async () => {
-      // Refetch auth session after successful login with small delay
-      await new Promise(resolve => setTimeout(resolve, 100))
-      queryClient.refetchQueries({ queryKey: authKeys.session() })
+      // Invalidate auth session to trigger refetch (faster than refetchQueries)
+      queryClient.invalidateQueries({ queryKey: authKeys.session() })
     },
     onError: () => {
       // Clear any stale auth data on login error

@@ -3,6 +3,7 @@ import { useAuthSession, useLogin, useLogout, useRefreshProfile, User } from '..
 import { supabase } from '../lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 import { authKeys } from '../hooks/useAuth';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 
 interface AuthContextType {
   user: User | null;
@@ -25,6 +26,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Track initialization state to prevent infinite loading
   const [isInitialized, setIsInitialized] = useState(false);
   const authStateSetup = useRef(false);
+  const previousUserId = useRef<string | null>(null);
+
+  // Set up realtime sync only when user is authenticated
+  useRealtimeSync();
+
+  // Clear cache when user changes (switching accounts)
+  useEffect(() => {
+    const currentUserId = user?.id || null;
+    
+    // If user ID changed (switched accounts), clear all cache
+    if (previousUserId.current !== null && previousUserId.current !== currentUserId) {
+      console.log('👤 User changed, clearing all cached data...');
+      queryClient.clear();
+    }
+    
+    previousUserId.current = currentUserId;
+  }, [user?.id, queryClient]);
 
   useEffect(() => {
     if (authStateSetup.current) return;
@@ -34,8 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         // Handle auth state changes more precisely
         if (event === 'SIGNED_OUT') {
+          console.log('🔓 User signed out, clearing all cache...');
+          queryClient.clear();
           queryClient.setQueryData(authKeys.session(), null);
-          queryClient.removeQueries({ queryKey: authKeys.session() });
+        } else if (event === 'SIGNED_IN' && session) {
+          console.log('🔐 User signed in, clearing old cache...');
+          // Clear cache on sign in to prevent showing previous user's data
+          queryClient.clear();
         } else if (event === 'TOKEN_REFRESHED' && session) {
           // Invalidate on token refresh to get updated data
           queryClient.invalidateQueries({ queryKey: authKeys.session() });
@@ -75,10 +98,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async (): Promise<void> => {
     try {
       await logoutMutation.mutateAsync();
+      // Clear ALL cached data on logout to prevent data leakage between accounts
+      console.log('🧹 Clearing all cached data on logout...');
+      queryClient.clear();
     } catch (error) {
       console.error('Logout error:', error);
       // Force logout even if mutation fails
       queryClient.setQueryData(authKeys.session(), null);
+      queryClient.clear();
     }
   };
 

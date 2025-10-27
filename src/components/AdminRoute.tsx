@@ -12,7 +12,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
 
   return (
     <ProtectedRoute>
-      {user?.profile?.role === 'admin' && user?.profile?.status === 'approved' ? (
+      {user?.profile?.role === 'admin' ? (
         <>{children}</>
       ) : (
         <Navigate to="/dashboard" replace />

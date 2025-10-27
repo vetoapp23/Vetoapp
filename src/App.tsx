@@ -14,7 +14,6 @@ import { AdminRoute } from "@/components/AdminRoute";
 import { AuthRedirect } from "@/components/AuthRedirect";
 import Landing from "./pages/Landing";
 import Register from "./pages/Register";
-import PendingApproval from "./pages/PendingApproval";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import Pets from "./pages/Pets";
@@ -28,6 +27,7 @@ import Stock from "./pages/Stock";
 import AccountingNew from "./pages/AccountingNew";
 import StockManagement from "./pages/StockManagement";
 import AdminPanel from "./pages/AdminPanel";
+import TeamManagement from "./pages/TeamManagement";
 import TestStats from "./pages/TestStats";
 import SimpleTest from "./pages/SimpleTest";
 import NotFound from "./pages/NotFound";
@@ -62,14 +62,6 @@ const App = () => (
                         }
                       />
                       <Route path="/register" element={<Register />} />
-                      <Route 
-                        path="/pending-approval" 
-                        element={
-                          <ProtectedRoute>
-                            <PendingApproval />
-                          </ProtectedRoute>
-                        } 
-                      />
                       <Route
                         path="/dashboard"
                         element={
@@ -154,10 +146,10 @@ const App = () => (
                       <Route
                         path="/accounting"
                         element={
-                          <ProtectedRoute>
+                          <AdminRoute>
                             <VetNavigation />
                             <AccountingNew />
-                          </ProtectedRoute>
+                          </AdminRoute>
                         }
                       />
                       <Route
@@ -184,6 +176,15 @@ const App = () => (
                           <AdminRoute>
                             <VetNavigation />
                             <AdminPanel />
+                          </AdminRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/team"
+                        element={
+                          <AdminRoute>
+                            <VetNavigation />
+                            <TeamManagement />
                           </AdminRoute>
                         }
                       />
