@@ -26,7 +26,6 @@ import Antiparasites from "./pages/Antiparasites";
 import Stock from "./pages/Stock";
 import AccountingNew from "./pages/AccountingNew";
 import StockManagement from "./pages/StockManagement";
-import AdminPanel from "./pages/AdminPanel";
 import TeamManagement from "./pages/TeamManagement";
 import TestStats from "./pages/TestStats";
 import SimpleTest from "./pages/SimpleTest";
@@ -168,15 +167,6 @@ const App = () => (
                             <VetNavigation />
                             <Stock />
                           </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/admin"
-                        element={
-                          <AdminRoute>
-                            <VetNavigation />
-                            <AdminPanel />
-                          </AdminRoute>
                         }
                       />
                       <Route

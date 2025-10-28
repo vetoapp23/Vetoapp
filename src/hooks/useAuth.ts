@@ -18,60 +18,90 @@ export const authKeys = {
 // Centralized auth session fetcher
 const fetchAuthSession = async (): Promise<User | null> => {
   try {
+    console.log('🔍 fetchAuthSession: Starting...');
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     
-    if (sessionError || !session?.user) {
-      return null
+    if (sessionError) {
+      console.error('❌ Session error:', sessionError);
+      return null;
+    }
+    
+    if (!session?.user) {
+      console.log('ℹ️ No session found');
+      return null;
     }
 
+    console.log('✅ Session exists for user:', session.user.email);
+
     // Get or create user profile with better error handling
-    let profile: UserProfile | null = null
+    let profile: UserProfile | null = null;
     
     try {
-      profile = await getCurrentUserProfile()
+      profile = await getCurrentUserProfile();
       console.log('✅ Profile loaded from database:', profile);
-    } catch (profileError) {
+    } catch (profileError: any) {
       console.error('❌ Error loading profile:', profileError);
+      console.error('❌ Error details:', profileError?.message, profileError?.code);
+      
       // Try to create profile if it doesn't exist
       try {
-        profile = await createUserProfileIfNotExists(session.user)
+        console.log('🔄 Attempting to create profile...');
+        profile = await createUserProfileIfNotExists(session.user);
         console.log('✅ Profile created:', profile);
-      } catch (createError) {
+      } catch (createError: any) {
         console.error('❌ Failed to create user profile:', createError);
-        // CRITICAL: Don't use fallback - throw error instead
-        // This fallback was causing the admin role to be overridden with 'assistant'
-        throw new Error('Failed to load or create user profile. Please contact support.');
+        console.error('❌ Create error details:', createError?.message, createError?.code);
+        // CRITICAL: Return null instead of throwing - let user try to login again
+        return null;
       }
     }
 
     if (!profile) {
-      return null
+      console.log('❌ No profile found or created');
+      return null;
     }
+
+    console.log('✅ Auth session complete:', { id: session.user.id, email: session.user.email, role: profile.role });
 
     return {
       id: session.user.id,
       email: session.user.email!,
       profile,
       organization_id: profile.organization_id
-    }
-  } catch (error) {
-    return null
+    };
+  } catch (error: any) {
+    console.error('❌ Unexpected error in fetchAuthSession:', error);
+    console.error('❌ Error details:', error?.message, error?.code);
+    return null;
   }
 }
 
-// Optimized auth session hook with better caching strategy
+// Optimized auth session hook - SIMPLIFIED for speed
 export const useAuthSession = () => {
-  return useQuery({
+  const query = useQuery({
     queryKey: authKeys.session(),
-    queryFn: fetchAuthSession,
-    staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
-    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
-    retry: 1, // One retry on failure
-    refetchOnWindowFocus: false, // Prevent focus refetches
-    refetchOnMount: true, // Need to refetch on mount to update after login
-    refetchOnReconnect: false, // Prevent reconnect refetches
-    networkMode: 'offlineFirst', // Better offline handling
-  })
+    queryFn: async () => {
+      console.log('🔄 useAuthSession: Fetching auth session...');
+      const result = await fetchAuthSession();
+      console.log('🔄 useAuthSession: Result:', result ? '✅ User found' : '❌ No user');
+      return result;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: false, // Fail fast
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Use cached data - don't refetch after login
+    refetchOnReconnect: false,
+  });
+
+  console.log('🔄 useAuthSession state:', {
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    hasData: !!query.data,
+    userEmail: query.data?.email
+  });
+
+  return query;
 }
 
 // Login mutation with improved error handling and caching

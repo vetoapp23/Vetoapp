@@ -57,7 +57,12 @@ export const getCurrentUser = async () => {
 
 export const getCurrentUserProfile = async (): Promise<UserProfile | null> => {
   const user = await getCurrentUser()
-  if (!user) return null
+  if (!user) {
+    console.log('❌ getCurrentUserProfile: No authenticated user');
+    return null;
+  }
+
+  console.log('🔍 getCurrentUserProfile: Fetching profile for user:', user.id);
 
   const { data, error } = await supabase
     .from('user_profiles')
@@ -65,8 +70,16 @@ export const getCurrentUserProfile = async (): Promise<UserProfile | null> => {
     .eq('id', user.id)
     .single()
 
-  if (error) throw error
-  return data
+  if (error) {
+    console.error('❌ getCurrentUserProfile: Error fetching profile:', error);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error details:', error.details);
+    throw error;
+  }
+  
+  console.log('✅ getCurrentUserProfile: Profile found:', data);
+  return data;
 }
 
 export const signUp = async (email: string, password: string, username: string, fullName: string, role: 'admin' | 'assistant' = 'assistant') => {

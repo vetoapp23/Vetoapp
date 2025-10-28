@@ -58,10 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           queryClient.clear();
           queryClient.setQueryData(authKeys.session(), null);
         } else if (event === 'SIGNED_IN' && session) {
-          console.log('🔐 User signed in event detected');
-          // Don't invalidate - the login mutation already set the data
-          // Invalidating here causes a refetch which might get stale data
-          // The query will refetch naturally when needed
+          console.log('🔐 User signed in event detected - data already set by login mutation');
+          // DO NOTHING - the login mutation already set the query data
+          // Refetching here causes unnecessary delay
         } else if (event === 'TOKEN_REFRESHED' && session) {
           console.log('🔄 Token refreshed, invalidating query');
           // Invalidate on token refresh to get updated data
@@ -118,9 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshProfileMutation.mutateAsync();
   };
 
-  // Compute loading state - only consider query loading, not mutation loading
-  // Mutation loading causes the login page to hang
-  const isActuallyLoading = !isInitialized || (queryLoading && !error && user === undefined);
+  // Simplified loading state - just use query loading directly
+  // If we have user data, we're not loading (even if query is refetching in background)
+  const isActuallyLoading = queryLoading && !user;
 
   // Log auth state changes (only when they change)
   useEffect(() => {
