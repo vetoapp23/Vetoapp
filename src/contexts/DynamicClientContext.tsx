@@ -170,10 +170,21 @@ export const useClients = (filters: Record<string, any> = {}) => {
         throw new Error('User not authenticated');
       }
 
+      // Get user's organization_id
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        throw new Error('User profile or organization not found');
+      }
+
       let query = supabase
         .from('clients')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('organization_id', profile.organization_id)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -236,13 +247,24 @@ export const useAnimals = (filters: Record<string, any> = {}) => {
         throw new Error('User not authenticated');
       }
 
+      // Get user's organization_id
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        throw new Error('User profile or organization not found');
+      }
+
       let query = supabase
         .from('animals')
         .select(`
           *,
           client:clients(*)
         `)
-        .eq('user_id', user.id)
+        .eq('organization_id', profile.organization_id)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 

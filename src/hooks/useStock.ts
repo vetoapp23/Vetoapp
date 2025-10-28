@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 export interface DatabaseStockItem {
   id: string;
   user_id: string;
+  organization_id: string;
   name: string;
   category: string;
   description?: string;
@@ -56,13 +57,14 @@ export interface DatabaseStockAlert {
 export interface DatabaseSupplier {
   id: string;
   user_id: string;
+  organization_id: string;
   name: string;
   contact_person?: string;
   phone?: string;
   email?: string;
   address?: string;
   notes?: string;
-  is_active: boolean;
+  active: boolean; // Note: column is 'active' not 'is_active'
   created_at: string;
   updated_at: string;
 }
@@ -107,14 +109,28 @@ export const useStock = () => {
     if (!user) return;
     
     try {
+      // Get user's organization_id
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        console.error('Error fetching user profile:', profileError);
+        setError('User profile or organization not found');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('stock_items')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('organization_id', profile.organization_id)
         .eq('active', true)
         .order('name');
 
       if (error) throw error;
+      console.log('✅ Stock items loaded for organization:', profile.organization_id, 'Count:', data?.length);
       setStockItems(data || []);
     } catch (err: any) {
       console.error('Error fetching stock items:', err);
@@ -127,16 +143,29 @@ export const useStock = () => {
     if (!user) return;
     
     try {
+      // Get user's organization_id
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        console.error('Error fetching user profile:', profileError);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('stock_movements')
         .select(`
           *,
-          stock_items!inner(user_id)
+          stock_items!inner(organization_id)
         `)
-        .eq('stock_items.user_id', user.id)
+        .eq('stock_items.organization_id', profile.organization_id)
         .order('movement_date', { ascending: false });
 
       if (error) throw error;
+      console.log('✅ Stock movements loaded for organization:', profile.organization_id, 'Count:', data?.length);
       setStockMovements(data || []);
     } catch (err: any) {
       console.error('Error fetching stock movements:', err);
@@ -146,9 +175,21 @@ export const useStock = () => {
 
   // Fetch stock alerts
   const fetchStockAlerts = async () => {
+    // DISABLED: stock_alerts is a VIEW without user_id or organization_id columns
+    // The view needs to be recreated to include these columns from the underlying tables
+    // For now, just return empty array to avoid errors
+    console.log('⚠️ Stock alerts fetching disabled - view structure incompatible');
+    setStockAlerts([]);
+    return;
+    
+    /* 
     if (!user) return;
     
     try {
+      // NOTE: stock_alerts is a VIEW, not a table with organization_id
+      // For now, we'll skip fetching alerts or fetch by user_id
+      // TODO: Recreate the view to include organization_id from stock_items
+      
       const { data, error } = await supabase
         .from('stock_alerts')
         .select('*')
@@ -156,11 +197,13 @@ export const useStock = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('✅ Stock alerts loaded (by user_id):', 'Count:', data?.length);
       setStockAlerts(data || []);
     } catch (err: any) {
       console.error('Error fetching stock alerts:', err);
       setError(err.message);
     }
+    */
   };
 
   // Fetch suppliers
@@ -168,14 +211,27 @@ export const useStock = () => {
     if (!user) return;
     
     try {
+      // Get user's organization_id
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        console.error('Error fetching user profile:', profileError);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('suppliers')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
+        .eq('organization_id', profile.organization_id)
+        .eq('active', true)
         .order('name');
 
       if (error) throw error;
+      console.log('✅ Suppliers loaded for organization:', profile.organization_id, 'Count:', data?.length);
       setSuppliers(data || []);
     } catch (err: any) {
       console.error('Error fetching suppliers:', err);
@@ -188,9 +244,21 @@ export const useStock = () => {
     if (!user) return null;
 
     try {
+      // Get user's organization_id
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        throw new Error('User profile or organization not found');
+      }
+
       const newItem = {
         ...itemData,
         user_id: user.id,
+        organization_id: profile.organization_id
       };
 
       const { data, error } = await supabase
@@ -230,11 +298,22 @@ export const useStock = () => {
     if (!user) return null;
 
     try {
+      // Get user's organization_id for security check
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        throw new Error('User profile or organization not found');
+      }
+
       const { data, error } = await supabase
         .from('stock_items')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('organization_id', profile.organization_id)
         .select()
         .single();
 
@@ -269,11 +348,22 @@ export const useStock = () => {
     if (!user) return false;
 
     try {
+      // Get user's organization_id for security check
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        throw new Error('User profile or organization not found');
+      }
+
       const { error } = await supabase
         .from('stock_items')
         .update({ active: false })
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('organization_id', profile.organization_id);
 
       if (error) throw error;
 
@@ -335,6 +425,12 @@ export const useStock = () => {
 
   // Generate stock alerts
   const generateStockAlerts = async () => {
+    // DISABLED: Database function 'generate_stock_alerts' doesn't exist
+    // This feature needs to be implemented with a proper database function
+    console.log('⚠️ Stock alerts generation disabled - function not implemented');
+    return;
+    
+    /* 
     if (!user) return;
 
     try {
@@ -348,6 +444,7 @@ export const useStock = () => {
       console.error('Error generating stock alerts:', err);
       // Don't show error toast for this as it's automatic
     }
+    */
   };
 
   // Mark alert as read
@@ -374,9 +471,21 @@ export const useStock = () => {
     if (!user) return null;
 
     try {
+      // Get user's organization_id
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        throw new Error('User profile or organization not found');
+      }
+
       const newSupplier = {
         ...supplierData,
         user_id: user.id,
+        organization_id: profile.organization_id,
       };
 
       const { data, error } = await supabase
@@ -448,14 +557,17 @@ export const useStock = () => {
       Promise.all([
         fetchStockItems(),
         fetchStockMovements(),
-        fetchStockAlerts(),
+        // fetchStockAlerts(), // DISABLED - view structure incompatible
         fetchSuppliers(),
       ]).finally(() => {
         setLoading(false);
       });
       
-      // Generate alerts on load
-      generateStockAlerts();
+      // Stock alerts generation disabled - function not implemented in database
+      // generateStockAlerts();
+      
+      // Set empty alerts array since fetching is disabled
+      setStockAlerts([]);
     }
   }, [user]);
 

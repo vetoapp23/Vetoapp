@@ -4,6 +4,102 @@
 
 **URL**: https://lovable.dev/projects/8a0e4ec4-ff53-42de-adef-27930611321e
 
+## ⚠️ IMPORTANT: User Management Flow Decision Required
+
+**Please review the two user management options below and let us know which one you prefer:**
+
+### Option 1: Single Admin with Multiple Assistants (Current Implementation)
+```
+┌─────────────────────────────────────────┐
+│           VETOAPP SYSTEM                │
+├─────────────────────────────────────────┤
+│  👤 Admin (1)                           │
+│     │                                   │
+│     ├── 👥 Assistant 1                  │
+│     ├── 👥 Assistant 2                  │
+│     ├── 👥 Assistant 3                  │
+│     └── 👥 Assistant N...               │
+└─────────────────────────────────────────┘
+```
+
+**How it works:**
+- **One Admin** controls the entire system
+- All new users register as **Assistants by default**
+- The single Admin approves/rejects all Assistant registrations
+- All Assistants work under the same organization
+- All Assistants share access to the same data (clients, animals, etc.)
+
+**Use Case:**
+- Single veterinary clinic with one owner/manager
+- All staff members are managed centrally
+- Unified data and operations
+
+---
+
+### Option 2: Multiple Admins with Separate Assistants (Multi-Tenant)
+```
+┌─────────────────────────────────────────┐
+│           VETOAPP SYSTEM                │
+├─────────────────────────────────────────┤
+│  👤 Admin 1                             │
+│     ├── 👥 Assistant 1A                 │
+│     ├── 👥 Assistant 1B                 │
+│     └── 📊 Data Group 1                 │
+│                                         │
+│  👤 Admin 2                             │
+│     ├── 👥 Assistant 2A                 │
+│     ├── 👥 Assistant 2B                 │
+│     ├── 👥 Assistant 2C                 │
+│     └── 📊 Data Group 2                 │
+│                                         │
+│  👤 Admin 3                             │
+│     ├── 👥 Assistant 3A                 │
+│     └── 📊 Data Group 3                 │
+└─────────────────────────────────────────┘
+```
+
+**How it works:**
+- **Multiple Admins**, each managing their own workspace
+- Each Admin approves/rejects their own Assistant registrations
+- Assistants belong to a specific Admin/Organization
+- **Data isolation**: Admin 1's assistants cannot see Admin 2's data
+- Each Admin group operates independently
+
+**Use Case:**
+- Multiple independent veterinary clinics
+- Franchise or multi-location practices
+- Each clinic owner manages their own staff and data
+
+---
+
+### Key Differences
+
+| Feature | Option 1 (Single Admin) | Option 2 (Multi-Admin) |
+|---------|------------------------|------------------------|
+| Number of Admins | 1 | Multiple |
+| Assistant Assignment | All under one Admin | Each Admin has their own |
+| Data Access | Shared across all users | Isolated per Admin group |
+| Approval Process | Single Admin approves all | Each Admin approves their own |
+| Complexity | Simpler | More complex (multi-tenant) |
+| Database Changes | Minimal | Requires organization/tenant system |
+
+---
+
+### 📋 Decision Required
+
+**Current Status:** The app is currently built for **Option 1** (Single Admin).
+
+**To proceed with Option 2**, we will need to:
+1. Add an `organizations` or `tenants` table
+2. Link Assistants to specific Admins
+3. Implement data isolation (RLS policies)
+4. Update the approval workflow
+5. Modify the authentication flow
+
+**Please confirm which option you prefer so we can proceed with the appropriate implementation.**
+
+---
+
 ## How can I edit this code?
 
 There are several ways of editing your application.

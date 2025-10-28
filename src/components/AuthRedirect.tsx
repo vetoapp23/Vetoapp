@@ -11,12 +11,18 @@ export function AuthRedirect({ children, redirectTo = '/dashboard' }: AuthRedire
   const { isAuthenticated, isLoading, user } = useAuth();
   const [loadingTimeout, setLoadingTimeout] = useState(false);
 
+  // Debug log auth state changes
+  useEffect(() => {
+    console.log('🔍 AuthRedirect state:', { isAuthenticated, isLoading, hasUser: !!user });
+  }, [isAuthenticated, isLoading, user]);
+
   // Prevent infinite loading with timeout
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
+        console.log('⏱️ Loading timeout reached');
         setLoadingTimeout(true);
-      }, 2000); // 2 second timeout for login pages
+      }, 3000); // 3 second timeout (increased from 2s for slower connections)
 
       return () => clearTimeout(timeout);
     } else {
@@ -24,8 +30,15 @@ export function AuthRedirect({ children, redirectTo = '/dashboard' }: AuthRedire
     }
   }, [isLoading]);
 
+  // If user is authenticated, redirect immediately (check this FIRST)
+  if (isAuthenticated && user) {
+    console.log('✅ User authenticated, redirecting to:', redirectTo);
+    return <Navigate to={redirectTo} replace />;
+  }
+
   // If loading for too long, show login form
   if (loadingTimeout) {
+    console.log('⏱️ Loading timeout, showing login form');
     return <>{children}</>;
   }
 
@@ -41,10 +54,6 @@ export function AuthRedirect({ children, redirectTo = '/dashboard' }: AuthRedire
     );
   }
 
-  // If user is authenticated, redirect immediately
-  if (isAuthenticated && user) {
-    return <Navigate to={redirectTo} replace />;
-  }
-
+  // Show login form
   return <>{children}</>;
 }

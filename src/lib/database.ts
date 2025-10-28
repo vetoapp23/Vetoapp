@@ -1,12 +1,108 @@
 import { supabase } from './supabase'
 
 // =============================================
+// ORGANIZATION TYPES (MULTI-TENANT)
+// =============================================
+
+export interface Organization {
+  id: string
+  name: string
+  owner_id: string
+  clinic_name: string
+  clinic_address?: string
+  phone?: string
+  email?: string
+  business_hours?: Record<string, any>
+  settings?: Record<string, any>
+  logo_url?: string
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface UserProfile {
+  id: string
+  email: string
+  username?: string
+  full_name?: string
+  role: 'admin' | 'assistant'
+  organization_id?: string
+  status: 'pending' | 'approved' | 'rejected' | 'suspended'
+  approved_by?: string
+  permissions?: UserPermissions
+  created_at: string
+  updated_at: string
+  
+  // Relations
+  organization?: Organization
+}
+
+export interface UserPermissions {
+  clients?: {
+    view?: boolean
+    create?: boolean
+    edit?: boolean
+    delete?: boolean
+  }
+  animals?: {
+    view?: boolean
+    create?: boolean
+    edit?: boolean
+    delete?: boolean
+  }
+  consultations?: {
+    view?: boolean
+    create?: boolean
+    edit?: boolean
+    delete?: boolean
+  }
+  inventory?: {
+    view?: boolean
+    create?: boolean
+    edit?: boolean
+    delete?: boolean
+  }
+  settings?: {
+    view?: boolean
+    edit?: boolean
+  }
+}
+
+export interface UserInvitation {
+  id: string
+  email: string
+  invited_by: string
+  organization_id?: string
+  role: 'admin' | 'assistant'
+  permissions?: UserPermissions
+  invitation_token: string
+  expires_at: string
+  status: 'pending' | 'accepted' | 'expired' | 'cancelled'
+  accepted_at?: string
+  created_at: string
+}
+
+export interface AuditLog {
+  id: string
+  organization_id?: string
+  user_id?: string
+  action: string
+  entity_type?: string
+  entity_id?: string
+  details?: Record<string, any>
+  ip_address?: string
+  user_agent?: string
+  created_at: string
+}
+
+// =============================================
 // CLIENT TYPES AND INTERFACES
 // =============================================
 
 export interface Client {
   id: string
   user_id: string
+  organization_id?: string
   first_name: string
   last_name: string
   email?: string
@@ -27,6 +123,7 @@ export interface Animal {
   id: string
   client_id: string
   user_id: string
+  organization_id?: string
   name: string
   species: string // Now accepts any string value from app settings
   breed?: string
@@ -60,6 +157,7 @@ export interface Consultation {
   animal_id: string
   client_id: string
   veterinarian_id?: string
+  organization_id?: string
   consultation_date: string
   consultation_type: string
   symptoms?: string
@@ -165,6 +263,7 @@ export interface Appointment {
 
 export interface StockItem {
   id: string
+  organization_id?: string
   name: string
   description?: string
   category: 'medication' | 'vaccine' | 'consumable' | 'equipment' | 'supplement'
@@ -260,6 +359,7 @@ export interface AntiparasiticProtocol {
 export interface Farm {
   id: string
   client_id: string
+  organization_id?: string
   farm_name: string
   farm_type?: string
   registration_number?: string
@@ -549,10 +649,21 @@ export const getClients = async (): Promise<Client[]> => {
     throw new Error('User must be authenticated to fetch clients')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   const { data, error } = await supabase
     .from('clients')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -586,11 +697,23 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     throw new Error('User not authenticated')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   const { data, error } = await supabase
     .from('clients')
     .insert({
       ...clientData,
       user_id: user.id,
+      organization_id: profile.organization_id,
       city: clientData.city || 'Rabat',
       country: clientData.country || 'Maroc',
       client_type: clientData.client_type || 'particulier'
@@ -642,13 +765,24 @@ export const getAnimals = async (): Promise<Animal[]> => {
     throw new Error('User must be authenticated to fetch animals')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   const { data, error } = await supabase
     .from('animals')
     .select(`
       *,
       client:clients(*)
     `)
-    .eq('user_id', user.id)
+    .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -740,11 +874,23 @@ export const createAnimal = async (animalData: CreateAnimalData): Promise<Animal
     }
   };
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   const { data, error } = await supabase
     .from('animals')
     .insert({
       ...cleanAnimalData,
       user_id: user.id,
+      organization_id: profile.organization_id,
       sterilized: cleanAnimalData.sterilized || false,
       status: mapStatusToDatabase(cleanAnimalData.status)
     })
@@ -912,22 +1058,18 @@ export const getConsultations = async (): Promise<Consultation[]> => {
     throw new Error('User must be authenticated to fetch consultations')
   }
 
-  // First get user's animals to filter consultations
-  const { data: userAnimals, error: animalsError } = await supabase
-    .from('animals')
-    .select('id')
-    .eq('user_id', user.id)
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
 
-  if (animalsError) {
-    throw new Error(`Error fetching user animals: ${animalsError.message}`)
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
   }
 
-  const animalIds = userAnimals?.map(animal => animal.id) || []
-
-  if (animalIds.length === 0) {
-    return [] // No animals, no consultations
-  }
-
+  // Fetch consultations filtered by organization_id
   const { data, error } = await supabase
     .from('consultations')
     .select(`
@@ -935,7 +1077,7 @@ export const getConsultations = async (): Promise<Consultation[]> => {
       animal:animals(*),
       client:clients(*)
     `)
-    .in('animal_id', animalIds)
+    .eq('organization_id', profile.organization_id)
     .order('consultation_date', { ascending: false })
 
   if (error) {
@@ -970,11 +1112,23 @@ export const createConsultation = async (consultationData: CreateConsultationDat
     throw new Error('User not authenticated')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   const { data, error } = await supabase
     .from('consultations')
     .insert({
       ...consultationData,
-      veterinarian_id: consultationData.veterinarian_id || user.id
+      veterinarian_id: consultationData.veterinarian_id || user.id,
+      organization_id: profile.organization_id
     })
     .select(`
       *,
@@ -1020,29 +1174,25 @@ export const getVaccinations = async (): Promise<Vaccination[]> => {
     throw new Error('User must be authenticated to fetch vaccinations')
   }
 
-  // First get user's animals to filter vaccinations
-  const { data: userAnimals, error: animalsError } = await supabase
-    .from('animals')
-    .select('id')
-    .eq('user_id', user.id)
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
 
-  if (animalsError) {
-    throw new Error(`Error fetching user animals: ${animalsError.message}`)
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
   }
 
-  const animalIds = userAnimals?.map(animal => animal.id) || []
-
-  if (animalIds.length === 0) {
-    return [] // No animals, no vaccinations
-  }
-
+  // Fetch vaccinations filtered by organization_id
   const { data, error } = await supabase
     .from('vaccinations')
     .select(`
       *,
       animal:animals(*)
     `)
-    .in('animal_id', animalIds)
+    .eq('organization_id', profile.organization_id)
     .order('vaccination_date', { ascending: false })
 
   if (error) {
@@ -1076,24 +1226,29 @@ export const createVaccination = async (vaccinationData: CreateVaccinationData):
     throw new Error('User not authenticated')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('id, organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   // Ensure administered_by is either a valid UUID or null
   let administeredBy = vaccinationData.administered_by;
   if (!administeredBy || administeredBy.trim() === '') {
-    // Check if the current user has a profile in user_profiles
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('id', user.id)
-      .single();
-    
-    administeredBy = userProfile ? user.id : null;
+    administeredBy = profile ? user.id : null;
   }
 
   const { data, error } = await supabase
     .from('vaccinations')
     .insert({
       ...vaccinationData,
-      administered_by: administeredBy
+      administered_by: administeredBy,
+      organization_id: profile.organization_id
     })
     .select(`
       *,
@@ -1215,12 +1370,31 @@ export const deleteVaccinationProtocol = async (id: string): Promise<void> => {
 // =============================================
 
 export const getAntiparasitics = async (): Promise<Antiparasitic[]> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to fetch antiparasitics')
+  }
+
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
+  // Fetch antiparasitics filtered by organization_id
   const { data, error } = await supabase
     .from('antiparasitics')
     .select(`
       *,
       animal:animals(*)
     `)
+    .eq('organization_id', profile.organization_id)
     .order('treatment_date', { ascending: false })
 
   if (error) {
@@ -1254,6 +1428,17 @@ export const createAntiparasitic = async (antiparasiticData: CreateAntiparasitic
     throw new Error('User must be authenticated to create antiparasitic')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   // Clean the data and ensure effectiveness_rating is properly handled
   const cleanedData = { ...antiparasiticData };
   
@@ -1270,13 +1455,13 @@ export const createAntiparasitic = async (antiparasiticData: CreateAntiparasitic
 
   // Validate administered_by field if provided
   if (cleanedData.administered_by) {
-    const { data: profile } = await supabase
+    const { data: adminProfile } = await supabase
       .from('user_profiles')
       .select('id')
       .eq('id', cleanedData.administered_by)
       .single()
     
-    if (!profile) {
+    if (!adminProfile) {
       console.warn('administered_by user not found, removing field')
       delete cleanedData.administered_by
     }
@@ -1284,7 +1469,10 @@ export const createAntiparasitic = async (antiparasiticData: CreateAntiparasitic
 
   const { data, error } = await supabase
     .from('antiparasitics')
-    .insert([cleanedData])
+    .insert([{
+      ...cleanedData,
+      organization_id: profile.organization_id
+    }])
     .select(`
       *,
       animal:animals(*)
@@ -1464,22 +1652,18 @@ export const getPrescriptions = async (): Promise<Prescription[]> => {
     throw new Error('User must be authenticated to fetch prescriptions')
   }
 
-  // First get user's animals to filter prescriptions
-  const { data: userAnimals, error: animalsError } = await supabase
-    .from('animals')
-    .select('id')
-    .eq('user_id', user.id)
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
 
-  if (animalsError) {
-    throw new Error(`Error fetching user animals: ${animalsError.message}`)
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
   }
 
-  const animalIds = userAnimals?.map(animal => animal.id) || []
-
-  if (animalIds.length === 0) {
-    return [] // No animals, no prescriptions
-  }
-
+  // Fetch prescriptions filtered by organization_id
   const { data, error } = await supabase
     .from('prescriptions')
     .select(`
@@ -1488,7 +1672,7 @@ export const getPrescriptions = async (): Promise<Prescription[]> => {
       client:clients(*),
       medications:prescription_medications(*)
     `)
-    .in('animal_id', animalIds)
+    .eq('organization_id', profile.organization_id)
     .order('prescription_date', { ascending: false })
 
   if (error) {
@@ -1524,6 +1708,17 @@ export const createPrescription = async (prescriptionData: CreatePrescriptionDat
     throw new Error('User not authenticated')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   // Extract medications from the data
   const { medications, ...prescriptionDataWithoutMedications } = prescriptionData
 
@@ -1532,7 +1727,8 @@ export const createPrescription = async (prescriptionData: CreatePrescriptionDat
     .from('prescriptions')
     .insert({
       ...prescriptionDataWithoutMedications,
-      veterinarian_id: prescriptionDataWithoutMedications.veterinarian_id || user.id
+      veterinarian_id: prescriptionDataWithoutMedications.veterinarian_id || user.id,
+      organization_id: profile.organization_id
     })
     .select()
     .single()
@@ -1587,22 +1783,18 @@ export const getAppointments = async (): Promise<Appointment[]> => {
     throw new Error('User must be authenticated to fetch appointments')
   }
 
-  // First get user's clients to filter appointments
-  const { data: userClients, error: clientsError } = await supabase
-    .from('clients')
-    .select('id')
-    .eq('user_id', user.id)
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
 
-  if (clientsError) {
-    throw new Error(`Error fetching user clients: ${clientsError.message}`)
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
   }
 
-  const clientIds = userClients?.map(client => client.id) || []
-
-  if (clientIds.length === 0) {
-    return [] // No clients, no appointments
-  }
-
+  // Fetch appointments filtered by organization_id
   const { data, error } = await supabase
     .from('appointments')
     .select(`
@@ -1610,7 +1802,7 @@ export const getAppointments = async (): Promise<Appointment[]> => {
       client:clients(*),
       animal:animals(*)
     `)
-    .in('client_id', clientIds)
+    .eq('organization_id', profile.organization_id)
     .order('appointment_date', { ascending: true })
 
   if (error) {
@@ -1645,12 +1837,24 @@ export const createAppointment = async (appointmentData: CreateAppointmentData):
     throw new Error('User not authenticated')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   const { data, error } = await supabase
     .from('appointments')
     .insert({
       ...appointmentData,
       veterinarian_id: appointmentData.veterinarian_id || user.id,
-      duration_minutes: appointmentData.duration_minutes || 30
+      duration_minutes: appointmentData.duration_minutes || 30,
+      organization_id: profile.organization_id
     })
     .select(`
       *,
@@ -1880,21 +2084,44 @@ export const getFarms = async (): Promise<Farm[]> => {
     throw new Error('User must be authenticated to fetch farms')
   }
 
+  console.log('🔍 getFarms - User ID:', user.id)
+
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  console.log('🔍 getFarms - Profile:', profile, 'Error:', profileError)
+
+  if (profileError || !profile?.organization_id) {
+    console.error('❌ getFarms - Profile error or no organization_id')
+    throw new Error('User profile or organization not found')
+  }
+
+  console.log('🔍 getFarms - Querying organization_id:', profile.organization_id)
+
+  // Fetch farms filtered by organization_id (simplified - no join filtering)
   const { data, error } = await supabase
     .from('farms')
     .select(`
       *,
-      clients!inner(
+      clients(
         id,
         first_name,
         last_name,
         user_id
       )
     `)
-    .eq('clients.user_id', user.id)
+    .eq('organization_id', profile.organization_id)
     .order('farm_name', { ascending: true })
 
+  console.log('🔍 getFarms - Data:', data, 'Error:', error)
+  console.log('🔍 getFarms - Found', data?.length || 0, 'farms')
+
   if (error) {
+    console.error('❌ getFarms - Query error:', error)
     throw new Error(`Error fetching farms: ${error.message}`)
   }
 
@@ -1908,19 +2135,29 @@ export const getFarmById = async (id: string): Promise<Farm | null> => {
     throw new Error('User must be authenticated to fetch farm')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   const { data, error } = await supabase
     .from('farms')
     .select(`
       *,
-      clients!inner(
+      clients(
         id,
         first_name,
-        last_name,
-        user_id
+        last_name
       )
     `)
     .eq('id', id)
-    .eq('clients.user_id', user.id)
+    .eq('organization_id', profile.organization_id)
     .single()
 
   if (error) {
@@ -1940,19 +2177,29 @@ export const getFarmsByClient = async (clientId: string): Promise<Farm[]> => {
     throw new Error('User must be authenticated to fetch farms')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   const { data, error } = await supabase
     .from('farms')
     .select(`
       *,
-      clients!inner(
+      clients(
         id,
         first_name,
-        last_name,
-        user_id
+        last_name
       )
     `)
     .eq('client_id', clientId)
-    .eq('clients.user_id', user.id)
+    .eq('organization_id', profile.organization_id)
     .order('farm_name', { ascending: true })
 
   if (error) {
@@ -1969,16 +2216,43 @@ export const createFarm = async (farmData: CreateFarmData): Promise<Farm> => {
     throw new Error('User must be authenticated to create farm')
   }
 
+  console.log('🔍 createFarm - User ID:', user.id)
+  console.log('🔍 createFarm - Farm data:', farmData)
+
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  console.log('🔍 createFarm - Profile:', profile, 'Error:', profileError)
+
+  if (profileError || !profile?.organization_id) {
+    console.error('❌ createFarm - No organization_id')
+    throw new Error('User profile or organization not found')
+  }
+
+  const insertData = {
+    ...farmData,
+    user_id: user.id,
+    organization_id: profile.organization_id,
+    active: farmData.active ?? true
+  }
+
+  console.log('🔍 createFarm - Inserting with organization_id:', profile.organization_id)
+  console.log('🔍 createFarm - Full insert data:', insertData)
+
   const { data, error } = await supabase
     .from('farms')
-    .insert({
-      ...farmData,
-      active: farmData.active ?? true
-    })
+    .insert(insertData)
     .select()
     .single()
 
+  console.log('🔍 createFarm - Result:', data, 'Error:', error)
+
   if (error) {
+    console.error('❌ createFarm - Insert error:', error)
     throw new Error(`Error creating farm: ${error.message}`)
   }
 
@@ -2037,23 +2311,33 @@ export const getFarmInterventions = async (): Promise<FarmIntervention[]> => {
     throw new Error('User must be authenticated to fetch farm interventions')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   const { data, error } = await supabase
     .from('farm_interventions')
     .select(`
       *,
-      farms!inner(
+      farms(
         id,
         farm_name,
         client_id,
-        clients!inner(
+        clients(
           id,
           first_name,
-          last_name,
-          user_id
+          last_name
         )
       )
     `)
-    .eq('farms.clients.user_id', user.id)
+    .eq('organization_id', profile.organization_id)
     .order('intervention_date', { ascending: false })
 
   if (error) {
@@ -2070,24 +2354,34 @@ export const getFarmInterventionsByFarm = async (farmId: string): Promise<FarmIn
     throw new Error('User must be authenticated to fetch farm interventions')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   const { data, error } = await supabase
     .from('farm_interventions')
     .select(`
       *,
-      farms!inner(
+      farms(
         id,
         farm_name,
         client_id,
-        clients!inner(
+        clients(
           id,
           first_name,
-          last_name,
-          user_id
+          last_name
         )
       )
     `)
     .eq('farm_id', farmId)
-    .eq('farms.clients.user_id', user.id)
+    .eq('organization_id', profile.organization_id)
     .order('intervention_date', { ascending: false })
 
   if (error) {
@@ -2104,9 +2398,23 @@ export const createFarmIntervention = async (interventionData: CreateFarmInterve
     throw new Error('User must be authenticated to create farm intervention')
   }
 
+  // Get user's organization_id
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.organization_id) {
+    throw new Error('User profile or organization not found')
+  }
+
   const { data, error } = await supabase
     .from('farm_interventions')
-    .insert(interventionData)
+    .insert({
+      ...interventionData,
+      organization_id: profile.organization_id
+    })
     .select()
     .single()
 
@@ -2219,12 +2527,9 @@ export const getAppSetting = async (category: string, key: string): Promise<AppS
     .eq('setting_category', category)
     .eq('setting_key', key)
     .eq('is_active', true)
-    .single()
+    .maybeSingle() // Changed from .single() to .maybeSingle()
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      return null // No rows returned
-    }
     throw new Error(`Error fetching app setting: ${error.message}`)
   }
 

@@ -24,23 +24,24 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LogoutButton } from "@/components/LogoutButton";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Navigation principale (toujours visible)
+// Navigation principale (accessible to all authenticated users - admins and assistants)
 const primaryNavItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard", permission: null },
-  { icon: Users, label: "Clients", path: "/clients", permission: "can_manage_clients" },
-  { icon: Heart, label: "Animaux", path: "/pets", permission: "can_manage_animals" },
-  { icon: Calendar, label: "RDV", path: "/appointments", permission: "can_create_consultations" },
-  { icon: FileText, label: "Consultations", path: "/consultations", permission: "can_create_consultations" },
-  { icon: Syringe, label: "Vaccinations", path: "/vaccinations", permission: "can_create_consultations" },
-  { icon: Bug, label: "Antiparasites", path: "/antiparasites", permission: "can_create_consultations" },
-  { icon: BarChart3, label: "Historiques", path: "/history", permission: "can_view_reports" }
+  { icon: Users, label: "Clients", path: "/clients", permission: null },
+  { icon: Heart, label: "Animaux", path: "/pets", permission: null },
+  { icon: Calendar, label: "RDV", path: "/appointments", permission: null },
+  { icon: FileText, label: "Consultations", path: "/consultations", permission: null },
+  { icon: Syringe, label: "Vaccinations", path: "/vaccinations", permission: null },
+  { icon: Bug, label: "Antiparasites", path: "/antiparasites", permission: null },
+  { icon: BarChart3, label: "Historiques", path: "/history", permission: null }
 ];
 
-// Navigation secondaire (dans le menu déroulant)
+// Navigation secondaire (restricted items - farms, stock, accounting = admin only)
 const secondaryNavItems = [
-  { icon: Building2, label: "Fermes", path: "/farms", permission: "can_manage_farms" },
-  { icon: Package, label: "Stock", path: "/stock", permission: "can_manage_stock" },
-  { icon: Euro, label: "Comptabilité", path: "/accounting", permission: "can_manage_accounting" },
+  { icon: Building2, label: "Fermes", path: "/farms", permission: null },
+  { icon: Package, label: "Stock", path: "/stock", permission: null },
+  { icon: Euro, label: "Comptabilité", path: "/accounting", permission: null, adminOnly: true },
+  { icon: Users, label: "Équipe", path: "/admin/team", permission: null, adminOnly: true },
   { icon: Shield, label: "Administration", path: "/admin", permission: null, adminOnly: true },
   { icon: Cog, label: "Paramètres", path: "/settings", permission: null }
 ];

@@ -25,6 +25,7 @@ export interface UserProfile {
   full_name: string | null
   role: 'admin' | 'assistant'
   status?: 'pending' | 'approved' | 'rejected' | 'suspended'
+  organization_id?: string | null
   approved_by?: string | null
   approved_at?: string | null
   rejection_reason?: string | null

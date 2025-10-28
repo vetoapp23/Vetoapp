@@ -94,18 +94,38 @@ const FarmPage = () => {
     if (!user) return;
     
     try {
+      // Get user's organization_id from profile
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        console.error('Error fetching user profile:', profileError);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger le profil utilisateur",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Query farms by organization_id (shared across organization)
       const { data, error } = await supabase
         .from('farms')
         .select(`
           *,
           clients(first_name, last_name)
         `)
-        .eq('user_id', user.id)
+        .eq('organization_id', profile.organization_id)
         .eq('active', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
+      console.log('✅ Farms loaded for organization:', profile.organization_id, 'Count:', data?.length);
       setFarms(data || []);
     } catch (error) {
       console.error('Error fetching farms:', error);
@@ -124,6 +144,19 @@ const FarmPage = () => {
     if (!user) return;
     
     try {
+      // Get user's organization_id from profile
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        console.error('Error fetching user profile:', profileError);
+        return;
+      }
+
+      // Query farm interventions by organization_id (shared across organization)
       const { data, error } = await supabase
         .from('farm_interventions')
         .select(`
@@ -131,11 +164,13 @@ const FarmPage = () => {
           farms(farm_name),
           user_profiles(full_name)
         `)
+        .eq('organization_id', profile.organization_id)
         .order('intervention_date', { ascending: false })
         .limit(50);
 
       if (error) throw error;
       
+      console.log('✅ Farm interventions loaded for organization:', profile.organization_id, 'Count:', data?.length);
       setFarmInterventions(data || []);
     } catch (error) {
       console.error('Error fetching farm interventions:', error);
