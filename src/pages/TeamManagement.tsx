@@ -10,6 +10,19 @@ export default function TeamManagement() {
   const { user } = useAuth();
   const { data: teamMembers, isLoading, error } = useTeamMembers();
 
+  // Debug logging
+  console.log('👥 TeamManagement - Current user:', { 
+    id: user?.id, 
+    email: user?.email, 
+    role: user?.profile?.role,
+    organization_id: user?.organization_id,
+    profile_organization_id: user?.profile?.organization_id
+  });
+  console.log('👥 TeamManagement - Team members:', teamMembers);
+  console.log('👥 TeamManagement - Team members count:', teamMembers?.length);
+  console.log('👥 TeamManagement - Loading:', isLoading);
+  console.log('👥 TeamManagement - Error:', error);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
