@@ -50,22 +50,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('🔔 Auth state change:', event, 'Session:', !!session);
+        
         // Handle auth state changes more precisely
         if (event === 'SIGNED_OUT') {
           console.log('🔓 User signed out, clearing all cache...');
           queryClient.clear();
           queryClient.setQueryData(authKeys.session(), null);
         } else if (event === 'SIGNED_IN' && session) {
-          console.log('🔐 User signed in, clearing old cache...');
-          // Clear cache on sign in to prevent showing previous user's data
-          queryClient.clear();
+          console.log('🔐 User signed in event detected');
+          // Don't invalidate - the login mutation already set the data
+          // Invalidating here causes a refetch which might get stale data
+          // The query will refetch naturally when needed
         } else if (event === 'TOKEN_REFRESHED' && session) {
+          console.log('🔄 Token refreshed, invalidating query');
           // Invalidate on token refresh to get updated data
           queryClient.invalidateQueries({ queryKey: authKeys.session() });
         }
         
         // Mark as initialized after first auth event
         if (!isInitialized) {
+          console.log('✅ Auth initialized');
           setIsInitialized(true);
         }
       }
@@ -113,14 +118,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshProfileMutation.mutateAsync();
   };
 
-  // Compute loading state more intelligently
+  // Compute loading state - only consider query loading, not mutation loading
+  // Mutation loading causes the login page to hang
   const isActuallyLoading = !isInitialized || (queryLoading && !error && user === undefined);
-  const mutationLoading = loginMutation.isPending || logoutMutation.isPending;
+
+  // Log auth state changes (only when they change)
+  useEffect(() => {
+    console.log('🔍 AuthContext state:', { 
+      isInitialized, 
+      queryLoading, 
+      hasError: !!error, 
+      hasUser: !!user,
+      userId: user?.id,
+      userEmail: user?.email,
+      isActuallyLoading,
+      isAuthenticated: !!user
+    });
+  }, [isInitialized, queryLoading, error, user, isActuallyLoading]);
 
   const value: AuthContextType = {
     user: user || null,
-    isAuthenticated: !!user && isInitialized,
-    isLoading: isActuallyLoading || mutationLoading,
+    isAuthenticated: !!user, // Simplified - just check if user exists
+    isLoading: isActuallyLoading, // Removed mutationLoading
     login,
     logout,
     refreshProfile

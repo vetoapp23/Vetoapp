@@ -34,11 +34,15 @@ export function LoginForm() {
     }
 
     try {
+      console.log('🚀 LoginForm: Starting login...');
       await loginMutation.mutateAsync({ email, password });
-      // Navigate immediately after successful login
-      console.log('✅ Login successful, navigating to dashboard...');
+      console.log('✅ LoginForm: Login mutation completed successfully');
+      
+      // Navigate immediately - don't wait
+      console.log('🔄 LoginForm: Navigating to dashboard...');
       navigate('/dashboard', { replace: true });
     } catch (error) {
+      console.error('❌ LoginForm: Login error:', error);
       // Display the specific error message from the backend
       setError(error instanceof Error ? error.message : 'Une erreur inattendue est survenue');
     }
@@ -48,8 +52,8 @@ export function LoginForm() {
     setError('');
     try {
       await googleLoginMutation.mutateAsync();
-      // Navigate immediately after successful Google login
-      console.log('✅ Google login successful, navigating to dashboard...');
+      console.log('✅ Google login successful, redirecting...');
+      // Navigate immediately
       navigate('/dashboard', { replace: true });
     } catch (error) {
       setError('Erreur lors de la connexion avec Google');

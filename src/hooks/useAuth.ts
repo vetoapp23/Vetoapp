@@ -68,7 +68,7 @@ export const useAuthSession = () => {
     gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
     retry: 1, // One retry on failure
     refetchOnWindowFocus: false, // Prevent focus refetches
-    refetchOnMount: false, // Changed from 'always' to false - prevents hang on login
+    refetchOnMount: true, // Need to refetch on mount to update after login
     refetchOnReconnect: false, // Prevent reconnect refetches
     networkMode: 'offlineFirst', // Better offline handling
   })
@@ -80,12 +80,15 @@ export const useLogin = () => {
   
   return useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
+      console.log('🔑 Starting login process...');
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
 
       if (error) {
+        console.error('❌ Login error:', error);
         // Map common Supabase auth errors to user-friendly messages
         const errorMessages: { [key: string]: string } = {
           'Invalid login credentials': 'Email ou mot de passe incorrect',
@@ -101,13 +104,23 @@ export const useLogin = () => {
         throw new Error('Échec de connexion - session invalide')
       }
 
-      return data.user
+      console.log('✅ Auth successful, fetching user profile...');
+      
+      // Fetch user profile immediately after login
+      const profile = await fetchAuthSession()
+      
+      console.log('✅ User profile fetched:', profile);
+      
+      return { user: data.user, profile }
     },
-    onSuccess: async () => {
-      // Invalidate auth session to trigger refetch (faster than refetchQueries)
-      queryClient.invalidateQueries({ queryKey: authKeys.session() })
+    onSuccess: async (data) => {
+      console.log('✅ Login mutation success, setting query data...');
+      // Set the auth session data immediately
+      queryClient.setQueryData(authKeys.session(), data.profile)
+      console.log('✅ Query data set, user should be authenticated now');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('❌ Login mutation error:', error);
       // Clear any stale auth data on login error
       queryClient.setQueryData(authKeys.session(), null)
     }

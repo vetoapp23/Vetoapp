@@ -5,12 +5,14 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export const OrganizationInviteCode = () => {
   const { toast } = useToast();
   const [invitationCode, setInvitationCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
 
   useEffect(() => {
     loadInvitationCode();
@@ -75,53 +77,73 @@ export const OrganizationInviteCode = () => {
   }
 
   return (
-    <Card className="border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <UserPlus className="h-5 w-5 text-green-600 dark:text-green-400" />
-          <CardTitle>Code d'invitation de votre organisation</CardTitle>
+    <Card>
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+            <UserPlus className="h-5 w-5 text-green-600 dark:text-green-400" />
+          </div>
+          <div>
+            <CardTitle className="text-lg font-semibold">
+              Code d'Invitation
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Partagez ce code avec vos assistants vétérinaires
+            </CardDescription>
+          </div>
         </div>
-        <CardDescription>
-          Partagez ce code avec vos assistants vétérinaires pour qu'ils puissent rejoindre votre clinique
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-2">
-          <div className="flex-1 bg-white dark:bg-gray-900 rounded-lg p-4 border-2 border-green-300 dark:border-green-700">
-            <div className="text-xs font-medium text-muted-foreground mb-1">
-              Code d'invitation
-            </div>
-            <div className="text-3xl font-bold tracking-wider text-green-600 dark:text-green-400 font-mono">
+        <div className="flex items-center gap-3 bg-muted/50 rounded-lg p-4 border">
+          <div className="flex-1">
+            <div className="text-xs text-muted-foreground mb-1">Votre Code</div>
+            <div className="text-2xl font-bold tracking-wider text-green-600 dark:text-green-400 font-mono select-all">
               {invitationCode}
             </div>
           </div>
           <Button
             onClick={copyCode}
-            variant="outline"
-            size="lg"
-            className="h-[88px] border-green-300 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/30"
+            size="sm"
+            variant={copied ? "secondary" : "default"}
+            className="h-14 w-14"
           >
             {copied ? (
-              <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <Check className="h-4 w-4" />
             ) : (
-              <Copy className="h-5 w-5" />
+              <Copy className="h-4 w-4" />
             )}
           </Button>
         </div>
 
-        <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg p-4 space-y-2">
-          <h4 className="font-semibold text-sm flex items-center gap-2">
-            <span className="text-green-600 dark:text-green-400">📋</span>
-            Instructions pour les assistants
-          </h4>
-          <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-            <li>Aller sur la page d'inscription</li>
-            <li>Cocher "Je rejoins une clinique existante"</li>
-            <li>Entrer ce code d'invitation: <span className="font-mono font-bold text-green-600 dark:text-green-400">{invitationCode}</span></li>
-            <li>Compléter le formulaire et s'inscrire</li>
-            <li>Confirmer l'email pour activer le compte</li>
-          </ol>
-        </div>
+        <Collapsible open={instructionsOpen} onOpenChange={setInstructionsOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full">
+              {instructionsOpen ? 'Masquer les instructions' : 'Comment inviter un assistant ?'}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3">
+            <div className="bg-muted/30 rounded-lg p-4 border space-y-3 text-sm">
+              <div className="space-y-2">
+                {[
+                  { step: 1, text: "Partagez le code d'invitation avec votre assistant" },
+                  { step: 2, text: "L'assistant se rend sur la page d'inscription" },
+                  { step: 3, text: 'Coche "Je rejoins une clinique existante"' },
+                  { step: 4, text: "Entre le code et complète l'inscription" },
+                  { step: 5, text: "Confirme son email pour activer le compte" }
+                ].map((item) => (
+                  <div key={item.step} className="flex items-start gap-2">
+                    <div className="flex-shrink-0 w-5 h-5 bg-green-600 dark:bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                      {item.step}
+                    </div>
+                    <p className="text-xs text-muted-foreground pt-0.5">
+                      {item.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );

@@ -14,8 +14,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
+        console.log('⏱️ ProtectedRoute: Loading timeout');
         setLoadingTimeout(true);
-      }, 3000); // 3 second timeout
+      }, 2000); // 2 second timeout (reduced from 3s)
 
       return () => clearTimeout(timeout);
     } else {
@@ -25,6 +26,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // If loading for too long, assume not authenticated
   if (loadingTimeout) {
+    console.log('❌ ProtectedRoute: Timeout reached, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
@@ -42,6 +44,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Redirect to login if not authenticated
   if (!isAuthenticated || !user) {
+    console.log('❌ ProtectedRoute: Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
@@ -50,8 +53,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // - Assistants are approved when they accept invitation
   // Only redirect rejected users (if any)
   if (user?.profile?.status === 'rejected') {
+    console.log('❌ ProtectedRoute: User rejected, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
+  console.log('✅ ProtectedRoute: User authenticated, rendering protected content');
   return <>{children}</>;
 }
