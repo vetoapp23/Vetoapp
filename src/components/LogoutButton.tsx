@@ -23,16 +23,27 @@ export function LogoutButton() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     
-    // Simulation d'un délai pour l'UX
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    logout();
-    
-    toast({
-      title: "Déconnexion réussie",
-      description: "Vous avez été déconnecté avec succès.",
-    });
-    
+    try {
+      // Logout and immediately redirect
+      await logout();
+      
+      // Navigate immediately to login
+      navigate('/login', { replace: true });
+      
+      toast({
+        title: "Déconnexion réussie",
+        description: "Vous avez été déconnecté avec succès.",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la déconnexion.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoggingOut(false);
+    }
     setIsLoggingOut(false);
   };
 

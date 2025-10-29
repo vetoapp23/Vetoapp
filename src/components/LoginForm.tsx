@@ -41,6 +41,8 @@ export function LoginForm() {
       // Navigate immediately - don't wait
       console.log('🔄 LoginForm: Navigating to dashboard...');
       navigate('/dashboard', { replace: true });
+      //reload page
+      window.location.reload();
     } catch (error) {
       console.error('❌ LoginForm: Login error:', error);
       // Display the specific error message from the backend

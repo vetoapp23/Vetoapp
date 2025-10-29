@@ -208,10 +208,7 @@ export function PetViewModal({ open, onOpenChange, pet, onEdit, onShowDossier, o
           )}
           
           <div className="flex justify-between gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={onShowDossier} className="gap-2">
-              <FileText className="h-4 w-4" />
-              Voir Dossier Médical
-            </Button>
+
             
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
